@@ -62,7 +62,7 @@ begin
   where upper(trim(friend_code)) = upper(trim(p_code))
   limit 1;
 
-  if target.id is null then
+  if not found or target.id is null then
     raise exception 'FRIEND_NOT_FOUND';
   end if;
   if target.id = auth.uid() then
@@ -180,7 +180,7 @@ begin
   where share_token = trim(p_token) and is_active = true
   limit 1;
 
-  if binder.id is null then
+  if not found or binder.id is null then
     raise exception 'SHARE_NOT_FOUND';
   end if;
 
