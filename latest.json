@@ -2,9 +2,9 @@
   "version": "0.3.5",
   "versionCode": 305,
   "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.5/raritio-0.3.5.apk",
-  "sha256": "",
-  "size": 0,
-  "publishedAt": "2026-10-29T14:00:00Z",
+  "sha256": "5b384ab84d60824f438e3774214cb4ae6e4fe4c6a4a13ccc6e7d72235da7031d",
+  "size": 113905653,
+  "publishedAt": "2026-10-29T14:47:00Z",
   "changelog": [
     "Opravené odoberanie kamošov a RLS pravidlá zdieľania.",
     "Manuálna kontrola aktualizácií v Nastaveniach.",
