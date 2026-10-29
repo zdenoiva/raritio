@@ -2,8 +2,8 @@
   "version": "0.3.7",
   "versionCode": 307,
   "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.7/raritio-0.3.7.apk",
-  "sha256": "",
-  "size": 0,
+  "sha256": "8345f35666ab3d4bc7e9b7901d26798223e876d100a7b2cab3352669a5002ca2",
+  "size": 113923225,
   "publishedAt": "2026-10-29T16:30:00Z",
   "changelog": [
     "QR kódy pre zdieľanie a pozvánky cez HTTPS stránku.",
