@@ -51,6 +51,22 @@ void main() {
     expect(extracted!['currentBinderId'], 'b1');
   });
 
+  test('extractState accepts the old Holodex backup envelope', () {
+    final backup = jsonEncode({
+      'app': 'holodex_tcg',
+      'version': 1,
+      'state': {
+        'binders': <dynamic>[],
+        'currentBinderId': 'b1',
+      },
+    });
+
+    final extracted = service.extractState(backup);
+
+    expect(extracted, isNotNull);
+    expect(extracted!['currentBinderId'], 'b1');
+  });
+
   test('extractState accepts a raw state object', () {
     final raw = jsonEncode({
       'binders': <dynamic>[],

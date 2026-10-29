@@ -27,6 +27,8 @@ Zdieľanie používa **Supabase** (Auth, Postgres, RLS). Pred použitím je potr
 
 V appke: **Spravovať balík → Zdieľať balík**. Kamoš naskenuje QR alebo zadá kód v **Zdieľané**.
 
+> Beta používa anonymný Supabase účet viazaný na zariadenie. Pri preinštalovaní sa karty zo zálohy obnovia, ale prístup k zdieľaným balíkom sa môže stratiť. Neskôr môžeme doplniť emailové prihlásenie.
+
 ## Aktualizácie
 
 Appka pri štarte maximálne raz za 24 hodín skontroluje [`latest.json`](latest.json) a ponúkne novšiu verziu. APK sa stiahne z GitHub Releases, overí sa SHA256 a otvorí sa systémový Android installer.
