@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.10] - 2026-10-29
+
+- Opravené prevedenie kariet: skener už nedáva každú kartu ako Reverse Holo.
+- Základné prevedenie (Normal / Holo) má prednosť pred reverse variantom.
+- Reverse sa zobrazí len vtedy, keď je jediné dostupné prevedenie karty.
+- Zlaté, rainbow a iné špeciálne prevedenia zostávajú prioritné.
+
 ## [0.3.9] - 2026-10-29
 
 - Zdieľané balíky pribudli do výberu balíkov pod moje balíky a tlačidlo Vytvoriť nový balík.

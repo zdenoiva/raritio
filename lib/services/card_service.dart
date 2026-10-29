@@ -378,11 +378,11 @@ class CardService {
       'cosmos',
       'textured',
       'etched',
-      'reverse',
       'holo',
       'foil',
-      'firstEdition',
       'normal',
+      'reverse',
+      'firstEdition',
     ]) {
       if (finishes.contains(preferred)) return preferred;
     }

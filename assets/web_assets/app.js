@@ -236,7 +236,7 @@ function finishList(card) {
 
 function primaryFinish(card) {
     const list = finishList(card);
-    for (const preferred of ['rainbow', 'gold', 'cosmos', 'textured', 'etched', 'reverse', 'holo', 'foil', 'firstEdition', 'normal']) {
+    for (const preferred of ['rainbow', 'gold', 'cosmos', 'textured', 'etched', 'holo', 'foil', 'normal', 'reverse', 'firstEdition']) {
         if (list.includes(preferred)) return preferred;
     }
     return normalizeFinish(card.finish);
