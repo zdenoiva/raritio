@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.7] - 2026-10-29
+
+- QR kódy pre zdieľanie a pozvánky fungujú cez HTTPS stránku.
+- Pri mojom profile pribudla ikonka **Môj QR kód**.
+- Ak kamoš Raritio nemá, stránka mu ponúkne aktuálne APK na stiahnutie.
+- Pridaná jednoduchá Raritio landing page na GitHub Pages.
+- Opravené načítanie QR z webového odkazu v appke.
+
 ## [0.3.6] - 2026-10-29
 
 - Moderné výberové okno radenia kariet namiesto natívneho selectu.

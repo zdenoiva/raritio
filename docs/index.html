@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0A0A0C">
+  <title>Raritio</title>
+  <style>
+    :root {
+      --bg: #0a0a0c;
+      --surface: #16161a;
+      --surface-light: #1e1e24;
+      --border: #2d2d35;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-2: #8b5cf6;
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 500px at 15% -10%, rgba(59, 130, 246, 0.22), transparent 60%),
+        radial-gradient(700px 500px at 100% 0%, rgba(139, 92, 246, 0.18), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 28px 16px 40px;
+    }
+    .page { width: 100%; max-width: 520px; }
+    .hero { text-align: center; padding: 14px 0 22px; }
+    .icon {
+      width: 92px;
+      height: 92px;
+      border-radius: 26px;
+      object-fit: cover;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    h1 { margin: 18px 0 4px; font-size: 2rem; letter-spacing: -0.03em; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
+    .card {
+      background: rgba(22, 22, 26, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #bfdbfe;
+      background: rgba(59, 130, 246, 0.14);
+      border: 1px solid rgba(59, 130, 246, 0.28);
+    }
+    .card h2 { margin: 12px 0 5px; font-size: 1.25rem; }
+    .muted { color: var(--muted); font-size: 0.88rem; line-height: 1.45; margin: 0; }
+    .code-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0;
+      padding: 13px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .code-box code {
+      flex: 1;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1.02rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      word-break: break-all;
+    }
+    .icon-btn {
+      border: 1px solid var(--border);
+      background: var(--surface-light);
+      color: var(--muted);
+      border-radius: 10px;
+      padding: 7px 9px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .icon-btn:active { color: var(--text); border-color: var(--primary); }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      text-decoration: none;
+      border: 1px solid transparent;
+      margin-top: 10px;
+      transition: transform 0.15s, opacity 0.2s;
+    }
+    .btn:active { transform: scale(0.985); }
+    .btn.primary { background: var(--primary); color: white; }
+    .btn.secondary {
+      background: var(--surface-light);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn.ghost {
+      background: transparent;
+      color: #93c5fd;
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+    .version { text-align: center; color: var(--muted); font-size: 0.72rem; margin-top: 10px; }
+    .steps {
+      margin: 18px 0 0;
+      padding: 16px;
+      background: rgba(30, 30, 36, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.55;
+    }
+    .steps strong { color: var(--text); }
+    .steps ol { margin: 8px 0 0; padding-left: 20px; }
+    .steps li { margin: 5px 0; }
+    .footer { text-align: center; color: #64748b; font-size: 0.72rem; margin-top: 20px; }
+    .footer a { color: #93c5fd; text-decoration: none; }
+    .hidden { display: none !important; }
+    @media (max-width: 420px) {
+      body { padding: 20px 14px 30px; }
+      .icon { width: 78px; height: 78px; border-radius: 22px; }
+      h1 { font-size: 1.75rem; }
+      .card { padding: 17px; border-radius: 19px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <img class="icon" src="icon.png" alt="Raritio">
+      <h1>Raritio</h1>
+      <p class="subtitle">Zbierka Pokémon a MTG kariet,<br>ceny, balíky a zdieľanie s kamošmi.</p>
+    </section>
+
+    <section class="card">
+      <div id="invite" class="hidden">
+        <span id="invite-badge" class="badge">Pozvánka</span>
+        <h2 id="invite-title">Pozvánka do Raritio</h2>
+        <p id="invite-text" class="muted"></p>
+        <div class="code-box">
+          <code id="invite-code">—</code>
+          <button class="icon-btn" id="copy-code" type="button">Kopírovať</button>
+        </div>
+        <a id="open-app" class="btn ghost hidden" href="#">Už mám Raritio — otvoriť</a>
+      </div>
+
+      <div id="download-block">
+        <span class="badge">Android APK</span>
+        <h2>Stiahni si Raritio</h2>
+        <p class="muted">Aktuálna beta verzia. Po stiahnutí povoľ inštaláciu z neznámeho zdroja.</p>
+        <a id="download" class="btn primary" href="https://github.com/zdenoiva/raritio/releases/latest">
+          Stiahnuť najnovšiu verziu
+        </a>
+        <p id="version" class="version">Zisťujem najnovšiu verziu…</p>
+      </div>
+
+      <div id="invite-steps" class="steps hidden">
+        <strong>Ako pridať pozvánku:</strong>
+        <ol>
+          <li>Nainštaluj si Raritio z tlačidla vyššie.</li>
+          <li>Otvor appku a choď do <strong>Zdieľané</strong>.</li>
+          <li>Klikni na <strong>Pridať kód</strong> a vlož kód z tejto stránky.</li>
+        </ol>
+      </div>
+    </section>
+
+    <p class="footer">
+      <a href="https://github.com/zdenoiva/raritio">GitHub</a>
+      ·
+      <a href="https://github.com/zdenoiva/raritio/releases">Všetky verzie</a>
+    </p>
+  </main>
+
+  <script>
+    const LATEST_URL = 'https://raw.githubusercontent.com/zdenoiva/raritio/main/latest.json';
+    const FALLBACK_DOWNLOAD = 'https://github.com/zdenoiva/raritio/releases/latest';
+    const params = new URLSearchParams(window.location.search);
+    const friend = (params.get('friend') || '').trim();
+    const share = (params.get('share') || '').trim();
+    const code = friend || share;
+    const appLink = friend
+      ? `raritio://friend/${encodeURIComponent(friend)}`
+      : share
+        ? `raritio://share/${encodeURIComponent(share)}`
+        : '';
+
+    const invite = document.getElementById('invite');
+    const inviteBadge = document.getElementById('invite-badge');
+    const inviteTitle = document.getElementById('invite-title');
+    const inviteText = document.getElementById('invite-text');
+    const inviteCode = document.getElementById('invite-code');
+    const inviteSteps = document.getElementById('invite-steps');
+    const openApp = document.getElementById('open-app');
+    const copyCode = document.getElementById('copy-code');
+    const download = document.getElementById('download');
+    const version = document.getElementById('version');
+
+    if (code) {
+      invite.classList.remove('hidden');
+      inviteSteps.classList.remove('hidden');
+      inviteCode.textContent = code;
+      inviteBadge.textContent = friend ? 'Kamoš' : 'Zdieľaný balík';
+      inviteTitle.textContent = friend ? 'Pozvánka od kamoša' : 'Zdieľaný balík';
+      inviteText.textContent = friend
+        ? 'Naskenoval si QR kamoša. Po inštalácii Raritio pridáš kamoša podľa kódu nižšie.'
+        : 'Naskenoval si QR zdieľaného balíka. Po inštalácii Raritio pridáš balík podľa kódu nižšie.';
+      if (appLink) {
+        openApp.href = appLink;
+        openApp.classList.remove('hidden');
+      }
+    }
+
+    copyCode?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(code);
+        copyCode.textContent = 'Skopírované';
+        setTimeout(() => { copyCode.textContent = 'Kopírovať'; }, 1600);
+      } catch (_) {
+        copyCode.textContent = 'Kód označ ručne';
+      }
+    });
+
+    fetch(LATEST_URL, { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      })
+      .then((data) => {
+        if (data.version) {
+          version.textContent = `Najnovšia verzia: ${data.version}`;
+        }
+        if (data.apkUrl) {
+          download.href = data.apkUrl;
+        }
+      })
+      .catch(() => {
+        version.textContent = 'Najnovšiu verziu nájdeš na GitHub Releases.';
+        download.href = FALLBACK_DOWNLOAD;
+      });
+  </script>
+</body>
+</html>

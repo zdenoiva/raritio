@@ -411,7 +411,17 @@ class SharedBinderService {
     return getSharedBinder(id);
   }
 
-  String shareLink(String token) => 'raritio://share/$token';
+  static const String webBase = 'https://zdenoiva.github.io/raritio/';
+
+  String shareLink(String token) =>
+      '${webBase}?share=${Uri.encodeQueryComponent(token)}';
+
+  String friendLink(String code) =>
+      '${webBase}?friend=${Uri.encodeQueryComponent(code)}';
+
+  String appShareLink(String token) => 'raritio://share/$token';
+
+  String appFriendLink(String code) => 'raritio://friend/$code';
 
   String _newFriendCode() {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

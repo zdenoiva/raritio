@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:raritio/screens/qr_scan_screen.dart';
 import 'package:raritio/screens/shared_binder_detail_screen.dart';
@@ -89,6 +91,144 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Friend kód je skopírovaný.')),
+    );
+  }
+
+  Future<void> _showFriendQr() async {
+    final profile = _profile;
+    if (profile == null || profile.friendCode.isEmpty) return;
+    final link = widget.service.friendLink(profile.friendCode);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F0F13),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          20 + MediaQuery.of(context).padding.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3F3F46),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Môj QR kód',
+                style: TextStyle(
+                  color: Color(0xFFF8FAFC),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Kamoš naskenuje kód a pridá si ťa ako kamoša.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: QrImageView(
+                  data: link,
+                  version: QrVersions.auto,
+                  size: 220,
+                  padding: EdgeInsets.zero,
+                  backgroundColor: Colors.white,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: Color(0xFF0A0A0C),
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Color(0xFF0A0A0C),
+                  ),
+                  errorCorrectionLevel: QrErrorCorrectLevel.M,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                profile.nickname,
+                style: const TextStyle(
+                  color: Color(0xFFF8FAFC),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              SelectableText(
+                'Friend kód: ${profile.friendCode}',
+                style: const TextStyle(
+                  color: Color(0xFF93C5FD),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(13),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF16161A),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF2D2D35)),
+                ),
+                child: const Text(
+                  'Ak appku ešte nemá, po naskenovaní sa mu otvorí stránka s tlačidlom na stiahnutie. Potom zadá kód v Zdieľané → Pridať kód.',
+                  style: TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    await SharePlus.instance.share(
+                      ShareParams(
+                        text:
+                            'Pridaj si ma v Raritio. Friend kód: ${profile.friendCode}\n$link',
+                        subject: 'Raritio – pozvánka',
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.ios_share_rounded),
+                  label: const Text('Zdieľať pozvánku'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Zavrieť'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -331,6 +471,8 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
   String? _extractShareToken(String value) {
     final uri = Uri.tryParse(value);
     if (uri != null) {
+      final queryToken = uri.queryParameters['share']?.trim() ?? '';
+      if (queryToken.isNotEmpty) return queryToken;
       if (uri.scheme == 'raritio' && uri.host == 'share') {
         final token = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
         return token.isEmpty ? null : token;
@@ -340,15 +482,19 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
         return token.isEmpty ? null : token;
       }
     }
-    if (value.length >= 16) return value;
+    if (value.length >= 16 && !value.contains('://')) return value;
     return null;
   }
 
   String? _extractFriendCode(String value) {
     final uri = Uri.tryParse(value);
-    if (uri != null && uri.scheme == 'raritio' && uri.host == 'friend') {
-      final code = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
-      return code.isEmpty ? null : code.toUpperCase();
+    if (uri != null) {
+      final queryCode = uri.queryParameters['friend']?.trim() ?? '';
+      if (queryCode.isNotEmpty) return queryCode.toUpperCase();
+      if (uri.scheme == 'raritio' && uri.host == 'friend') {
+        final code = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+        return code.isEmpty ? null : code.toUpperCase();
+      }
     }
     final compact = value.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
     if (compact.length == 6) return compact;
@@ -526,6 +672,7 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
             profile: _profile,
             onEdit: _editProfile,
             onCopy: _copyCode,
+            onQr: _showFriendQr,
           ),
           const SizedBox(height: 14),
           Row(
@@ -627,6 +774,7 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
             profile: _profile,
             onEdit: _editProfile,
             onCopy: _copyCode,
+            onQr: _showFriendQr,
           ),
           const SizedBox(height: 16),
           Row(
@@ -872,11 +1020,13 @@ class _ProfileCard extends StatelessWidget {
     required this.profile,
     required this.onEdit,
     required this.onCopy,
+    required this.onQr,
   });
 
   final RaritioProfile? profile;
   final VoidCallback onEdit;
   final VoidCallback onCopy;
+  final VoidCallback onQr;
 
   @override
   Widget build(BuildContext context) {
@@ -969,6 +1119,11 @@ class _ProfileCard extends StatelessWidget {
                   ),
               ],
             ),
+          ),
+          IconButton(
+            onPressed: onQr,
+            tooltip: 'Môj QR kód',
+            icon: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF93C5FD)),
           ),
           IconButton(
             onPressed: onEdit,

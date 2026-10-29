@@ -168,7 +168,7 @@ class _ShareBinderSheetState extends State<_ShareBinderSheet> {
             ),
             const SizedBox(height: 14),
             const Text(
-              'Kamoš naskenuje QR v Rariťiu cez Zdieľané → QR, alebo použije kód nižšie.',
+              'Kamoš môže naskenovať QR bežnou kamerou. Ak Raritio ešte nemá, otvorí sa jednoduchá stránka s tlačidlom na stiahnutie.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Color(0xFF94A3B8),
