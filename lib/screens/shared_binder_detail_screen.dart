@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:raritio/screens/shared_card_detail_screen.dart';
 import 'package:raritio/services/shared_binder_service.dart';
+import 'package:raritio/utils/card_finish.dart';
 
 class SharedBinderDetailScreen extends StatefulWidget {
   const SharedBinderDetailScreen({
@@ -62,10 +63,7 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
     }
   }
 
-  Future<void> _openCard(
-    Map<String, dynamic> card,
-    CardLike like,
-  ) async {
+  Future<void> _openCard(Map<String, dynamic> card, CardLike like) async {
     final summary = _data?.summary ?? widget.summary;
     final cardId = card['id']?.toString() ?? '';
     await Navigator.push(
@@ -121,69 +119,61 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0A0A0C),
         foregroundColor: Colors.white,
-        title: Text(
-          summary.name,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(summary.name, overflow: TextOverflow.ellipsis),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _ErrorView(message: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  color: const Color(0xFF3B82F6),
-                  backgroundColor: const Color(0xFF16161A),
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: _SharedBinderHeader(
-                          summary: summary,
-                          cardCount: cards.length,
-                        ),
-                      ),
-                      if (cards.isEmpty)
-                        const SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: _EmptyCards(),
-                        )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
-                          sliver: SliverGrid(
-                            gridDelegate:
-                                const SliverGridDelegateWithMaxCrossAxisExtent(
+          ? _ErrorView(message: _error!, onRetry: _load)
+          : RefreshIndicator(
+              onRefresh: _load,
+              color: const Color(0xFF3B82F6),
+              backgroundColor: const Color(0xFF16161A),
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _SharedBinderHeader(
+                      summary: summary,
+                      cardCount: cards.length,
+                    ),
+                  ),
+                  if (cards.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _EmptyCards(),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
                               maxCrossAxisExtent: 220,
                               mainAxisExtent: 318,
                               crossAxisSpacing: 12,
                               mainAxisSpacing: 12,
                             ),
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final card = cards[index];
-                                final cardId = card['id']?.toString() ?? '';
-                                final like = _likes[cardId] ??
-                                    const CardLike(
-                                      count: 0,
-                                      likedByMe: false,
-                                    );
-                                return _SharedCard(
-                                  card: card,
-                                  like: like,
-                                  canLike: !summary.isOwner,
-                                  pending: _likePending.contains(cardId),
-                                  onToggleLike: () => _toggleLike(cardId),
-                                  onOpen: () => _openCard(card, like),
-                                );
-                              },
-                              childCount: cards.length,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final card = cards[index];
+                          final cardId = card['id']?.toString() ?? '';
+                          final like =
+                              _likes[cardId] ??
+                              const CardLike(count: 0, likedByMe: false);
+                          return _SharedCard(
+                            card: card,
+                            like: like,
+                            canLike: !summary.isOwner,
+                            pending: _likePending.contains(cardId),
+                            onToggleLike: () => _toggleLike(cardId),
+                            onOpen: () => _openCard(card, like),
+                          );
+                        }, childCount: cards.length),
+                      ),
+                    ),
+                ],
+              ),
+            ),
     );
   }
 
@@ -200,10 +190,7 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
 }
 
 class _SharedBinderHeader extends StatelessWidget {
-  const _SharedBinderHeader({
-    required this.summary,
-    required this.cardCount,
-  });
+  const _SharedBinderHeader({required this.summary, required this.cardCount});
 
   final SharedBinderSummary summary;
   final int cardCount;
@@ -229,8 +216,11 @@ class _SharedBinderHeader extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.lock_outline_rounded,
-                    size: 16, color: Color(0xFF94A3B8)),
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 16,
+                  color: Color(0xFF94A3B8),
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -242,19 +232,13 @@ class _SharedBinderHeader extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                _Pill(
-                  icon: Icons.style_outlined,
-                  text: '$cardCount kariet',
-                ),
+                _Pill(icon: Icons.style_outlined, text: '$cardCount kariet'),
               ],
             ),
             const SizedBox(height: 10),
             Text(
               'Aktualizované $updatedText',
-              style: const TextStyle(
-                color: Color(0xFF94A3B8),
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -296,7 +280,7 @@ class _SharedCard extends StatelessWidget {
     final rarity = card['rarity']?.toString() ?? '';
     final price = double.tryParse(card['currentPrice']?.toString() ?? '') ?? 0;
     final image = card['imageUri']?.toString() ?? '';
-    final finish = card['finish']?.toString() ?? '';
+    final finish = primaryCardFinish(card);
     final color = _rarityColor(rarity);
 
     return GestureDetector(
@@ -311,82 +295,81 @@ class _SharedCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _cardImage(image),
-                Positioned(
-                  top: 7,
-                  left: 7,
-                  right: 7,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (rarity.isNotEmpty)
-                        _Pill(text: rarity, small: true),
-                      const Spacer(),
-                      if (finish.isNotEmpty && finish.toLowerCase() != 'normal')
-                        _Pill(
-                          text: _finishLabel(finish),
-                          small: true,
-                          accent: true,
-                        ),
-                    ],
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _cardImage(image),
+                  Positioned(
+                    top: 7,
+                    left: 7,
+                    right: 7,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (rarity.isNotEmpty) _Pill(text: rarity, small: true),
+                        const Spacer(),
+                        if (finish.isNotEmpty && finish != 'normal')
+                          _Pill(
+                            text: finishLabelFor(finish),
+                            small: true,
+                            accent: true,
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                Positioned(
-                  left: 7,
-                  bottom: 7,
-                  child: _LikeButton(
-                    like: like,
-                    canLike: canLike,
-                    pending: pending,
-                    onTap: onToggleLike,
+                  Positioned(
+                    right: 7,
+                    bottom: 7,
+                    child: _LikeButton(
+                      like: like,
+                      canLike: canLike,
+                      pending: pending,
+                      onTap: onToggleLike,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFF8FAFC),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFF8FAFC),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  set,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 11,
+                  const SizedBox(height: 2),
+                  Text(
+                    set,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '\$${price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Color(0xFF10B981),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
+                  const SizedBox(height: 6),
+                  Text(
+                    '\$${price.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: Color(0xFF10B981),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -434,51 +417,50 @@ class _LikeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: canLike && !pending ? onTap : null,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0A0A0C),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: like.likedByMe
-                ? const Color(0x66EF4444)
-                : const Color(0xFF2D2D35),
+    final filled = like.likedByMe || (!canLike && like.count > 0);
+    final color = filled ? const Color(0xFFF87171) : const Color(0xFFE2E8F0);
+    return Material(
+      color: Colors.transparent,
+      child: InkResponse(
+        onTap: canLike && !pending ? onTap : null,
+        radius: 26,
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (pending)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              else
+                Icon(
+                  filled
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  size: 27,
+                  color: color,
+                  shadows: const [Shadow(color: Colors.black87, blurRadius: 7)],
+                ),
+              const SizedBox(width: 2),
+              Text(
+                '${like.count}',
+                style: TextStyle(
+                  color: filled
+                      ? const Color(0xFFFCA5A5)
+                      : const Color(0xFFF8FAFC),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  shadows: const [Shadow(color: Colors.black87, blurRadius: 7)],
+                ),
+              ),
+            ],
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (pending)
-              const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              Icon(
-                like.likedByMe
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                size: 15,
-                color: like.likedByMe
-                    ? const Color(0xFFF87171)
-                    : const Color(0xFF94A3B8),
-              ),
-            const SizedBox(width: 4),
-            Text(
-              '${like.count}',
-              style: TextStyle(
-                color: like.likedByMe
-                    ? const Color(0xFFFCA5A5)
-                    : const Color(0xFF94A3B8),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -505,8 +487,11 @@ class _NoImage extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             else
-              const Icon(Icons.image_not_supported_outlined,
-                  color: Color(0xFF64748B), size: 26),
+              const Icon(
+                Icons.image_not_supported_outlined,
+                color: Color(0xFF64748B),
+                size: 26,
+              ),
             if (!loading) ...[
               const SizedBox(height: 5),
               const Text(
@@ -610,8 +595,11 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded,
-                size: 46, color: Color(0xFF94A3B8)),
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 46,
+              color: Color(0xFF94A3B8),
+            ),
             const SizedBox(height: 12),
             Text(
               message,
@@ -657,29 +645,4 @@ Color _rarityColor(String rarity) {
   if (value.contains('rare')) return const Color(0xFF3B82F6);
   if (value.contains('uncommon')) return const Color(0xFF22C55E);
   return const Color(0xFF64748B);
-}
-
-String _finishLabel(String finish) {
-  switch (finish.toLowerCase()) {
-    case 'holo':
-      return 'Holo';
-    case 'reverse':
-      return 'Reverse Holo';
-    case 'rainbow':
-      return 'Rainbow';
-    case 'gold':
-      return 'Gold';
-    case 'cosmos':
-      return 'Cosmos';
-    case 'textured':
-      return 'Texture';
-    case 'etched':
-      return 'Etched';
-    case 'foil':
-      return 'Foil';
-    case 'firstedition':
-      return '1st Edition';
-    default:
-      return finish;
-  }
 }

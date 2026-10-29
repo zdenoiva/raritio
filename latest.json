@@ -1,14 +1,15 @@
 {
-  "version": "0.3.10",
-  "versionCode": 310,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.10/raritio-0.3.10.apk",
-  "sha256": "9168e82f9d69a0019132fccb8402f963186e4370abdc82a1f3a6bb674665fd88",
-  "size": 114170457,
-  "publishedAt": "2026-10-29T17:30:00Z",
+  "version": "0.3.11",
+  "versionCode": 311,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.11/raritio-0.3.11.apk",
+  "sha256": "a4da7753a0a1703ea9a1f529710fbda032238bdc473f1866ed6780948f211f66",
+  "size": 114350809,
+  "publishedAt": "2026-10-29T18:30:00Z",
   "changelog": [
-    "Opravené prevedenie kariet – už žiadne falošné Reverse Holo.",
-    "Normal / Holo má prednosť pred reverse variantom.",
-    "Reverse sa zobrazí len vtedy, keď je jediné dostupné.",
-    "Raritio beta 0.3.10."
+    "Detaily mojich kariet v obdĺžnikovom rozložení ako zdieľané karty.",
+    "Zdieľaný detail má rovnaké údaje ako môj detail.",
+    "Like srdce vpravo dole, väčšie a bez čierneho rámčeka.",
+    "Holo efekt a odlesky pre zdieľané karty.",
+    "Raritio beta 0.3.11."
   ]
 }

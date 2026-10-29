@@ -1038,6 +1038,58 @@
         .detail-label { color: var(--text-muted); }
         .detail-value { font-weight: 600; text-align: right; }
 
+        .detail-heading {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-top: 2px;
+        }
+
+        .detail-name {
+            color: var(--text);
+            font-size: 1.35rem;
+            font-weight: 900;
+            line-height: 1.2;
+        }
+
+        .detail-set {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 9px;
+        }
+
+        .detail-card {
+            min-width: 0;
+            padding: 10px 12px;
+            border-radius: 13px;
+            border: 1px solid var(--border);
+            background: var(--surface-light);
+        }
+
+        .detail-card-label {
+            color: var(--text-muted);
+            font-size: 0.62rem;
+            line-height: 1.2;
+        }
+
+        .detail-card-value {
+            margin-top: 4px;
+            color: var(--text);
+            font-size: 0.82rem;
+            font-weight: 800;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+
+        .detail-card-value.price {
+            color: var(--success);
+        }
+
         .detail-image-actions {
             display: flex;
             flex-wrap: wrap;
@@ -1476,27 +1528,29 @@
 
         .card-like-badge {
             position: absolute;
-            left: 7px;
+            right: 7px;
             bottom: 7px;
             z-index: 3;
             display: inline-flex;
             align-items: center;
-            gap: 3px;
-            padding: 3px 7px;
-            border-radius: 999px;
-            background: rgba(10, 10, 12, 0.82);
-            border: 1px solid rgba(248, 113, 113, 0.45);
-            color: #fca5a5;
-            font-size: 0.6rem;
-            font-weight: 800;
-            backdrop-filter: blur(6px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            gap: 2px;
+            padding: 2px 3px;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 900;
+            backdrop-filter: none;
+            box-shadow: none;
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.95), 0 0 9px rgba(0, 0, 0, 0.65);
         }
 
         .card-like-badge span {
             color: #f87171;
-            font-size: 0.7rem;
+            font-size: 1rem;
             line-height: 1;
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.95), 0 0 9px rgba(0, 0, 0, 0.65);
         }
 
         .card-badges {
@@ -2718,7 +2772,7 @@
                 <button class="btn-secondary" onclick="checkForUpdates()">Skontrolovať aktualizácie</button>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.3.10</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.3.11</span></p>
         </div>
     </div>
 
@@ -2831,6 +2885,7 @@
     <script src="app.js"></script>
 </body>
 </html>
+
 
 
 

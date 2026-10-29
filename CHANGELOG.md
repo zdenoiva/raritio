@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.11] - 2026-10-29
+
+- Detaily mojich kariet sú v rovnakých obdĺžnikových kartách ako zdieľané karty.
+- Zdieľaný detail karty obsahuje rovnaké údaje ako môj detail: jazyk, edíciu, raritu, prevedenie, číslo, autora, cenu a zdroj ceny.
+- Like srdce je v pravom dolnom rohu, väčšie a bez čierneho rámčeka.
+- Zdieľané karty majú holo efekt – nakláňanie podľa telefónu, odlesky a reakciu na potiahnutie prstom.
+
 ## [0.3.10] - 2026-10-29
 
 - Opravené prevedenie kariet: skener už nedáva každú kartu ako Reverse Holo.

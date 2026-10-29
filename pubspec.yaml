@@ -1,7 +1,7 @@
 name: raritio
 description: "Raritio — osobná zbierka Pokémon a MTG kariet."
 publish_to: 'none'
-version: 0.3.10+310
+version: 0.3.11+311
 
 environment:
   sdk: ^3.13.7
@@ -29,6 +29,7 @@ dependencies:
   app_links: ^7.2.2
   apk_sideload: ^0.0.2
   crypto: ^3.0.8
+  sensors_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:
@@ -41,6 +42,7 @@ flutter:
 
   assets:
     - assets/web_assets/
+
 
 
 

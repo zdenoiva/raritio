@@ -2348,16 +2348,19 @@ function showCardDetails(cardId, preserveScroll = false) {
     content.innerHTML = `
         ${cardVisualHtml(card)}
         ${renderDetailImageActions(card)}
-        <div>
-            <div class="detail-row"><span class="detail-label">Názov</span><span class="detail-value">${escapeHtml(card.name)}</span></div>
-            <div class="detail-row"><span class="detail-label">Jazyk</span><span class="detail-value">${languageFlag(card.language)} ${escapeHtml(languageLabel(card.language))}</span></div>
-            <div class="detail-row"><span class="detail-label">Edícia</span><span class="detail-value">${escapeHtml(card.set)}</span></div>
-            <div class="detail-row"><span class="detail-label">Rarita</span><span class="detail-value">${escapeHtml(card.rarity || 'Neznáma')}</span></div>
-            <div class="detail-row"><span class="detail-label">Prevedenie</span><span class="detail-value">${escapeHtml(finishLabel(card) || 'Normal')}</span></div>
-            <div class="detail-row"><span class="detail-label">Číslo</span><span class="detail-value">${escapeHtml(card.number || '-')}</span></div>
-            <div class="detail-row"><span class="detail-label">Autor</span><span class="detail-value">${escapeHtml(card.artist || '-')}</span></div>
-            <div class="detail-row"><span class="detail-label">Cena</span><span class="detail-value" id="detail-price" style="color:var(--success)">$${(Number(card.currentPrice) || 0).toFixed(2)}</span></div>
-            <div class="detail-row"><span class="detail-label">Zdroj ceny</span><span class="detail-value">${escapeHtml(priceSourceLabel(card))}</span></div>
+        <div class="detail-heading">
+            <div class="detail-name">${escapeHtml(card.name)}</div>
+            <div class="detail-set">${escapeHtml(card.set || '-')}</div>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-card"><span class="detail-card-label">Jazyk</span><span class="detail-card-value">${languageFlag(card.language)} ${escapeHtml(languageLabel(card.language))}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Edícia</span><span class="detail-card-value">${escapeHtml(card.set || '-')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Rarita</span><span class="detail-card-value">${escapeHtml(card.rarity || '-')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Prevedenie</span><span class="detail-card-value">${escapeHtml(finishLabel(card) || 'Normal')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Číslo</span><span class="detail-card-value">${escapeHtml(card.number || '-')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Autor</span><span class="detail-card-value">${escapeHtml(card.artist || '-')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Cena</span><span class="detail-card-value price" id="detail-price">$${(Number(card.currentPrice) || 0).toFixed(2)}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Zdroj ceny</span><span class="detail-card-value">${escapeHtml(priceSourceLabel(card))}</span></div>
         </div>
         <div id="grade-prices-container">${renderGradePrices(card)}</div>
         <div id="price-history-container">${renderPriceHistory(card)}</div>
@@ -2610,16 +2613,19 @@ function renderPreview(card) {
     content.innerHTML = `
         ${cardVisualHtml(card)}
         ${renderDetailImageActions(card)}
-        <div>
-            <div class="detail-row"><span class="detail-label">Názov</span><span class="detail-value">${escapeHtml(card.name)}</span></div>
-            <div class="detail-row"><span class="detail-label">Jazyk</span><span class="detail-value">${languageFlag(card.language)} ${escapeHtml(languageLabel(card.language))}</span></div>
-            <div class="detail-row"><span class="detail-label">Edícia</span><span class="detail-value">${escapeHtml(card.set || '-')}</span></div>
-            <div class="detail-row"><span class="detail-label">Rarita</span><span class="detail-value">${escapeHtml(card.rarity || '-')}</span></div>
-            <div class="detail-row"><span class="detail-label">Prevedenie</span><span class="detail-value">${escapeHtml(finishLabel(card) || 'Normal')}</span></div>
-            <div class="detail-row"><span class="detail-label">Číslo</span><span class="detail-value">${escapeHtml(card.number || '-')}</span></div>
-            <div class="detail-row"><span class="detail-label">Autor</span><span class="detail-value">${escapeHtml(card.artist || '-')}</span></div>
-            <div class="detail-row"><span class="detail-label">Cena</span><span class="detail-value" id="detail-price" style="color:var(--success)">${priceText}</span></div>
-            <div class="detail-row"><span class="detail-label">Zdroj ceny</span><span class="detail-value">${escapeHtml(priceSourceLabel(card))}</span></div>
+        <div class="detail-heading">
+            <div class="detail-name">${escapeHtml(card.name)}</div>
+            <div class="detail-set">${escapeHtml(card.set || '-')}</div>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-card"><span class="detail-card-label">Jazyk</span><span class="detail-card-value">${languageFlag(card.language)} ${escapeHtml(languageLabel(card.language))}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Edícia</span><span class="detail-card-value">${escapeHtml(card.set || '-')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Rarita</span><span class="detail-card-value">${escapeHtml(card.rarity || '-')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Prevedenie</span><span class="detail-card-value">${escapeHtml(finishLabel(card) || 'Normal')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Číslo</span><span class="detail-card-value">${escapeHtml(card.number || '-')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Autor</span><span class="detail-card-value">${escapeHtml(card.artist || '-')}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Cena</span><span class="detail-card-value price" id="detail-price">${priceText}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Zdroj ceny</span><span class="detail-card-value">${escapeHtml(priceSourceLabel(card))}</span></div>
         </div>
         <div id="grade-prices-container">${renderGradePrices(card)}</div>
         <div id="price-history-container">${renderPriceHistory(card)}</div>
