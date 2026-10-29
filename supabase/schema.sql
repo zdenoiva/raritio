@@ -153,14 +153,10 @@ drop policy if exists "shared_access_viewer_select" on public.shared_binder_acce
 create policy "shared_access_viewer_select" on public.shared_binder_access
   for select using (auth.uid() = viewer_id);
 
+-- The owner policy deliberately does not query shared_binders here: that caused
+-- infinite RLS recursion with the viewer policy above. Owners manage sharing
+-- through binder actions; they do not need to list access rows in this beta.
 drop policy if exists "shared_access_owner_select" on public.shared_binder_access;
-create policy "shared_access_owner_select" on public.shared_binder_access
-  for select using (
-    exists (
-      select 1 from public.shared_binders b
-      where b.id = shared_binder_id and b.owner_id = auth.uid()
-    )
-  );
 
 create or replace function public.accept_shared_binder(p_token text)
 returns uuid
