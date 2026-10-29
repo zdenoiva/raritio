@@ -155,13 +155,11 @@ function normalizeSettings(raw) {
 function normalizeHistory(value) {
     if (!Array.isArray(value)) return [];
     return value
-        .filter(point => point && point.date && Number.isFinite(Number(point.price)))
+        .filter(point => point && point.date && Number.isFinite(Number(point.price)) && point.source !== 'pricecharting')
         .map(point => ({
             date: String(point.date).slice(0, 10),
             price: Number(point.price),
-            source: ['cardmarket', 'pricecharting', 'local'].includes(point.source)
-                ? point.source
-                : 'local'
+            source: point.source === 'cardmarket' ? 'cardmarket' : 'local'
         }))
         .filter(point => point.price > 0)
         .sort((a, b) => a.date.localeCompare(b.date))
@@ -258,6 +256,62 @@ function finishLabel(card) {
         etched: 'Etched'
     };
     return labels[finish] || finish.charAt(0).toUpperCase() + finish.slice(1);
+}
+
+const FINISH_LABELS = {
+    normal: 'Normal',
+    firstEdition: '1st Edition',
+    reverse: 'Reverse Holo',
+    holo: 'Holo',
+    foil: 'Foil',
+    cosmos: 'Cosmos',
+    textured: 'Texture',
+    rainbow: 'Rainbow',
+    gold: 'Gold',
+    etched: 'Etched'
+};
+
+function finishLabelValue(finish) {
+    const value = normalizeFinish(finish) || 'normal';
+    return FINISH_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function renderFinishPicker(card) {
+    const options = isMtgCard(card)
+        ? ['normal', 'foil', 'etched']
+        : ['normal', 'holo', 'reverse', 'foil', 'cosmos', 'textured', 'rainbow', 'gold', 'etched', 'firstEdition'];
+    const current = primaryFinish(card) || 'normal';
+    return `
+        <div class="finish-picker">
+            <div class="finish-picker-title">Prevedenie karty</div>
+            <div class="finish-chips">
+                ${options.map(finish => `
+                    <button class="finish-chip ${finish === current ? 'active' : ''}"
+                            onclick="setCardFinish('${escapeHtml(card.id)}', '${finish}')">
+                        ${finishLabelValue(finish)}
+                    </button>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function setCardFinish(cardId, finish) {
+    const normalized = normalizeFinish(finish) || 'normal';
+    const updated = updateCardEverywhere(cardId, card => {
+        card.finish = normalized;
+        card.finishes = [normalized];
+        card.foil = normalized !== 'normal' && normalized !== 'firstEdition';
+    });
+    if (!updated) return;
+
+    saveState();
+    renderBinder();
+    if (document.getElementById('binder-modal').classList.contains('active')) {
+        renderBinderPicker();
+    }
+    refreshOpenCardDetail(cardId);
+    showToast(`Prevedenie zmenené na ${finishLabelValue(normalized)}.`);
 }
 
 function finishClass(finish) {
@@ -1108,6 +1162,10 @@ function saveBinderName() {
         renderBinderSelector();
         renderBinder();
         if (wasPickerOpen) renderBinderPicker();
+        if (document.getElementById('binder-actions-modal').classList.contains('active')) {
+            binderActionsId = binderId;
+            renderBinderActions();
+        }
         showToast(`Balík premenovaný na ${name}.`);
         return;
     }
@@ -1146,6 +1204,10 @@ function closeBinderActions(event) {
     binderActionsId = null;
 }
 
+function renameBinderFromActions() {
+    if (binderActionsId) openRenameBinder(binderActionsId);
+}
+
 function renderBinderActions() {
     const binder = state.binders.find(item => item.id === binderActionsId);
     const container = document.getElementById('binder-actions-content');
@@ -1155,7 +1217,15 @@ function renderBinderActions() {
     const mtgCount = binder.cards.filter(card => gameClass(card.game) === 'mtg').length;
     container.innerHTML = `
         <div class="binder-actions-summary">
-            <div class="binder-actions-name">${escapeHtml(binder.name)}</div>
+            <div class="binder-actions-name-row">
+                <div class="binder-actions-name">${escapeHtml(binder.name)}</div>
+                <button class="binder-actions-edit" onclick="renameBinderFromActions()" title="Premenovať balík" aria-label="Premenovať balík">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                    </svg>
+                </button>
+            </div>
             <div class="binder-actions-meta">${binder.cards.length} ${cardCountLabel(binder.cards.length)} · ${pokemonCount} Pokémon · ${mtgCount} MTG</div>
         </div>
         <div class="settings-section">
@@ -2089,24 +2159,6 @@ function renderGradePrices(card) {
     `;
 }
 
-function mergeCardPriceHistory(card, points) {
-    if (!Array.isArray(points) || points.length === 0) return;
-    const byDate = new Map();
-    (card.priceHistory || []).forEach(point => byDate.set(point.date, point));
-    points.forEach(point => {
-        if (!point || !point.date || !Number.isFinite(Number(point.price))) return;
-        if (byDate.has(point.date)) return;
-        byDate.set(point.date, {
-            date: String(point.date),
-            price: Number(point.price),
-            source: 'pricecharting'
-        });
-    });
-    card.priceHistory = Array.from(byDate.values())
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .slice(-60);
-}
-
 function requestPriceCharting(card) {
     // MTG cards have no PriceCharting grade table, so don't even search for it.
     if (!card || isMtgCard(card) || !state.settings.priceCharting || !window.flutterBridge) return;
@@ -2183,9 +2235,7 @@ function handlePriceCharting(cardId, data, language = null, game = null) {
             card.currentPrice = fallbackPrice;
             card.priceSource = 'pricecharting';
             card.lastUpdated = new Date().toISOString();
-            recordPriceSnapshot(card, fallbackPrice);
         }
-        mergeCardPriceHistory(card, data.priceHistory);
         updatedCard = card;
     };
 
@@ -2363,6 +2413,7 @@ function showCardDetails(cardId, preserveScroll = false) {
             <div class="detail-card"><span class="detail-card-label">Cena</span><span class="detail-card-value price" id="detail-price">$${(Number(card.currentPrice) || 0).toFixed(2)}</span></div>
             <div class="detail-card"><span class="detail-card-label">Zdroj ceny</span><span class="detail-card-value">${escapeHtml(priceSourceLabel(card))}</span></div>
         </div>
+        ${renderFinishPicker(card)}
         <div id="grade-prices-container">${renderGradePrices(card)}</div>
         <div id="price-history-container">${renderPriceHistory(card)}</div>
         <div class="binder-picker">
@@ -2630,6 +2681,7 @@ function renderPreview(card) {
             <div class="detail-card"><span class="detail-card-label">Cena</span><span class="detail-card-value price" id="detail-price">${priceText}</span></div>
             <div class="detail-card"><span class="detail-card-label">Zdroj ceny</span><span class="detail-card-value">${escapeHtml(priceSourceLabel(card))}</span></div>
         </div>
+        ${renderFinishPicker(card)}
         <div id="grade-prices-container">${renderGradePrices(card)}</div>
         <div id="price-history-container">${renderPriceHistory(card)}</div>
         <div class="binder-picker">
@@ -3460,6 +3512,28 @@ function closeModal(event) {
     updateNav('nav-binder');
 }
 
+function handleAndroidBack() {
+    const closeIfOpen = (id, close) => {
+        const modal = document.getElementById(id);
+        if (!modal || !modal.classList.contains('active')) return false;
+        close();
+        return true;
+    };
+
+    if (closeIfOpen('confirm-modal', closeConfirm)) return true;
+    if (closeIfOpen('version-history-modal', closeVersionHistory)) return true;
+    if (closeIfOpen('binder-name-modal', closeBinderNameModal)) return true;
+    if (closeIfOpen('sort-modal', closeSortPicker)) return true;
+    if (closeIfOpen('binder-actions-modal', closeBinderActions)) return true;
+    if (closeIfOpen('binder-modal', closeBinderPicker)) return true;
+    if (closeIfOpen('overview-modal', closeOverview)) return true;
+    if (closeIfOpen('rarity-legend-modal', closeRarityLegend)) return true;
+    if (closeIfOpen('data-modal', closeDataModal)) return true;
+    if (closeIfOpen('card-modal', closeCardModal)) return true;
+    if (closeIfOpen('search-modal', closeModal)) return true;
+    return false;
+}
+
 function closeCardModal(event) {
     if (event && event.target !== event.currentTarget) return;
     document.getElementById('card-modal').classList.remove('active');
@@ -3474,7 +3548,7 @@ function closeCardModal(event) {
 }
 
 function closeAllModals() {
-    ['search-modal', 'card-modal', 'data-modal', 'binder-modal', 'binder-name-modal', 'binder-actions-modal', 'sort-modal', 'confirm-modal', 'overview-modal', 'rarity-legend-modal'].forEach(id => {
+    ['search-modal', 'card-modal', 'data-modal', 'version-history-modal', 'binder-modal', 'binder-name-modal', 'binder-actions-modal', 'sort-modal', 'confirm-modal', 'overview-modal', 'rarity-legend-modal'].forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.remove('active');
     });

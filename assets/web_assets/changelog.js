@@ -1,6 +1,18 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.3.13",
+    "date": "2026-10-29",
+    "changes": [
+      "Názov balíka a cena sú v jednom riadku, tlačidlo ... je vedľa názvu.",
+      "Ceruzka a + pribudli z hlavičky preč; premenovanie je v menu balíka cez ceruzku.",
+      "V detaile karty sa dá ručne zvoliť prevedenie (Normal, Holo, Reverse, Gold a ďalšie).",
+      "Ceny sa prioritne ťahajú z Cardmarketu; PriceCharting je len núdzová alternatíva.",
+      "História cien už neobsahuje skoky z PriceChartingu a staré PriceCharting body sa čistia.",
+      "Android tlačidlo Späť zatvorí otvorené okno namiesto ukončenia aplikácie."
+    ]
+  },
+  {
     "version": "0.3.12",
     "date": "2026-10-29",
     "changes": [

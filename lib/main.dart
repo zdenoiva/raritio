@@ -28,38 +28,40 @@ import 'package:raritio/widgets/share_binder_sheet.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    statusBarBrightness: Brightness.dark,
-    systemNavigationBarColor: Colors.black,
-    systemNavigationBarIconBrightness: Brightness.light,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.black,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
   await Supabase.initialize(
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.anonKey,
   );
-  runApp(MaterialApp(
-    title: 'Raritio',
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData.dark(useMaterial3: true).copyWith(
-      scaffoldBackgroundColor: const Color(0xFF0A0A0C),
-      colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF3B82F6),
-        secondary: Color(0xFF8B5CF6),
-        surface: Color(0xFF16161A),
-        error: Color(0xFFEF4444),
+  runApp(
+    MaterialApp(
+      title: 'Raritio',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(useMaterial3: true).copyWith(
+        scaffoldBackgroundColor: const Color(0xFF0A0A0C),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF3B82F6),
+          secondary: Color(0xFF8B5CF6),
+          surface: Color(0xFF16161A),
+          error: Color(0xFFEF4444),
+        ),
+        dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF16161A)),
+        snackBarTheme: const SnackBarThemeData(
+          backgroundColor: Color(0xFF1E1E24),
+          contentTextStyle: TextStyle(color: Color(0xFFF8FAFC)),
+        ),
       ),
-      dialogTheme: const DialogThemeData(
-        backgroundColor: Color(0xFF16161A),
-      ),
-      snackBarTheme: const SnackBarThemeData(
-        backgroundColor: Color(0xFF1E1E24),
-        contentTextStyle: TextStyle(color: Color(0xFFF8FAFC)),
-      ),
+      home: const RaritioTCG(),
     ),
-    home: const RaritioTCG(),
-  ));
+  );
 }
 
 class RaritioTCG extends StatefulWidget {
@@ -95,9 +97,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageFinished: (_) => _hydrateStateFromDisk(),
-        ),
+        NavigationDelegate(onPageFinished: (_) => _hydrateStateFromDisk()),
       )
       ..addJavaScriptChannel(
         'flutterBridge',
@@ -158,9 +158,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
   }
 
   Future<void> _hydrateStateFromDisk() async {
-    _controller.runJavaScript(
-      'setAppVersion(${jsonEncode(appVersion)})',
-    );
+    _controller.runJavaScript('setAppVersion(${jsonEncode(appVersion)})');
     try {
       // Let any pending save finish before reading, so a page reload never
       // restores an older snapshot.
@@ -209,9 +207,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-        ),
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     }
   }
@@ -271,7 +267,9 @@ class _RaritioTCGState extends State<RaritioTCG> {
     if (!mounted) return;
     if (info == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aktualizácie sa nepodarilo skontrolovať.')),
+        const SnackBar(
+          content: Text('Aktualizácie sa nepodarilo skontrolovať.'),
+        ),
       );
       return;
     }
@@ -312,16 +310,18 @@ class _RaritioTCGState extends State<RaritioTCG> {
                       style: const TextStyle(color: Color(0xFF94A3B8)),
                     ),
                   ),
-                ...changelog.map((line) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('•  '),
-                          Expanded(child: Text(line)),
-                        ],
-                      ),
-                    )),
+                ...changelog.map(
+                  (line) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('•  '),
+                        Expanded(child: Text(line)),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 const Text(
                   'Android ešte vyžiada potvrdenie inštalácie. Ak je to potrebné, povoľ Rariťiu inštaláciu neznámych aplikácií.',
@@ -359,38 +359,40 @@ class _RaritioTCGState extends State<RaritioTCG> {
     final received = ValueNotifier<int>(0);
     var dialogOpen = true;
 
-    unawaited(showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => PopScope(
-        canPop: false,
-        child: AlertDialog(
-          title: Text('Sťahujem Raritio ${info.version}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ValueListenableBuilder<double>(
-                valueListenable: progress,
-                builder: (context, value, child) => LinearProgressIndicator(
-                  value: value <= 0 ? null : value,
-                  minHeight: 6,
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            title: Text('Sťahujem Raritio ${info.version}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ValueListenableBuilder<double>(
+                  valueListenable: progress,
+                  builder: (context, value, child) => LinearProgressIndicator(
+                    value: value <= 0 ? null : value,
+                    minHeight: 6,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              ValueListenableBuilder<int>(
-                valueListenable: received,
-                builder: (context, value, child) => Text(
-                  '${(value / (1024 * 1024)).toStringAsFixed(1)} MB'
-                  '${info.size > 0 ? ' / ${(info.size / (1024 * 1024)).toStringAsFixed(1)} MB' : ''}',
-                  style: const TextStyle(color: Color(0xFF94A3B8)),
+                const SizedBox(height: 12),
+                ValueListenableBuilder<int>(
+                  valueListenable: received,
+                  builder: (context, value, child) => Text(
+                    '${(value / (1024 * 1024)).toStringAsFixed(1)} MB'
+                    '${info.size > 0 ? ' / ${(info.size / (1024 * 1024)).toStringAsFixed(1)} MB' : ''}',
+                    style: const TextStyle(color: Color(0xFF94A3B8)),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ));
+    );
 
     try {
       final file = await _updateService.download(
@@ -450,7 +452,8 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final result = await _bridge.scanImagePath(imagePath);
       if (result == null) {
         _controller.runJavaScript(
-            'showError(${jsonEncode("Nepodarilo sa rozpoznať text. Skús kartu odfotiť znovu.")})');
+          'showError(${jsonEncode("Nepodarilo sa rozpoznať text. Skús kartu odfotiť znovu.")})',
+        );
         return;
       }
 
@@ -479,14 +482,16 @@ class _RaritioTCGState extends State<RaritioTCG> {
           query = (data['query'] as String? ?? '').trim();
           fromOcr = data['ocr'] == true;
           requestId = data['requestId'];
-          requestedLanguage =
-              (data['language']?.toString() ?? 'auto').trim().toLowerCase();
+          requestedLanguage = (data['language']?.toString() ?? 'auto')
+              .trim()
+              .toLowerCase();
         }
       }
 
       if (query.isEmpty) {
         _controller.runJavaScript(
-            'handleSearchResults([], ${jsonEncode(query)}, ${jsonEncode(requestId)})');
+          'handleSearchResults([], ${jsonEncode(query)}, ${jsonEncode(requestId)})',
+        );
         return;
       }
 
@@ -538,11 +543,13 @@ class _RaritioTCGState extends State<RaritioTCG> {
       }
 
       _controller.runJavaScript(
-          'handleSearchResults(${jsonEncode(results)}, ${jsonEncode(usedQuery)}, ${jsonEncode(requestId)})');
+        'handleSearchResults(${jsonEncode(results)}, ${jsonEncode(usedQuery)}, ${jsonEncode(requestId)})',
+      );
     } catch (e) {
       print("Search error: $e");
       _controller.runJavaScript(
-          'handleSearchResults([], ${jsonEncode(null)}, ${jsonEncode(requestId)})');
+        'handleSearchResults([], ${jsonEncode(null)}, ${jsonEncode(requestId)})',
+      );
     }
   }
 
@@ -668,8 +675,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
       _controller.runJavaScript(
         'handleCustomCardImageProcessing(${jsonEncode(cardId)})',
       );
-      final dataUri =
-          await _customCardImageService.prepareFromFile(imagePath);
+      final dataUri = await _customCardImageService.prepareFromFile(imagePath);
       try {
         await File(imagePath).delete();
       } catch (_) {
@@ -703,9 +709,8 @@ class _RaritioTCGState extends State<RaritioTCG> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SharedBindersScreen(
-            service: _sharedBinderService,
-          ),
+          builder: (context) =>
+              SharedBindersScreen(service: _sharedBinderService),
         ),
       );
     } finally {
@@ -730,8 +735,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final snapshot = data['snapshot'] is Map
           ? Map<String, dynamic>.from(data['snapshot'] as Map)
           : <String, dynamic>{};
-      final cardCount =
-          int.tryParse(data['cardCount']?.toString() ?? '') ?? 0;
+      final cardCount = int.tryParse(data['cardCount']?.toString() ?? '') ?? 0;
       final totalValue =
           double.tryParse(data['totalValue']?.toString() ?? '') ?? 0.0;
 
@@ -746,11 +750,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
       if (!mounted) return;
       _controller.runJavaScript(
-        'handleShareBinderResult(${jsonEncode({
-              'localId': localId,
-              'id': summary.id,
-              'token': summary.shareToken,
-            })})',
+        'handleShareBinderResult(${jsonEncode({'localId': localId, 'id': summary.id, 'token': summary.shareToken})})',
       );
       _controller.runJavaScript('closeBinderActions()');
 
@@ -767,9 +767,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
     } catch (e) {
       final message = e.toString().replaceFirst('Exception: ', '');
       if (mounted) {
-        _controller.runJavaScript(
-          'handleSharedError(${jsonEncode(message)})',
-        );
+        _controller.runJavaScript('handleSharedError(${jsonEncode(message)})');
       }
     }
   }
@@ -843,8 +841,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
     try {
       if (uri.host == 'share') {
-        final token =
-            uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+        final token = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
         if (token.isEmpty) return;
         final data = await _sharedBinderService.acceptShareToken(token);
         if (!mounted) return;
@@ -862,8 +859,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
       }
 
       if (uri.host == 'friend') {
-        final code =
-            uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+        final code = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
         if (code.isEmpty) return;
         final friend = await _sharedBinderService.addFriendByCode(code);
         if (!mounted) return;
@@ -874,9 +870,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-        ),
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     }
   }
@@ -930,7 +924,6 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final cardId = data['id'] as String? ?? '';
       final game = data['game'] as String? ?? '';
       final cardName = data['name'] as String? ?? '';
-      final source = data['source'] as String? ?? 'tcgdex';
       final language = data['language'] as String? ?? 'en';
       final set = data['set'] as String? ?? '';
       final number = data['number'] as String? ?? '';
@@ -939,20 +932,19 @@ class _RaritioTCGState extends State<RaritioTCG> {
       if (cardId.isEmpty) return false;
 
       double price = 0.0;
-      if (game == 'pokemon') {
-        price = await _priceService.getPokemonPrice(
-          cardId,
-          source: source,
-          language: language,
-        );
-      } else {
+      if (game == 'mtg') {
         price = await _priceService.getMtgPrice(cardName);
+      } else {
+        // Always query TCGdex for Pokemon because its Cardmarket pricing is
+        // the primary source. PriceCharting remains a last-resort fallback.
+        price = await _priceService.getPokemonPrice(cardId, language: language);
       }
 
       if (price > 0) {
         _controller.runJavaScript(
-            'updatePriceInUI(${jsonEncode(cardId)}, $price, '
-            '${jsonEncode(language)}, ${jsonEncode(game)})');
+          'updatePriceInUI(${jsonEncode(cardId)}, $price, '
+          '${jsonEncode(language)}, ${jsonEncode(game)})',
+        );
         return true;
       }
 
@@ -969,9 +961,10 @@ class _RaritioTCGState extends State<RaritioTCG> {
         );
         if (fallback != null) {
           _controller.runJavaScript(
-              'handlePriceCharting(${jsonEncode(cardId)}, '
-              '${jsonEncode(fallback)}, ${jsonEncode(language)}, '
-              '${jsonEncode(game)})');
+            'handlePriceCharting(${jsonEncode(cardId)}, '
+            '${jsonEncode(fallback)}, ${jsonEncode(language)}, '
+            '${jsonEncode(game)})',
+          );
           final hasPrice = (fallback['price'] as num? ?? 0) > 0;
           final hasGrades =
               (fallback['gradePrices'] as List?)?.isNotEmpty ?? false;
@@ -1010,20 +1003,23 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
       if (result == null) {
         _controller.runJavaScript(
-            'handlePriceChartingError(${jsonEncode(cardId)}, '
-            '${jsonEncode(language)}, ${jsonEncode(game)})');
+          'handlePriceChartingError(${jsonEncode(cardId)}, '
+          '${jsonEncode(language)}, ${jsonEncode(game)})',
+        );
       } else {
         _controller.runJavaScript(
-            'handlePriceCharting(${jsonEncode(cardId)}, '
-            '${jsonEncode(result)}, ${jsonEncode(language)}, '
-            '${jsonEncode(game)})');
+          'handlePriceCharting(${jsonEncode(cardId)}, '
+          '${jsonEncode(result)}, ${jsonEncode(language)}, '
+          '${jsonEncode(game)})',
+        );
       }
     } catch (e) {
       print("PriceCharting error: $e");
       if (cardId.isNotEmpty) {
         _controller.runJavaScript(
-            'handlePriceChartingError(${jsonEncode(cardId)}, '
-            '${jsonEncode(language)}, ${jsonEncode(game)})');
+          'handlePriceChartingError(${jsonEncode(cardId)}, '
+          '${jsonEncode(language)}, ${jsonEncode(game)})',
+        );
       }
     }
   }
@@ -1033,11 +1029,13 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final json = message.substring('saveState:'.length);
       jsonDecode(json); // validate before writing
 
-      _stateWriteChain = _stateWriteChain.then((_) {
-        return _stateService.saveState(json);
-      }).catchError((Object error) {
-        print('State save error: $error');
-      });
+      _stateWriteChain = _stateWriteChain
+          .then((_) {
+            return _stateService.saveState(json);
+          })
+          .catchError((Object error) {
+            print('State save error: $error');
+          });
     } catch (e) {
       print("Invalid state payload: $e");
     }
@@ -1051,11 +1049,13 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final backup = _stateService.createBackup(stateJson);
       final path = await _stateService.saveBackup(backup);
       _controller.runJavaScript(
-          'onBackupResult(true, ${jsonEncode('Záloha uložená: $path')})');
+        'onBackupResult(true, ${jsonEncode('Záloha uložená: $path')})',
+      );
     } catch (e) {
       print("Backup error: $e");
       _controller.runJavaScript(
-          'onBackupResult(false, ${jsonEncode("Zálohu sa nepodarilo uložiť: $e")})');
+        'onBackupResult(false, ${jsonEncode("Zálohu sa nepodarilo uložiť: $e")})',
+      );
     }
   }
 
@@ -1082,7 +1082,8 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
       if (picked == null) {
         _controller.runJavaScript(
-            'onRestoreResult(false, ${jsonEncode("Obnova bola zrušená.")})');
+          'onRestoreResult(false, ${jsonEncode("Obnova bola zrušená.")})',
+        );
         return;
       }
 
@@ -1092,7 +1093,8 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
       if (state == null) {
         _controller.runJavaScript(
-            'onRestoreResult(false, ${jsonEncode("Vybraný súbor nie je platná záloha Raritio.")})');
+          'onRestoreResult(false, ${jsonEncode("Vybraný súbor nie je platná záloha Raritio.")})',
+        );
         return;
       }
 
@@ -1108,18 +1110,38 @@ class _RaritioTCGState extends State<RaritioTCG> {
     } catch (e) {
       print("Restore error: $e");
       _controller.runJavaScript(
-          'onRestoreResult(false, ${jsonEncode("Obnovu sa nepodarilo dokončiť: $e")})');
+        'onRestoreResult(false, ${jsonEncode("Obnovu sa nepodarilo dokončiť: $e")})',
+      );
+    }
+  }
+
+  Future<void> _handleAndroidBack() async {
+    try {
+      final result = await _controller.runJavaScriptReturningResult(
+        'handleAndroidBack()',
+      );
+      final handled =
+          result == true || result.toString().toLowerCase() == 'true';
+      if (!handled) {
+        await SystemNavigator.pop();
+      }
+    } catch (_) {
+      await SystemNavigator.pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: WebViewWidget(controller: _controller),
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        unawaited(_handleAndroidBack());
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(child: WebViewWidget(controller: _controller)),
       ),
     );
   }
 }
-

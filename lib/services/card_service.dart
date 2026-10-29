@@ -1,4 +1,5 @@
 import 'package:http/http.dart' as http;
+
 import 'dart:convert';
 
 class CardService {
@@ -11,7 +12,10 @@ class CardService {
   String _apiBase(String language) => 'https://api.tcgdex.net/v2/$language';
 
   /// Retries transient 5xx errors (TCGdex occasionally answers "no available server").
-  Future<http.Response> _getWithRetry(Uri uri, {Map<String, String>? headers}) async {
+  Future<http.Response> _getWithRetry(
+    Uri uri, {
+    Map<String, String>? headers,
+  }) async {
     http.Response? lastResponse;
     for (var attempt = 0; attempt < 3; attempt++) {
       lastResponse = await http.get(uri, headers: headers);
@@ -192,21 +196,22 @@ class CardService {
       if (response.statusCode != 200) return null;
 
       final card = jsonDecode(response.body);
-      final pricing = card['pricing'];
       final cardmarket = _bestCardmarketPricing(card);
       final price = _bestPrice(card);
-      var priceSource = _priceSource(pricing);
+      var priceSource = _priceSourceForCard(card);
       if (priceSource.isEmpty && price > 0) priceSource = 'cardmarket';
 
       final localId = card['localId'] ?? '';
-      final setCount = card['set']?['cardCount']?['official'] ??
+      final setCount =
+          card['set']?['cardCount']?['official'] ??
           card['set']?['cardCount']?['total'];
       final number = (localId.isNotEmpty && setCount != null)
           ? '$localId/$setCount'
           : localId;
 
       final rawRarity = (card['rarity'] as String? ?? '').trim();
-      final rarity = (rawRarity.isEmpty ||
+      final rarity =
+          (rawRarity.isEmpty ||
               rawRarity.toLowerCase() == 'none' ||
               rawRarity.toLowerCase() == 'unknown')
           ? 'Neznáma'
@@ -245,19 +250,31 @@ class CardService {
 
   double _bestPrice(dynamic card) {
     if (card is! Map) return 0;
-    final direct = _priceFromPricing(card['pricing']);
-    if (direct > 0) return direct;
 
+    var bestCardmarket = 0.0;
+    var bestTcgplayer = 0.0;
+    void consider(dynamic pricing) {
+      if (pricing is! Map) return;
+      final cardmarket = _priceFromPricing(<String, dynamic>{
+        'cardmarket': pricing['cardmarket'],
+      });
+      if (cardmarket > bestCardmarket) bestCardmarket = cardmarket;
+      final tcgplayer = _priceFromPricing(<String, dynamic>{
+        'tcgplayer': pricing['tcgplayer'],
+      });
+      if (tcgplayer > bestTcgplayer) bestTcgplayer = tcgplayer;
+    }
+
+    consider(card['pricing']);
     // Japanese sets often expose pricing only on the variant entries.
     final variants = card['variants_detailed'];
     if (variants is List) {
       for (final variant in variants) {
         if (variant is! Map) continue;
-        final value = _priceFromPricing(variant['pricing']);
-        if (value > 0) return value;
+        consider(variant['pricing']);
       }
     }
-    return 0;
+    return bestCardmarket > 0 ? bestCardmarket : bestTcgplayer;
   }
 
   dynamic _bestCardmarketPricing(dynamic card) {
@@ -304,20 +321,47 @@ class CardService {
     return 0;
   }
 
-  String _priceSource(dynamic pricing) {
-    if (pricing is! Map) return '';
-    final cardmarket = pricing['cardmarket'];
-    if (cardmarket is Map && _priceFromPricing({'cardmarket': cardmarket}) > 0) {
-      return 'cardmarket';
+  String _priceSourceForCard(dynamic card) {
+    if (card is! Map) return '';
+
+    var hasTcgplayer = false;
+    bool hasCardmarket(dynamic pricing) {
+      if (pricing is! Map) return false;
+      final cardmarket = pricing['cardmarket'];
+      if (cardmarket is! Map) return false;
+      return _priceFromPricing(<String, dynamic>{'cardmarket': cardmarket}) > 0;
     }
-    final tcgplayer = pricing['tcgplayer'];
-    if (tcgplayer is Map && _priceFromPricing({'tcgplayer': tcgplayer}) > 0) {
-      return 'tcgplayer';
+
+    void inspect(dynamic pricing) {
+      if (pricing is! Map) return;
+      if (hasCardmarket(pricing)) return;
+      final tcgplayer = pricing['tcgplayer'];
+      if (tcgplayer is Map &&
+          _priceFromPricing(<String, dynamic>{'tcgplayer': tcgplayer}) > 0) {
+        hasTcgplayer = true;
+      }
     }
-    return '';
+
+    final pricing = card['pricing'];
+    if (hasCardmarket(pricing)) return 'cardmarket';
+    inspect(pricing);
+
+    final variants = card['variants_detailed'];
+    if (variants is List) {
+      for (final variant in variants) {
+        if (variant is! Map) continue;
+        final variantPricing = variant['pricing'];
+        if (hasCardmarket(variantPricing)) return 'cardmarket';
+        inspect(variantPricing);
+      }
+    }
+    return hasTcgplayer ? 'tcgplayer' : '';
   }
 
-  List<String> _finishesFromVariants(dynamic variants, [dynamic variantsDetailed]) {
+  List<String> _finishesFromVariants(
+    dynamic variants, [
+    dynamic variantsDetailed,
+  ]) {
     final finishes = <String>[];
 
     // TCGdex exposes the actual foil style in variants_detailed. This is where
@@ -366,7 +410,8 @@ class CardService {
     if (foil == 'holo' || foil == 'holofoil') return 'holo';
     if (foil == 'foil') return 'foil';
     if (foil == 'normal' || foil == 'nonfoil') return 'normal';
-    if (foil == 'firstedition' || foil == 'first edition') return 'firstEdition';
+    if (foil == 'firstedition' || foil == 'first edition')
+      return 'firstEdition';
     return '';
   }
 
@@ -461,31 +506,32 @@ class CardService {
       final encodedQuery = Uri.encodeComponent(query);
       final response = await _getWithRetry(
         Uri.parse('$mtgApiBase/cards/search?q=$encodedQuery'),
-        headers: {
-          'User-Agent': 'RaritioTCG/1.0',
-          'Accept': 'application/json',
-        },
+        headers: {'User-Agent': 'RaritioTCG/1.0', 'Accept': 'application/json'},
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'].map((card) => {
-          'id': card['id'],
-          'name': card['name'],
-          'game': 'mtg',
-          'language': 'en',
-          'set': card['set_name'] ?? '',
-          'imageUri': _mtgImage(card),
-          'price': double.tryParse(card['prices']?['usd'] ?? '0') ?? 0.0,
-          'priceSource': 'scryfall',
-          'priceCurrency': 'USD',
-          'rarity': card['rarity'] ?? 'Unknown',
-          'foil': _mtgFinishes(card).any((finish) => finish != 'normal'),
-          'finish': _mtgPrimaryFinish(card),
-          'finishes': _mtgFinishes(card),
-          'number': card['collector_number'] ?? '',
-          'artist': card['artist'] ?? '',
-          'detailsLoaded': true,
-        }));
+        return List<Map<String, dynamic>>.from(
+          data['data'].map(
+            (card) => {
+              'id': card['id'],
+              'name': card['name'],
+              'game': 'mtg',
+              'language': 'en',
+              'set': card['set_name'] ?? '',
+              'imageUri': _mtgImage(card),
+              'price': double.tryParse(card['prices']?['usd'] ?? '0') ?? 0.0,
+              'priceSource': 'scryfall',
+              'priceCurrency': 'USD',
+              'rarity': card['rarity'] ?? 'Unknown',
+              'foil': _mtgFinishes(card).any((finish) => finish != 'normal'),
+              'finish': _mtgPrimaryFinish(card),
+              'finishes': _mtgFinishes(card),
+              'number': card['collector_number'] ?? '',
+              'artist': card['artist'] ?? '',
+              'detailsLoaded': true,
+            },
+          ),
+        );
       }
     } catch (e) {
       print("MTG search error: $e");
@@ -499,10 +545,7 @@ class CardService {
     try {
       final response = await _getWithRetry(
         Uri.parse('$mtgApiBase/$id'),
-        headers: {
-          'User-Agent': 'RaritioTCG/1.0',
-          'Accept': 'application/json',
-        },
+        headers: {'User-Agent': 'RaritioTCG/1.0', 'Accept': 'application/json'},
       );
       if (response.statusCode != 200) return null;
       final card = jsonDecode(response.body);
@@ -555,4 +598,3 @@ class CardService {
     return finishes.isNotEmpty ? finishes.first : '';
   }
 }
-

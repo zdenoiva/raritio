@@ -52,6 +52,34 @@
             min-width: 0;
         }
 
+        .binder-heading {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .binder-heading .binder-picker-button {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .binder-heading .binder-picker-label {
+            flex: 1;
+        }
+
+        .binder-more-btn {
+            width: 32px;
+            height: 32px;
+            font-size: 1.15rem;
+            line-height: 1;
+        }
+
+        .top-brand-row .total-value {
+            margin-left: auto;
+        }
+
         .top-brand {
             display: flex;
             align-items: center;
@@ -84,7 +112,7 @@
         .top-meta-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-end;
             gap: 10px;
             min-width: 0;
         }
@@ -1092,6 +1120,49 @@
             color: var(--success);
         }
 
+        .finish-picker {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface-light);
+        }
+
+        .finish-picker-title {
+            color: var(--text-muted);
+            font-size: 0.63rem;
+            font-weight: 800;
+            letter-spacing: 0.7px;
+            text-transform: uppercase;
+            margin-bottom: 9px;
+        }
+
+        .finish-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .finish-chip {
+            padding: 7px 10px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .finish-chip.active {
+            color: #93c5fd;
+            border-color: rgba(59, 130, 246, 0.55);
+            background: rgba(59, 130, 246, 0.16);
+        }
+
+        .finish-chip:active {
+            transform: scale(0.97);
+        }
+
         .detail-image-actions {
             display: flex;
             flex-wrap: wrap;
@@ -1956,9 +2027,44 @@
             margin-bottom: 8px;
         }
 
+        .binder-actions-name-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .binder-actions-name {
+            flex: 1;
+            min-width: 0;
             font-size: 1rem;
             font-weight: 750;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .binder-actions-edit {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .binder-actions-edit:hover {
+            color: var(--text);
+            border-color: var(--primary);
+        }
+
+        .binder-actions-edit svg {
+            width: 15px;
+            height: 15px;
         }
 
         .binder-actions-meta {
@@ -2587,28 +2693,24 @@
                 <span class="brand-mark" aria-hidden="true">R</span>
                 <span class="brand-word">RARITIO</span>
             </div>
-            <button id="binder-picker-button" class="binder-picker-button" onclick="showBinderPicker()" title="Vybrať balík">
-                <span class="binder-picker-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
-                        <rect x="3.5" y="7" width="11" height="14" rx="2" transform="rotate(-10 9 14)"/>
-                        <rect x="6.5" y="5" width="11" height="14" rx="2" transform="rotate(-3 12 12)"/>
-                        <rect x="9.5" y="3" width="11" height="14" rx="2"/>
-                    </svg>
-                </span>
-                <span id="binder-picker-label" class="binder-picker-label">Môj balík</span>
-                <span class="binder-picker-chevron" aria-hidden="true">▾</span>
-            </button>
+            <div class="binder-heading">
+                <button id="binder-picker-button" class="binder-picker-button" onclick="showBinderPicker()" title="Vybrať balík">
+                    <span class="binder-picker-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+                            <rect x="3.5" y="7" width="11" height="14" rx="2" transform="rotate(-10 9 14)"/>
+                            <rect x="6.5" y="5" width="11" height="14" rx="2" transform="rotate(-3 12 12)"/>
+                            <rect x="9.5" y="3" width="11" height="14" rx="2"/>
+                        </svg>
+                    </span>
+                    <span id="binder-picker-label" class="binder-picker-label">Môj balík</span>
+                    <span class="binder-picker-chevron" aria-hidden="true">▾</span>
+                </button>
+                <button class="icon-btn binder-more-btn" onclick="openBinderActions(state.currentBinderId)" title="Spravovať balík" aria-label="Spravovať balík">⋯</button>
+            </div>
+            <div class="total-value" id="total-value">$0.00</div>
         </div>
         <div class="top-meta-row">
-            <div class="total-value" id="total-value">$0.00</div>
             <div class="header-actions">
-                <button class="icon-btn" onclick="renameCurrentBinder()" title="Premenovať balík" aria-label="Premenovať balík">✎</button>
-                <button class="icon-btn" onclick="openBinderActions(state.currentBinderId)" title="Spravovať balík" aria-label="Spravovať balík">⋯</button>
-                <button class="icon-btn" onclick="openCreateBinder()" title="Nový balík" aria-label="Nový balík">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                </button>
                 <button id="refresh-prices-btn" class="icon-btn" onclick="manualRefreshPrices()" title="Aktualizovať ceny" aria-label="Aktualizovať ceny">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M20 11a8 8 0 1 0-2.3 5.7"/>
@@ -2846,7 +2948,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.3.12</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.3.13</span></p>
         </div>
     </div>
 
@@ -2974,6 +3076,7 @@
     <script src="app.js"></script>
 </body>
 </html>
+
 
 
 
