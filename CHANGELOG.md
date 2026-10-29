@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.9] - 2026-10-29
+
+- Zdieľané balíky pribudli do výberu balíkov pod moje balíky a tlačidlo Vytvoriť nový balík.
+- Zdieľané balíky majú badge od koho sú a otvárajú sa v rovnakom detaile.
+- Kliknutie na kartu v zdieľanom balíku otvorí detail karty.
+- Like badge je v spodnom rohu karty; owner vidí lajky na svojich kartách.
+- Záloha už nezobrazuje zbytočný toast, stav zostáva pod tlačidlom.
+- Skenovanie je celoobrazovkové, s väčším rámom, rohmi, bleskom a vyšším rozlíšením.
+- OCR sa robí na oreze karty, čo zlepšuje presnosť hľadania.
+
 ## [0.3.8] - 2026-10-29
 
 - Pri zdieľaní balíka sa dá vybrať konkrétnych kamošov bez skenovania.

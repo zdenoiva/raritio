@@ -57,6 +57,7 @@ class SharedBinderSummary {
     required this.shareToken,
     required this.isActive,
     required this.isOwner,
+    this.coverImages = const [],
   });
 
   final String id;
@@ -69,12 +70,28 @@ class SharedBinderSummary {
   final String shareToken;
   final bool isActive;
   final bool isOwner;
+  final List<String> coverImages;
 
   factory SharedBinderSummary.fromRow(
     Map<String, dynamic> row, {
     required String currentUserId,
   }) {
     final ownerId = row['owner_id']?.toString() ?? '';
+    final coverImages = <String>[];
+    final snapshot = row['snapshot'];
+    if (snapshot is Map) {
+      final cards = snapshot['cards'];
+      if (cards is List) {
+        for (final rawCard in cards) {
+          if (rawCard is! Map) continue;
+          final uri = rawCard['imageUri']?.toString() ?? '';
+          if (uri.startsWith('http') && !coverImages.contains(uri)) {
+            coverImages.add(uri);
+            if (coverImages.length >= 3) break;
+          }
+        }
+      }
+    }
     return SharedBinderSummary(
       id: row['id']?.toString() ?? '',
       ownerId: ownerId,
@@ -87,7 +104,24 @@ class SharedBinderSummary {
       shareToken: row['share_token']?.toString() ?? '',
       isActive: row['is_active'] != false,
       isOwner: ownerId == currentUserId,
+      coverImages: coverImages,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'ownerId': ownerId,
+      'ownerNickname': ownerNickname,
+      'name': name,
+      'cardCount': cardCount,
+      'totalValue': totalValue,
+      'updatedAt': updatedAt?.toUtc().toIso8601String() ?? '',
+      'shareToken': shareToken,
+      'isActive': isActive,
+      'isOwner': isOwner,
+      'coverImages': coverImages,
+    };
   }
 }
 

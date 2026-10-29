@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:raritio/screens/shared_card_detail_screen.dart';
 import 'package:raritio/services/shared_binder_service.dart';
 
 class SharedBinderDetailScreen extends StatefulWidget {
@@ -59,6 +60,29 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _openCard(
+    Map<String, dynamic> card,
+    CardLike like,
+  ) async {
+    final summary = _data?.summary ?? widget.summary;
+    final cardId = card['id']?.toString() ?? '';
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SharedCardDetailScreen(
+          service: widget.service,
+          summary: summary,
+          card: card,
+          initialLike: like,
+          onLikeChanged: (updated) {
+            if (!mounted) return;
+            setState(() => _likes[cardId] = updated);
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _toggleLike(String cardId) async {
@@ -139,13 +163,18 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
                               (context, index) {
                                 final card = cards[index];
                                 final cardId = card['id']?.toString() ?? '';
+                                final like = _likes[cardId] ??
+                                    const CardLike(
+                                      count: 0,
+                                      likedByMe: false,
+                                    );
                                 return _SharedCard(
                                   card: card,
-                                  like: _likes[cardId] ??
-                                      const CardLike(count: 0, likedByMe: false),
+                                  like: like,
                                   canLike: !summary.isOwner,
                                   pending: _likePending.contains(cardId),
                                   onToggleLike: () => _toggleLike(cardId),
+                                  onOpen: () => _openCard(card, like),
                                 );
                               },
                               childCount: cards.length,
@@ -250,6 +279,7 @@ class _SharedCard extends StatelessWidget {
     required this.canLike,
     required this.pending,
     required this.onToggleLike,
+    required this.onOpen,
   });
 
   final Map<String, dynamic> card;
@@ -257,6 +287,7 @@ class _SharedCard extends StatelessWidget {
   final bool canLike;
   final bool pending;
   final VoidCallback onToggleLike;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -268,16 +299,18 @@ class _SharedCard extends StatelessWidget {
     final finish = card['finish']?.toString() ?? '';
     final color = _rarityColor(rarity);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF16161A),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.55)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return GestureDetector(
+      onTap: onOpen,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF16161A),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.55)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Expanded(
             child: Stack(
               fit: StackFit.expand,
@@ -300,6 +333,16 @@ class _SharedCard extends StatelessWidget {
                           accent: true,
                         ),
                     ],
+                  ),
+                ),
+                Positioned(
+                  left: 7,
+                  bottom: 7,
+                  child: _LikeButton(
+                    like: like,
+                    canLike: canLike,
+                    pending: pending,
+                    onTap: onToggleLike,
                   ),
                 ),
               ],
@@ -331,30 +374,19 @@ class _SharedCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '\$${price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Color(0xFF10B981),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    _LikeButton(
-                      like: like,
-                      canLike: canLike,
-                      pending: pending,
-                      onTap: onToggleLike,
-                    ),
-                  ],
+                Text(
+                  '\$${price.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    color: Color(0xFF10B981),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
           ),
         ],
+      ),
       ),
     );
   }

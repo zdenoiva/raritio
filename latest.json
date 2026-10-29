@@ -1,14 +1,15 @@
 {
-  "version": "0.3.8",
-  "versionCode": 308,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.8/raritio-0.3.8.apk",
-  "sha256": "d313b8eb8970727d8f8a4a369eb5f46669126677b4aef4931a4fc0419f96fa96",
-  "size": 114054501,
-  "publishedAt": "2026-10-29T18:00:00Z",
+  "version": "0.3.9",
+  "versionCode": 309,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.9/raritio-0.3.9.apk",
+  "sha256": "eeb3159177b5900a0a96c7b9f382700f31c896b3978ec1ec1efa21aef19dd923",
+  "size": 114170461,
+  "publishedAt": "2026-10-29T19:30:00Z",
   "changelog": [
-    "Zdieľanie balíka konkrétnym kamošom bez skenovania.",
-    "Like srdiečko a počet like na zdieľaných kartách.",
-    "Like sa dá pridať aj odobrať, jeden na kamoša.",
-    "Raritio beta 0.3.8."
+    "Zdieľané balíky vo výbere balíkov s badge od koho sú.",
+    "Like badge v rohu karty a lajky na mojich kartách.",
+    "Detail karty v zdieľanom balíku.",
+    "Celoobrazovkový skener s väčším rámom a lepším OCR.",
+    "Raritio beta 0.3.9."
   ]
 }

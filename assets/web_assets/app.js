@@ -41,6 +41,8 @@ function createDefaultState() {
 
 let state = createDefaultState();
 state.searchResults = [];
+state.sharedBinders = [];
+state.binderLikes = {};
 
 const FALLBACK_IMAGE = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='210' viewBox='0 0 150 210'%3E%3Crect width='150' height='210' fill='%231e1e24'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='sans-serif' font-size='12'%3ENo Image%3C/text%3E%3C/svg%3E";
 
@@ -68,6 +70,7 @@ let holoTiltBound = false;
 let holoTiltFrame = null;
 let holoTiltBase = { beta: null, gamma: null };
 let holoLastOrientation = { beta: 0, gamma: 0, known: false };
+let lastBinderLikesAt = {};
 
 // --- Helpers ---
 function getCurrentBinder() {
@@ -388,6 +391,7 @@ function handleShareBinderResult(result) {
     saveState();
     renderBinderSelector();
     renderBinder();
+    requestBinderLikes(true);
     if (document.getElementById('binder-modal').classList.contains('active')) {
         renderBinderPicker();
     }
@@ -405,6 +409,8 @@ function handleSharedStopped(sharedId) {
         }
     });
     if (!changed) return;
+    delete state.binderLikes[sharedId];
+    delete lastBinderLikesAt[sharedId];
     saveState();
     renderBinderSelector();
     renderBinder();
@@ -415,6 +421,52 @@ function handleSharedStopped(sharedId) {
 
 function handleSharedError(message) {
     showToast(String(message || 'Zdieľanie zlyhalo.'));
+}
+
+function requestBinderLikes(force = false) {
+    const binder = getCurrentBinder();
+    if (!binder || !binder.sharedId || !window.flutterBridge) return;
+    const now = Date.now();
+    if (!force && now - (lastBinderLikesAt[binder.sharedId] || 0) < 15000) return;
+    lastBinderLikesAt[binder.sharedId] = now;
+    try {
+        window.flutterBridge.postMessage('sharedLikes:' + JSON.stringify({
+            id: binder.sharedId
+        }));
+    } catch (_) {}
+}
+
+function handleBinderLikes(sharedId, likes) {
+    if (!sharedId) return;
+    state.binderLikes[sharedId] = likes && typeof likes === 'object' ? likes : {};
+    const binder = getCurrentBinder();
+    if (binder && binder.sharedId === sharedId) renderBinder();
+}
+
+function refreshSharedBinderSummaries() {
+    if (!window.flutterBridge) return;
+    try {
+        window.flutterBridge.postMessage('refreshSharedBinders:');
+    } catch (_) {}
+}
+
+function handleSharedBinderSummaries(list) {
+    state.sharedBinders = Array.isArray(list) ? list : [];
+    const modal = document.getElementById('binder-modal');
+    if (modal && modal.classList.contains('active')) {
+        renderSharedBinderPicker();
+    }
+}
+
+function openSharedBinderFromPicker(sharedId) {
+    if (!window.flutterBridge) {
+        showToast('Bridge nie je dostupný.');
+        return;
+    }
+    closeBinderPicker();
+    window.flutterBridge.postMessage('openSharedBinder:' + JSON.stringify({
+        id: String(sharedId || '')
+    }));
 }
 
 function normalizeCard(card) {
@@ -517,6 +569,9 @@ function normalizeState(raw) {
 function hydrateState(raw, restored = false) {
     state = normalizeState(raw);
     state.searchResults = [];
+    state.sharedBinders = [];
+    state.binderLikes = {};
+    lastBinderLikesAt = {};
     previewCardId = null;
     cardModalReturnTo = null;
     dataBusy = false;
@@ -575,6 +630,10 @@ function cardTileHtml(card, options = {}) {
     const index = Number(options.index) || 0;
     const total = Number(options.total) || 0;
     const cardId = escapeHtml(card.id);
+    const binder = getCurrentBinder();
+    const binderLike = binder && binder.sharedId
+        ? (state.binderLikes[binder.sharedId] || {})[card.id]
+        : null;
 
     return `
         <div class="card-item ${glow ? 'glow' : ''} game-${gameClassValue} ${reorder ? 'reorder-mode' : ''}"
@@ -592,6 +651,11 @@ function cardTileHtml(card, options = {}) {
                 <img loading="lazy" decoding="async" referrerpolicy="no-referrer"
                      src="${imageSource(card.imageUri)}"
                      onerror="this.onerror=null;this.src=FALLBACK_IMAGE">
+                ${binderLike && Number(binderLike.count) > 0 ? `
+                    <div class="card-like-badge" title="Lajky od kamošov">
+                        <span>♥</span>${Number(binderLike.count) || 0}
+                    </div>
+                ` : ''}
             </div>
             <div class="card-info">
                 <div class="card-name">${escapeHtml(card.name)}</div>
@@ -807,6 +871,7 @@ function renderBinder(preserveScroll = false) {
         emptyState.classList.remove('hidden');
         cardNodes = new Map();
         updateBinderTotal();
+        requestBinderLikes();
         restoreScroll();
         return;
     }
@@ -824,6 +889,7 @@ function renderBinder(preserveScroll = false) {
     })).join('');
     indexCardNodes();
     updateBinderTotal();
+    requestBinderLikes();
     restoreScroll();
 }
 
@@ -892,10 +958,56 @@ function renderBinderPicker() {
             </div>
         `;
     }).join('');
+
+    renderSharedBinderPicker();
+}
+
+function renderSharedBinderPicker() {
+    const section = document.getElementById('shared-binder-picker');
+    const grid = document.getElementById('shared-binder-grid');
+    if (!section || !grid) return;
+
+    if (!Array.isArray(state.sharedBinders) || state.sharedBinders.length === 0) {
+        section.classList.add('hidden');
+        grid.innerHTML = '';
+        return;
+    }
+
+    section.classList.remove('hidden');
+    grid.innerHTML = state.sharedBinders.map(binder => {
+        const images = Array.isArray(binder.coverImages)
+            ? binder.coverImages.filter(Boolean).slice(0, 3)
+            : [];
+        const stack = images.length === 0
+            ? Array.from({ length: 3 }, () => '<span class="stack-placeholder"></span>').join('')
+            : Array.from({ length: 3 }, (_, index) => {
+                const src = images[index % images.length];
+                return `<img src="${escapeHtml(src)}" alt="" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMAGE">`;
+            }).join('');
+        const count = Number(binder.cardCount) || 0;
+        const total = Number(binder.totalValue) || 0;
+        const sharedId = escapeHtml(binder.id || '');
+        return `
+            <div class="binder-card shared-binder-card"
+                 onclick="openSharedBinderFromPicker('${sharedId}')"
+                 role="button"
+                 tabindex="0"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSharedBinderFromPicker('${sharedId}');}">
+                <div class="shared-owner-badge">Od ${escapeHtml(binder.ownerNickname || 'kamoša')}</div>
+                <div class="binder-card-name">${escapeHtml(binder.name || 'Balík')}</div>
+                <div class="binder-card-meta">
+                    <span>${count} ${cardCountLabel(count)}</span>
+                </div>
+                <div class="binder-card-stack">${stack}</div>
+                <div class="binder-card-total">$${total.toFixed(2)}</div>
+            </div>
+        `;
+    }).join('');
 }
 
 function showBinderPicker() {
     renderBinderPicker();
+    refreshSharedBinderSummaries();
     document.getElementById('binder-modal').classList.add('active');
 }
 
@@ -3265,7 +3377,8 @@ function restoreData() {
 function onBackupResult(success, message) {
     dataBusy = false;
     setDataStatus(message);
-    showToast(message);
+    // The status under the backup button already shows the success message.
+    if (!success) showToast(message);
 }
 
 function onRestoreResult(success, message) {
@@ -3342,6 +3455,11 @@ function init() {
             showCardDetails(item.dataset.cardId);
         });
     }
+
+    setInterval(() => {
+        const binder = getCurrentBinder();
+        if (binder && binder.sharedId) requestBinderLikes(true);
+    }, 30000);
 }
 
 init();

@@ -841,6 +841,46 @@
             line-height: 1;
         }
 
+        .shared-binder-picker {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .shared-binder-title {
+            margin-bottom: 10px;
+        }
+
+        .shared-binder-card {
+            position: relative;
+        }
+
+        .shared-owner-badge {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            gap: 4px;
+            margin-bottom: 6px;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+            font-size: 0.58rem;
+            font-weight: 800;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .shared-binder-card .binder-card-name {
+            margin-bottom: 2px;
+        }
+
+        .shared-binder-card .binder-card-meta {
+            margin-bottom: 0;
+        }
+
         /* Modern name dialog */
         .center-modal {
             align-items: center;
@@ -1432,6 +1472,31 @@
             aspect-ratio: 2.5 / 3.5;
             object-fit: cover;
             background: var(--surface-light);
+        }
+
+        .card-like-badge {
+            position: absolute;
+            left: 7px;
+            bottom: 7px;
+            z-index: 3;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: rgba(10, 10, 12, 0.82);
+            border: 1px solid rgba(248, 113, 113, 0.45);
+            color: #fca5a5;
+            font-size: 0.6rem;
+            font-weight: 800;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-like-badge span {
+            color: #f87171;
+            font-size: 0.7rem;
+            line-height: 1;
         }
 
         .card-badges {
@@ -2653,7 +2718,7 @@
                 <button class="btn-secondary" onclick="checkForUpdates()">Skontrolovať aktualizácie</button>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.3.8</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.3.9</span></p>
         </div>
     </div>
 
@@ -2726,6 +2791,10 @@
             <button class="binder-create-btn" onclick="openCreateBinder()">
                 <span class="binder-create-plus">+</span> Vytvoriť nový balík
             </button>
+            <div id="shared-binder-picker" class="shared-binder-picker hidden">
+                <div class="binder-picker-title shared-binder-title">Zdieľané balíky</div>
+                <div id="shared-binder-grid" class="binder-grid"></div>
+            </div>
         </div>
     </div>
 
@@ -2762,6 +2831,7 @@
     <script src="app.js"></script>
 </body>
 </html>
+
 
 
 

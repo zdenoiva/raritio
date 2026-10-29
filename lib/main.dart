@@ -128,6 +128,12 @@ class _RaritioTCGState extends State<RaritioTCG> {
       _handleCaptureCardPhoto(message);
     } else if (message.startsWith('openShared:')) {
       unawaited(_openSharedScreen());
+    } else if (message.startsWith('refreshSharedBinders:')) {
+      unawaited(_refreshSharedBinderSummaries());
+    } else if (message.startsWith('openSharedBinder:')) {
+      unawaited(_handleOpenSharedBinder(message));
+    } else if (message.startsWith('sharedLikes:')) {
+      unawaited(_handleSharedLikes(message));
     } else if (message.startsWith('shareBinder:')) {
       unawaited(_handleShareBinder(message));
     } else if (message.startsWith('sharedSync:')) {
@@ -165,7 +171,74 @@ class _RaritioTCGState extends State<RaritioTCG> {
       print('State load error: $e');
       _controller.runJavaScript('hydrateState(null)');
     }
+    unawaited(_refreshSharedBinderSummaries());
     unawaited(_maybeCheckForUpdates());
+  }
+
+  Future<void> _refreshSharedBinderSummaries() async {
+    try {
+      final summaries = await _sharedBinderService.getSharedWithMe();
+      if (!mounted) return;
+      _controller.runJavaScript(
+        'handleSharedBinderSummaries(${jsonEncode(summaries.map((item) => item.toJson()).toList())})',
+      );
+    } catch (_) {
+      // The binder picker simply shows no shared binders when offline.
+    }
+  }
+
+  Future<void> _handleOpenSharedBinder(String message) async {
+    try {
+      final payload = message.substring('openSharedBinder:'.length).trim();
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map) return;
+      final id = (decoded['id'] ?? '').toString().trim();
+      if (id.isEmpty) return;
+      final data = await _sharedBinderService.getSharedBinder(id);
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SharedBinderDetailScreen(
+            service: _sharedBinderService,
+            summary: data.summary,
+          ),
+        ),
+      );
+      await _refreshSharedBinderSummaries();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleSharedLikes(String message) async {
+    String sharedId = '';
+    try {
+      final payload = message.substring('sharedLikes:'.length).trim();
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map) return;
+      sharedId = (decoded['id'] ?? '').toString().trim();
+      if (sharedId.isEmpty) return;
+      final likes = await _sharedBinderService.getCardLikes(sharedId);
+      if (!mounted) return;
+      final payloadLikes = <String, dynamic>{
+        for (final entry in likes.entries)
+          entry.key: {
+            'count': entry.value.count,
+            'likedByMe': entry.value.likedByMe,
+          },
+      };
+      _controller.runJavaScript(
+        'handleBinderLikes(${jsonEncode(sharedId)}, ${jsonEncode(payloadLikes)})',
+      );
+    } catch (_) {
+      // Likes are optional for the owner's binder view.
+    }
   }
 
   Future<void> _maybeCheckForUpdates() async {
@@ -637,7 +710,10 @@ class _RaritioTCGState extends State<RaritioTCG> {
       );
     } finally {
       _sharedScreenOpen = false;
-      if (mounted) _controller.runJavaScript("updateNav('nav-binder')");
+      if (mounted) {
+        _controller.runJavaScript("updateNav('nav-binder')");
+        unawaited(_refreshSharedBinderSummaries());
+      }
     }
   }
 
@@ -772,6 +848,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
         if (token.isEmpty) return;
         final data = await _sharedBinderService.acceptShareToken(token);
         if (!mounted) return;
+        unawaited(_refreshSharedBinderSummaries());
         await Navigator.push(
           context,
           MaterialPageRoute(

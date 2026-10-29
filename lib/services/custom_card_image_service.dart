@@ -20,7 +20,7 @@ class CustomCardImageService {
       }
 
       final oriented = img.bakeOrientation(decoded);
-      var cropWidth = (oriented.width * 0.72).round();
+      var cropWidth = (oriented.width * 0.84).round();
       var cropHeight = (cropWidth / _cardAspect).round();
       final maxHeight = (oriented.height * 0.94).round();
 
