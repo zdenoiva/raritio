@@ -243,15 +243,19 @@ class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   else
-                    Icon(
-                      _like.likedByMe
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: color,
-                      size: 32,
-                      shadows: const [
-                        Shadow(color: Colors.black54, blurRadius: 8),
-                      ],
+                    Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.diagonal3Values(1.35, 1.05, 1),
+                      child: Icon(
+                        _like.likedByMe
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: color,
+                        size: 32,
+                        shadows: const [
+                          Shadow(color: Colors.black54, blurRadius: 8),
+                        ],
+                      ),
                     ),
                   const SizedBox(width: 6),
                   Text(

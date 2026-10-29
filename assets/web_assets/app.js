@@ -72,6 +72,7 @@ let holoTiltFrame = null;
 let holoTiltBase = { beta: null, gamma: null };
 let holoLastOrientation = { beta: 0, gamma: 0, known: false };
 let lastBinderLikesAt = {};
+let finishOptionsCardId = null;
 
 // --- Helpers ---
 function getCurrentBinder() {
@@ -234,6 +235,9 @@ function finishList(card) {
 }
 
 function primaryFinish(card) {
+    if (card && card.variantId && card.finish) {
+        return normalizeFinish(card.finish);
+    }
     const list = finishList(card);
     for (const preferred of ['rainbow', 'gold', 'cosmos', 'textured', 'etched', 'holo', 'foil', 'normal', 'reverse', 'firstEdition']) {
         if (list.includes(preferred)) return preferred;
@@ -276,32 +280,117 @@ function finishLabelValue(finish) {
     return FINISH_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function renderFinishPicker(card) {
-    const options = isMtgCard(card)
-        ? ['normal', 'foil', 'etched']
-        : ['normal', 'holo', 'reverse', 'foil', 'cosmos', 'textured', 'rainbow', 'gold', 'etched', 'firstEdition'];
-    const current = primaryFinish(card) || 'normal';
+function cardVariantLabel(card) {
+    if (card && card.variantLabel) return String(card.variantLabel);
+    return finishLabel(card) || 'Normal';
+}
+
+function renderFinishCard(card) {
     return `
-        <div class="finish-picker">
-            <div class="finish-picker-title">Prevedenie karty</div>
-            <div class="finish-chips">
-                ${options.map(finish => `
-                    <button class="finish-chip ${finish === current ? 'active' : ''}"
-                            onclick="setCardFinish('${escapeHtml(card.id)}', '${finish}')">
-                        ${finishLabelValue(finish)}
-                    </button>
-                `).join('')}
-            </div>
-        </div>
+        <button class="detail-card detail-card-action" onclick="showFinishOptions('${escapeHtml(card.id)}')">
+            <span class="detail-card-label">Prevedenie</span>
+            <span class="detail-card-value">${escapeHtml(cardVariantLabel(card))}</span>
+            <span class="detail-card-chevron" aria-hidden="true">⌄</span>
+        </button>
     `;
 }
 
-function setCardFinish(cardId, finish) {
-    const normalized = normalizeFinish(finish) || 'normal';
+function cardFinishOptions(card) {
+    if (Array.isArray(card.variants) && card.variants.length > 0) {
+        return card.variants;
+    }
+    const finishes = Array.isArray(card.finishes) && card.finishes.length > 0
+        ? card.finishes
+        : [primaryFinish(card) || 'normal'];
+    return Array.from(new Set(finishes)).map(finish => ({
+        id: '',
+        finish: normalizeFinish(finish) || 'normal',
+        label: finishLabelValue(finish),
+        price: 0,
+        priceSource: '',
+        priceCurrency: card.priceCurrency || 'USD',
+        preservePrice: true
+    }));
+}
+
+function showFinishOptions(cardId) {
+    const card = findCardForImage(cardId);
+    if (!card) return;
+    finishOptionsCardId = cardId;
+    const options = cardFinishOptions(card);
+    const list = document.getElementById('finish-options-list');
+    if (!list) return;
+
+    if (options.length === 0) {
+        list.innerHTML = '<p class="settings-note">Pre túto kartu nie je dostupné iné prevedenie.</p>';
+    } else {
+        const activeId = card.variantId || '';
+        const activeFinish = primaryFinish(card) || 'normal';
+        list.innerHTML = options.map(variant => {
+            const active = activeId
+                ? variant.id === activeId
+                : variant.finish === activeFinish;
+            const price = Number(variant.price) > 0
+                ? `${variant.priceCurrency === 'EUR' ? '€' : '$'}${Number(variant.price).toFixed(2)}`
+                : 'Cena nie je dostupná';
+            const source = variant.priceSource
+                ? ` · ${variant.priceSource === 'cardmarket' ? 'Cardmarket' : 'TCGPlayer'}`
+                : '';
+            return `
+                <button class="finish-option ${active ? 'active' : ''}"
+                        onclick="selectCardVariant('${escapeHtml(cardId)}', '${escapeHtml(variant.id || '')}', '${escapeHtml(variant.finish)}')">
+                    <span class="finish-option-copy">
+                        <strong>${escapeHtml(variant.label)}</strong>
+                        <small>${price}${source}</small>
+                    </span>
+                    <span class="finish-option-check">${active ? '✓' : ''}</span>
+                </button>
+            `;
+        }).join('');
+    }
+    document.getElementById('finish-options-modal').classList.add('active');
+}
+
+function closeFinishOptions(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const modal = document.getElementById('finish-options-modal');
+    if (modal) modal.classList.remove('active');
+    finishOptionsCardId = null;
+}
+
+function selectCardVariant(cardId, variantId, fallbackFinish = '') {
+    const sourceCard = findCardForImage(cardId);
+    if (!sourceCard) return;
+    const sourceVariant = (sourceCard.variants || []).find(variant => variant.id === variantId);
+    if (!sourceVariant && !fallbackFinish) return;
+
     const updated = updateCardEverywhere(cardId, card => {
-        card.finish = normalized;
-        card.finishes = [normalized];
-        card.foil = normalized !== 'normal' && normalized !== 'firstEdition';
+        const variant = (card.variants || []).find(item => item.id === variantId) ||
+            (fallbackFinish ? {
+                finish: fallbackFinish,
+                label: finishLabelValue(fallbackFinish),
+                price: 0,
+                priceSource: '',
+                priceCurrency: card.priceCurrency || 'USD'
+            } : null);
+        if (!variant) return;
+        card.finish = variant.finish;
+        card.finishes = [variant.finish];
+        card.variantId = variant.id || '';
+        card.variantLabel = variant.label || finishLabelValue(variant.finish);
+        card.foil = variant.finish !== 'normal' && variant.finish !== 'firstEdition';
+        if (Number(variant.price) > 0) {
+            card.currentPrice = Number(variant.price);
+            card.priceSource = variant.priceSource || 'cardmarket';
+            card.priceCurrency = variant.priceCurrency || 'EUR';
+        } else if (!variant.preservePrice) {
+            card.currentPrice = 0;
+            card.priceSource = '';
+        }
+        if (variant.image) card.imageUri = variant.image;
+        if (Array.isArray(variant.priceHistory)) {
+            card.priceHistory = variant.priceHistory;
+        }
     });
     if (!updated) return;
 
@@ -311,7 +400,16 @@ function setCardFinish(cardId, finish) {
         renderBinderPicker();
     }
     refreshOpenCardDetail(cardId);
-    showToast(`Prevedenie zmenené na ${finishLabelValue(normalized)}.`);
+    closeFinishOptions();
+    showToast(`Prevedenie zmenené na ${sourceVariant?.label || finishLabelValue(fallbackFinish)}.`);
+}
+
+function currencySymbol(currency) {
+    return String(currency || '').toUpperCase() === 'EUR' ? '€' : '$';
+}
+
+function formatCardPrice(card, value = card ? card.currentPrice : 0) {
+    return `${currencySymbol(card && card.priceCurrency)}${(Number(value) || 0).toFixed(2)}`;
 }
 
 function finishClass(finish) {
@@ -526,9 +624,29 @@ function openSharedBinderFromPicker(sharedId) {
 
 function normalizeCard(card) {
     const price = Number(card.currentPrice ?? card.price ?? 0);
-    const finishes = Array.isArray(card.finishes)
-        ? card.finishes.map(finish => String(finish).toLowerCase()).filter(Boolean)
+    let finishes = Array.isArray(card.finishes)
+        ? card.finishes.map(finish => normalizeFinish(finish)).filter(Boolean)
         : [];
+    const variants = Array.isArray(card.variants)
+        ? card.variants
+            .filter(variant => variant && variant.finish)
+            .map(variant => ({
+                id: String(variant.id || variant.variantId || ''),
+                finish: normalizeFinish(variant.finish),
+                label: String(variant.label || finishLabelValue(variant.finish)),
+                price: Number(variant.price) || 0,
+                priceSource: String(variant.priceSource || ''),
+                priceCurrency: String(variant.priceCurrency || 'EUR'),
+                image: String(variant.image || ''),
+                type: String(variant.type || ''),
+                foil: String(variant.foil || ''),
+                stamp: Array.isArray(variant.stamp) ? variant.stamp.map(String) : [],
+                priceHistory: normalizeHistory(variant.priceHistory)
+            }))
+        : [];
+    if (finishes.length === 0) {
+        finishes = variants.map(variant => variant.finish).filter(Boolean);
+    }
     const normalizedHistory = normalizeHistory(card.priceHistory);
     // Older versions could store a PriceCharting fallback (for example 80 EUR)
     // next to a real Cardmarket price (for example 2 EUR). Drop obvious
@@ -549,8 +667,11 @@ function normalizeCard(card) {
         rarity: normalizeRarity(card.rarity),
         foil: card.foil === true || card.foil === 'true' || card.foil === 1 ||
             finishes.some(finish => finish !== 'normal'),
-        finish: String(card.finish || '').toLowerCase(),
+        finish: normalizeFinish(card.finish),
         finishes,
+        variantId: String(card.variantId || ''),
+        variantLabel: String(card.variantLabel || ''),
+        variants,
         number: String(card.number || ''),
         artist: String(card.artist || ''),
         addedAt: String(card.addedAt || ''),
@@ -724,7 +845,7 @@ function cardTileHtml(card, options = {}) {
                 <div class="card-name">${escapeHtml(card.name)}</div>
                 <div class="card-set">${escapeHtml(card.set)}</div>
                 <div class="card-footer">
-                    <div class="card-price" data-price-for="${cardId}">$${price.toFixed(2)}</div>
+                    <div class="card-price" data-price-for="${cardId}">${formatCardPrice(card, price)}</div>
                     <span class="card-flag" title="${escapeHtml(languageLabel(card.language))}">${languageFlag(card.language)}</span>
                 </div>
             </div>
@@ -2242,6 +2363,7 @@ function handlePriceCharting(cardId, data, language = null, game = null) {
         if (fallbackPrice > 0 && !hasBasePrice) {
             card.currentPrice = fallbackPrice;
             card.priceSource = 'pricecharting';
+            card.priceCurrency = 'USD';
             card.lastUpdated = new Date().toISOString();
         }
         updatedCard = card;
@@ -2259,7 +2381,7 @@ function handlePriceCharting(cardId, data, language = null, game = null) {
     const nodes = cardNodes.get(cardId) || [];
     nodes.forEach(node => {
         const priceNode = node.querySelector('.card-price');
-        if (priceNode) priceNode.innerText = `$${(Number(updatedCard.currentPrice) || 0).toFixed(2)}`;
+        if (priceNode) priceNode.innerText = formatCardPrice(updatedCard);
         node.classList.toggle('glow', state.settings.glowEffect && isHighValue(updatedCard));
     });
     updateBinderTotal();
@@ -2415,13 +2537,12 @@ function showCardDetails(cardId, preserveScroll = false) {
             <div class="detail-card"><span class="detail-card-label">Jazyk</span><span class="detail-card-value">${languageFlag(card.language)} ${escapeHtml(languageLabel(card.language))}</span></div>
             <div class="detail-card"><span class="detail-card-label">Edícia</span><span class="detail-card-value">${escapeHtml(card.set || '-')}</span></div>
             <div class="detail-card"><span class="detail-card-label">Rarita</span><span class="detail-card-value">${escapeHtml(card.rarity || '-')}</span></div>
-            <div class="detail-card"><span class="detail-card-label">Prevedenie</span><span class="detail-card-value">${escapeHtml(finishLabel(card) || 'Normal')}</span></div>
+            ${renderFinishCard(card)}
             <div class="detail-card"><span class="detail-card-label">Číslo</span><span class="detail-card-value">${escapeHtml(card.number || '-')}</span></div>
             <div class="detail-card"><span class="detail-card-label">Autor</span><span class="detail-card-value">${escapeHtml(card.artist || '-')}</span></div>
-            <div class="detail-card"><span class="detail-card-label">Cena</span><span class="detail-card-value price" id="detail-price">$${(Number(card.currentPrice) || 0).toFixed(2)}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Cena</span><span class="detail-card-value price" id="detail-price">${formatCardPrice(card)}</span></div>
             <div class="detail-card"><span class="detail-card-label">Zdroj ceny</span><span class="detail-card-value">${escapeHtml(priceSourceLabel(card))}</span></div>
         </div>
-        ${renderFinishPicker(card)}
         <div id="grade-prices-container">${renderGradePrices(card)}</div>
         <div id="price-history-container">${renderPriceHistory(card)}</div>
         <div class="binder-picker">
@@ -2622,7 +2743,7 @@ function handleSearchResults(results, usedQuery, requestId) {
             .filter(Boolean)
             .join(' • ');
         const priceLine = card.detailsLoaded
-            ? `<p class="search-result-price" style="color:var(--success); font-weight:bold;">$${(Number(card.currentPrice ?? card.price) || 0).toFixed(2)}</p>`
+            ? `<p class="search-result-price" style="color:var(--success); font-weight:bold;">${formatCardPrice(card, card.currentPrice ?? card.price)}</p>`
             : '';
         const addButton = card.detailsLoaded
             ? `<button class="add-btn" onclick="event.stopPropagation(); showSearchPreview('${card.id}')">Pridať</button>`
@@ -2657,7 +2778,7 @@ function renderAddBinderCheckboxes(card) {
 function renderPreview(card) {
     const content = document.getElementById('card-detail-content');
     const priceText = card.detailsLoaded
-        ? `$${(Number(card.price ?? card.currentPrice) || 0).toFixed(2)}`
+        ? formatCardPrice(card, card.price ?? card.currentPrice)
         : 'Načítavam...';
 
     if (!isMtgCard(card) && card.detailsLoaded && state.settings.priceCharting &&
@@ -2683,13 +2804,12 @@ function renderPreview(card) {
             <div class="detail-card"><span class="detail-card-label">Jazyk</span><span class="detail-card-value">${languageFlag(card.language)} ${escapeHtml(languageLabel(card.language))}</span></div>
             <div class="detail-card"><span class="detail-card-label">Edícia</span><span class="detail-card-value">${escapeHtml(card.set || '-')}</span></div>
             <div class="detail-card"><span class="detail-card-label">Rarita</span><span class="detail-card-value">${escapeHtml(card.rarity || '-')}</span></div>
-            <div class="detail-card"><span class="detail-card-label">Prevedenie</span><span class="detail-card-value">${escapeHtml(finishLabel(card) || 'Normal')}</span></div>
+            ${renderFinishCard(card)}
             <div class="detail-card"><span class="detail-card-label">Číslo</span><span class="detail-card-value">${escapeHtml(card.number || '-')}</span></div>
             <div class="detail-card"><span class="detail-card-label">Autor</span><span class="detail-card-value">${escapeHtml(card.artist || '-')}</span></div>
             <div class="detail-card"><span class="detail-card-label">Cena</span><span class="detail-card-value price" id="detail-price">${priceText}</span></div>
             <div class="detail-card"><span class="detail-card-label">Zdroj ceny</span><span class="detail-card-value">${escapeHtml(priceSourceLabel(card))}</span></div>
         </div>
-        ${renderFinishPicker(card)}
         <div id="grade-prices-container">${renderGradePrices(card)}</div>
         <div id="price-history-container">${renderPriceHistory(card)}</div>
         <div class="binder-picker">
@@ -2951,6 +3071,8 @@ function refreshAllPrices({ silent = false, force = false } = {}) {
             number: card.number || '',
             source: card.source || 'tcgdex',
             language: normalizeLanguage(card.language),
+            variantId: card.variantId || '',
+            finish: primaryFinish(card),
             priceChartingUrl: card.priceChartingUrl || ''
         }));
     });
@@ -2990,6 +3112,9 @@ function updatePriceInUI(cardId, price, language = null, game = null) {
                     card.priceSource = String(card.game || '').toLowerCase() === 'mtg'
                         ? 'scryfall'
                         : 'cardmarket';
+                    card.priceCurrency = String(card.game || '').toLowerCase() === 'mtg'
+                        ? 'USD'
+                        : 'EUR';
                 }
                 recordPriceSnapshot(card, price);
                 updatedCard = card;
@@ -3008,7 +3133,7 @@ function updatePriceInUI(cardId, price, language = null, game = null) {
     // are arriving.
     (cardNodes.get(cardId) || []).forEach(node => {
         const priceNode = node.querySelector('.card-price');
-        if (priceNode) priceNode.innerText = `$${Number(price).toFixed(2)}`;
+        if (priceNode) priceNode.innerText = formatCardPrice(updatedCard, price);
         node.classList.toggle('glow', state.settings.glowEffect && isHighValue(updatedCard));
     });
     updateBinderTotal();
@@ -3028,7 +3153,7 @@ function updatePriceInUI(cardId, price, language = null, game = null) {
     if (cardModal.classList.contains('active') && previewCardId === cardId) {
         const priceElement = document.getElementById('detail-price');
         if (priceElement) {
-            priceElement.innerText = `$${Number(price).toFixed(2)}`;
+            priceElement.innerText = formatCardPrice(updatedCard, price);
         }
 
         let chartCard = updatedCard;
@@ -3058,7 +3183,8 @@ function updateSearchResultPrice(cardId, price) {
     results.forEach(item => {
         if (item.dataset.cardId !== cardId) return;
         const priceNode = item.querySelector('.search-result-price');
-        if (priceNode) priceNode.innerText = `$${Number(price).toFixed(2)}`;
+        const card = findCardForImage(cardId);
+        if (priceNode) priceNode.innerText = formatCardPrice(card, price);
     });
 }
 
@@ -3529,6 +3655,7 @@ function handleAndroidBack() {
     };
 
     if (closeIfOpen('confirm-modal', closeConfirm)) return true;
+    if (closeIfOpen('finish-options-modal', closeFinishOptions)) return true;
     if (closeIfOpen('version-history-modal', closeVersionHistory)) return true;
     if (closeIfOpen('binder-name-modal', closeBinderNameModal)) return true;
     if (closeIfOpen('sort-modal', closeSortPicker)) return true;
@@ -3556,7 +3683,7 @@ function closeCardModal(event) {
 }
 
 function closeAllModals() {
-    ['search-modal', 'card-modal', 'data-modal', 'version-history-modal', 'binder-modal', 'binder-name-modal', 'binder-actions-modal', 'sort-modal', 'confirm-modal', 'overview-modal', 'rarity-legend-modal'].forEach(id => {
+    ['search-modal', 'card-modal', 'data-modal', 'finish-options-modal', 'version-history-modal', 'binder-modal', 'binder-name-modal', 'binder-actions-modal', 'sort-modal', 'confirm-modal', 'overview-modal', 'rarity-legend-modal'].forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.remove('active');
     });
@@ -3580,8 +3707,22 @@ function showBinder() {
     }
 }
 
+function arrangeHeader() {
+    const brandRow = document.querySelector('.top-brand-row');
+    const metaRow = document.querySelector('.top-meta-row');
+    if (!brandRow || !metaRow) return;
+    const heading = brandRow.querySelector('.binder-heading');
+    const total = brandRow.querySelector('.total-value');
+    const actions = metaRow.querySelector('.header-actions');
+    if (!heading || !total || !actions) return;
+    brandRow.appendChild(actions);
+    metaRow.appendChild(heading);
+    metaRow.appendChild(total);
+}
+
 // --- Initialization ---
 function init() {
+    arrangeHeader();
     renderBinderSelector();
     renderBinder();
     updateSearchClearVisibility();

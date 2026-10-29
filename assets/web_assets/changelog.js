@@ -1,6 +1,19 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.3.15",
+    "date": "2026-10-29",
+    "changes": [
+      "Ikonky nastavení a obnovy cien sú hore; názov balíka, ... a cena sú pod nimi.",
+      "Like srdce je širšie.",
+      "Prevedenie sa vyberá kliknutím na políčko Prevedenie; samostatné ďalšie pole zmizlo.",
+      "Na výber sú len prevedenia, ktoré karta naozaj má (Normal, Reverse Holo, Holo, Cosmos, set-logo a podobne).",
+      "Pri zmene prevedenia sa načíta cena a obrázok konkrétneho variantu.",
+      "Cena sa už neberie ako maximum zo všetkých variantov; odstránil sa falošný set-logo variant z bežnej ceny.",
+      "Ceny z Cardmarketu sa zobrazujú v €."
+    ]
+  },
+  {
     "version": "0.3.14",
     "date": "2026-10-29",
     "changes": [

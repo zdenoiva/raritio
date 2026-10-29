@@ -439,13 +439,19 @@ class _LikeButton extends StatelessWidget {
                   ),
                 )
               else
-                Icon(
-                  filled
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  size: 27,
-                  color: color,
-                  shadows: const [Shadow(color: Colors.black87, blurRadius: 7)],
+                Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.diagonal3Values(1.35, 1.05, 1),
+                  child: Icon(
+                    filled
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    size: 27,
+                    color: color,
+                    shadows: const [
+                      Shadow(color: Colors.black87, blurRadius: 7),
+                    ],
+                  ),
                 ),
               const SizedBox(width: 2),
               Text(

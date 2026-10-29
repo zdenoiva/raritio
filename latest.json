@@ -1,17 +1,17 @@
 {
-  "version": "0.3.14",
-  "versionCode": 314,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.14/raritio-0.3.14.apk",
-  "sha256": "0331d1ce9b807bb98f3ac819ad598395d023fec084379bfda626567242e727c4",
-  "size": 114371291,
-  "publishedAt": "2026-10-29T21:30:00Z",
+  "version": "0.3.15",
+  "versionCode": 315,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.15/raritio-0.3.15.apk",
+  "sha256": "5849e4d3a7729b8a8287bcc78aeb7a8c6093ef5f14e83348ad5a0298d9482d0c",
+  "size": 114471391,
+  "publishedAt": "2026-10-29T22:30:00Z",
   "changelog": [
-    "Názov balíka a cena v jednom riadku, ... vedľa názvu.",
-    "Premenovanie balíka cez ceruzku v menu balíka.",
-    "Ručná voľba prevedenia karty v detaile.",
-    "Cardmarket má prioritu pri cenách, PriceCharting je len fallback.",
-    "Čistejšia história cien bez chybných skokov.",
-    "Android Späť zatvára okná namiesto ukončenia appky.",
-    "Raritio beta 0.3.14."
+    "Ikonky nastavení a cien hore, názov balíka a cena pod nimi.",
+    "Širšie like srdce.",
+    "Prevedenie sa vyberá kliknutím na políčko Prevedenie.",
+    "Len existujúce varianty karty s vlastnou cenou a obrázkom.",
+    "Opravená cena – už sa neberie drahý set-logo variant.",
+    "Ceny z Cardmarketu v eurách.",
+    "Raritio beta 0.3.15."
   ]
 }

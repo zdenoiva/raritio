@@ -196,10 +196,6 @@ class CardService {
       if (response.statusCode != 200) return null;
 
       final card = jsonDecode(response.body);
-      final cardmarket = _bestCardmarketPricing(card);
-      final price = _bestPrice(card);
-      var priceSource = _priceSourceForCard(card);
-      if (priceSource.isEmpty && price > 0) priceSource = 'cardmarket';
 
       final localId = card['localId'] ?? '';
       final setCount =
@@ -221,6 +217,26 @@ class CardService {
       final variantsDetailed = card['variants_detailed'];
       final finishes = _finishesFromVariants(variants, variantsDetailed);
       final imageUri = await _resolveImage(card, language);
+      final availableVariants = _variantsFromDetailed(card, imageUri);
+      final legacyFinish = _primaryFinish(variants, variantsDetailed);
+      final primaryVariant = _primaryVariant(availableVariants, legacyFinish);
+      final primaryFinish =
+          primaryVariant?['finish']?.toString() ?? legacyFinish;
+      final price = (primaryVariant?['price'] as num?)?.toDouble() ?? 0;
+      var priceSource = primaryVariant?['priceSource']?.toString() ?? '';
+      if (priceSource.isEmpty) priceSource = _priceSourceForCard(card);
+      if (priceSource.isEmpty && price > 0) priceSource = 'cardmarket';
+      final priceCurrency =
+          primaryVariant?['priceCurrency']?.toString() ??
+          (priceSource == 'cardmarket' ? 'EUR' : 'USD');
+      final primaryImage = primaryVariant?['image']?.toString() ?? '';
+      final rawPriceHistory = primaryVariant?['priceHistory'];
+      final priceHistory = rawPriceHistory is List
+          ? rawPriceHistory
+                .whereType<Map>()
+                .map((point) => Map<String, dynamic>.from(point))
+                .toList()
+          : _priceHistoryFromCardmarket(_bestCardmarketPricing(card));
 
       return <String, dynamic>{
         'id': card['id'],
@@ -229,17 +245,20 @@ class CardService {
         'language': language,
         'set': card['set']?['name'] ?? '',
         'setId': card['set']?['id'] ?? '',
-        'imageUri': imageUri,
+        'imageUri': primaryImage.isNotEmpty ? primaryImage : imageUri,
         'price': price,
         'priceSource': priceSource,
-        'priceCurrency': priceSource == 'cardmarket' ? 'EUR' : 'USD',
+        'priceCurrency': priceCurrency,
         'rarity': rarity,
         'foil': finishes.any((finish) => finish != 'normal'),
-        'finish': _primaryFinish(variants, variantsDetailed),
+        'finish': primaryFinish,
         'finishes': finishes,
+        'variantId': primaryVariant?['id']?.toString() ?? '',
+        'variantLabel': primaryVariant?['label']?.toString() ?? '',
+        'variants': availableVariants,
         'number': number,
         'artist': card['illustrator'] ?? '',
-        'priceHistory': _priceHistoryFromCardmarket(cardmarket),
+        'priceHistory': priceHistory,
         'detailsLoaded': true,
       };
     } catch (e) {
@@ -248,33 +267,251 @@ class CardService {
     }
   }
 
-  double _bestPrice(dynamic card) {
-    if (card is! Map) return 0;
+  List<Map<String, dynamic>> _variantsFromDetailed(
+    dynamic card,
+    String baseImage,
+  ) {
+    if (card is! Map) return <Map<String, dynamic>>[];
+    final result = <Map<String, dynamic>>[];
+    final seen = <String>{};
+    final detailed = card['variants_detailed'];
 
-    var bestCardmarket = 0.0;
-    var bestTcgplayer = 0.0;
-    void consider(dynamic pricing) {
-      if (pricing is! Map) return;
-      final cardmarket = _priceFromPricing(<String, dynamic>{
-        'cardmarket': pricing['cardmarket'],
-      });
-      if (cardmarket > bestCardmarket) bestCardmarket = cardmarket;
-      final tcgplayer = _priceFromPricing(<String, dynamic>{
-        'tcgplayer': pricing['tcgplayer'],
-      });
-      if (tcgplayer > bestTcgplayer) bestTcgplayer = tcgplayer;
-    }
+    if (detailed is List) {
+      for (final raw in detailed) {
+        if (raw is! Map) continue;
+        final type = (raw['type'] ?? '').toString().trim().toLowerCase();
+        if (type.isEmpty) continue;
+        final foil = (raw['foil'] ?? '').toString().trim().toLowerCase();
+        final stamps = raw['stamp'] is List
+            ? (raw['stamp'] as List).map((stamp) => stamp.toString()).toList()
+            : <String>[];
+        final finish = _variantFinish(type, foil);
+        if (finish.isEmpty) continue;
+        final id = (raw['variantId'] ?? '${type}_${foil}_${stamps.join('_')}')
+            .toString();
+        if (!seen.add(id)) continue;
 
-    consider(card['pricing']);
-    // Japanese sets often expose pricing only on the variant entries.
-    final variants = card['variants_detailed'];
-    if (variants is List) {
-      for (final variant in variants) {
-        if (variant is! Map) continue;
-        consider(variant['pricing']);
+        final pricing = raw['pricing'];
+        final cardmarket = pricing is Map ? pricing['cardmarket'] : null;
+        final tcgplayer = pricing is Map ? pricing['tcgplayer'] : null;
+        final price = _variantPrice(pricing, type);
+        final tcgplayerId = raw['thirdParty'] is Map
+            ? (raw['thirdParty'] as Map)['tcgplayer']
+            : null;
+        final image = type != 'normal' && tcgplayerId != null
+            ? 'https://product-images.tcgplayer.com/fit-in/600x600/$tcgplayerId.jpg'
+            : baseImage;
+
+        result.add(<String, dynamic>{
+          'id': id,
+          'finish': finish,
+          'label': _variantLabel(finish, stamps),
+          'price': price,
+          'priceSource': cardmarket is Map && price > 0
+              ? 'cardmarket'
+              : (tcgplayer is Map && price > 0 ? 'tcgplayer' : ''),
+          'priceCurrency': cardmarket is Map
+              ? (cardmarket['unit'] ?? 'EUR').toString()
+              : 'USD',
+          'image': image,
+          'type': type,
+          'foil': foil,
+          'stamp': stamps,
+          'priceHistory': _variantHistory(cardmarket, type),
+        });
       }
     }
-    return bestCardmarket > 0 ? bestCardmarket : bestTcgplayer;
+
+    if (result.isNotEmpty) return result;
+
+    // Some cards only expose the simple variants flags.
+    final flags = card['variants'];
+    if (flags is Map) {
+      for (final entry in const <List<String>>[
+        ['normal', 'normal'],
+        ['reverse', 'reverse'],
+        ['holo', 'holo'],
+        ['firstEdition', 'firstEdition'],
+      ]) {
+        if (flags[entry[0]] != true) continue;
+        final finish = entry[1];
+        final price = _variantPrice(card['pricing'], finish);
+        final pricing = card['pricing'];
+        final cardmarket = pricing is Map ? pricing['cardmarket'] : null;
+        result.add(<String, dynamic>{
+          'id': 'legacy_$finish',
+          'finish': finish,
+          'label': _variantLabel(finish, const <String>[]),
+          'price': price,
+          'priceSource': price > 0 ? 'cardmarket' : '',
+          'priceCurrency': cardmarket is Map
+              ? (cardmarket['unit'] ?? 'EUR').toString()
+              : 'USD',
+          'image': baseImage,
+          'type': finish,
+          'foil': '',
+          'stamp': const <String>[],
+          'priceHistory': _variantHistory(cardmarket, finish),
+        });
+      }
+    }
+    return result;
+  }
+
+  Map<String, dynamic>? _primaryVariant(
+    List<Map<String, dynamic>> variants,
+    String finish,
+  ) {
+    if (variants.isEmpty) return null;
+
+    // Prefer the base printing. A "cosmos" or "set logo" variant is an
+    // alternate version, not the default card someone scans.
+    for (final preferred in const ['normal', 'holo', 'reverse']) {
+      final plain = variants
+          .where(
+            (variant) =>
+                variant['finish'] == preferred &&
+                (variant['stamp'] as List).isEmpty &&
+                (variant['foil'] as String).isEmpty,
+          )
+          .toList();
+      if (plain.isNotEmpty) return plain.first;
+    }
+
+    // If there is no plain base variant, use the special foil variant.
+    for (final preferred in const [
+      'gold',
+      'rainbow',
+      'cosmos',
+      'textured',
+      'etched',
+      'firstEdition',
+      'foil',
+    ]) {
+      final matching = variants
+          .where((variant) => variant['finish'] == preferred)
+          .toList();
+      if (matching.isEmpty) continue;
+      final unstamped = matching
+          .where((variant) => (variant['stamp'] as List).isEmpty)
+          .toList();
+      return unstamped.isNotEmpty ? unstamped.first : matching.first;
+    }
+
+    final matching = variants
+        .where((variant) => variant['finish'] == finish)
+        .toList();
+    final pool = matching.isEmpty ? variants : matching;
+    final unstamped = pool
+        .where((variant) => (variant['stamp'] as List).isEmpty)
+        .toList();
+    return unstamped.isNotEmpty ? unstamped.first : pool.first;
+  }
+
+  String _variantFinish(String type, String foil) {
+    final fromFoil = _finishFromFoil(foil);
+    if (fromFoil.isNotEmpty) return fromFoil;
+    return _finishFromFoil(type);
+  }
+
+  String _variantLabel(String finish, List<String> stamps) {
+    var label = switch (finish) {
+      'normal' => 'Normal',
+      'reverse' => 'Reverse Holo',
+      'holo' => 'Holo',
+      'foil' => 'Foil',
+      'cosmos' => 'Cosmos',
+      'textured' => 'Texture',
+      'rainbow' => 'Rainbow',
+      'gold' => 'Gold',
+      'etched' => 'Etched',
+      'firstEdition' => '1st Edition',
+      _ => finish,
+    };
+    if (stamps.contains('1st-edition')) {
+      label = finish == 'holo' ? '1st Edition Holo' : '1st Edition';
+    }
+    if (stamps.contains('set-logo')) {
+      label = '$label (set logo)';
+    } else if (stamps.contains('pre-release')) {
+      label = '$label (pre-release)';
+    } else if (stamps.isNotEmpty) {
+      label = '$label (${stamps.first.replaceAll('-', ' ')})';
+    }
+    return label;
+  }
+
+  double _variantPrice(dynamic pricing, String type) {
+    if (pricing is! Map) return 0;
+    final cardmarket = pricing['cardmarket'];
+    if (cardmarket is Map) {
+      final useHolo = type != 'normal';
+      final average = _number(cardmarket[useHolo ? 'avg-holo' : 'avg']);
+      final trend = _number(cardmarket[useHolo ? 'trend-holo' : 'trend']);
+      final low = _number(cardmarket[useHolo ? 'low-holo' : 'low']);
+      final fallbackAverage = _number(cardmarket[useHolo ? 'avg' : 'avg-holo']);
+      final fallbackTrend = _number(
+        cardmarket[useHolo ? 'trend' : 'trend-holo'],
+      );
+      final fallbackLow = _number(cardmarket[useHolo ? 'low' : 'low-holo']);
+      if (average > 0) return average;
+      if (trend > 0) return trend;
+      if (low > 0) return low;
+      if (fallbackAverage > 0) return fallbackAverage;
+      if (fallbackTrend > 0) return fallbackTrend;
+      if (fallbackLow > 0) return fallbackLow;
+    }
+
+    final tcgplayer = pricing['tcgplayer'];
+    if (tcgplayer is Map) {
+      final average = _number(tcgplayer['avg']);
+      final market = _number(tcgplayer['market']);
+      final low = _number(tcgplayer['low']);
+      if (average > 0) return average;
+      if (market > 0) return market;
+      if (low > 0) return low;
+    }
+    return 0;
+  }
+
+  List<Map<String, dynamic>> _variantHistory(dynamic cardmarket, String type) {
+    if (cardmarket is! Map) return <Map<String, dynamic>>[];
+    final useHolo = type != 'normal';
+    final now = DateTime.now().toUtc();
+    final byDate = <String, Map<String, dynamic>>{};
+
+    void addPoint(int daysAgo, dynamic value) {
+      final price = _number(value);
+      if (price <= 0) return;
+      final date = now.subtract(Duration(days: daysAgo));
+      final key = date.toIso8601String().substring(0, 10);
+      byDate[key] = <String, dynamic>{
+        'date': key,
+        'price': price,
+        'source': 'cardmarket',
+      };
+    }
+
+    double field(String base) {
+      final primary = _number(cardmarket[useHolo ? '$base-holo' : base]);
+      if (primary > 0) return primary;
+      return _number(cardmarket[useHolo ? base : '$base-holo']);
+    }
+
+    addPoint(30, field('avg30'));
+    addPoint(7, field('avg7'));
+    addPoint(1, field('avg1'));
+    final average = field('avg');
+    final trend = field('trend');
+    addPoint(0, average > 0 ? average : trend);
+
+    return byDate.values.toList()
+      ..sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
+  }
+
+  double _number(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   dynamic _bestCardmarketPricing(dynamic card) {

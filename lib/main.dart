@@ -927,6 +927,8 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final language = data['language'] as String? ?? 'en';
       final set = data['set'] as String? ?? '';
       final number = data['number'] as String? ?? '';
+      final variantId = data['variantId'] as String? ?? '';
+      final finish = data['finish'] as String? ?? '';
       final existingUrl = data['priceChartingUrl'] as String? ?? '';
 
       if (cardId.isEmpty) return false;
@@ -937,7 +939,12 @@ class _RaritioTCGState extends State<RaritioTCG> {
       } else {
         // Always query TCGdex for Pokemon because its Cardmarket pricing is
         // the primary source. PriceCharting remains a last-resort fallback.
-        price = await _priceService.getPokemonPrice(cardId, language: language);
+        price = await _priceService.getPokemonPrice(
+          cardId,
+          language: language,
+          variantId: variantId.isEmpty ? null : variantId,
+          finish: finish.isEmpty ? null : finish,
+        );
       }
 
       if (price > 0) {

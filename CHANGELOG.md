@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.15] - 2026-10-29
+
+- Ikonky nastavení a obnovy cien sú hore; názov balíka, ... a cena sú pod nimi.
+- Like srdce je širšie.
+- Prevedenie sa vyberá kliknutím na políčko Prevedenie; samostatné ďalšie pole zmizlo.
+- Na výber sú len prevedenia, ktoré karta naozaj má (Normal, Reverse Holo, Holo, Cosmos, set-logo a podobne).
+- Pri zmene prevedenia sa načíta cena a obrázok konkrétneho variantu.
+- Cena sa už neberie ako maximum zo všetkých variantov; odstránil sa falošný set-logo variant z bežnej ceny.
+- Ceny z Cardmarketu sa zobrazujú v €.
+
 ## [0.3.14] - 2026-10-29
 
 - Názov balíka a cena sú v jednom riadku, tlačidlo ... je vedľa názvu.
