@@ -1072,12 +1072,14 @@
         }
 
         .detail-card-label {
+            display: block;
             color: var(--text-muted);
             font-size: 0.62rem;
             line-height: 1.2;
         }
 
         .detail-card-value {
+            display: block;
             margin-top: 4px;
             color: var(--text);
             font-size: 0.82rem;
@@ -1707,6 +1709,75 @@
             letter-spacing: 0.7px;
             text-transform: uppercase;
             margin-bottom: 4px;
+        }
+
+        .settings-action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .settings-action-row .btn-secondary {
+            flex: 1 1 150px;
+            width: auto;
+            margin-top: 0;
+        }
+
+        .version-history-sheet {
+            max-height: 86vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .version-history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            padding-right: 3px;
+        }
+
+        .version-history-item {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            background: var(--surface-light);
+        }
+
+        .version-history-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .version-history-version {
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 900;
+        }
+
+        .version-history-date {
+            color: var(--text-muted);
+            font-size: 0.68rem;
+            white-space: nowrap;
+        }
+
+        .version-history-item ul {
+            margin: 8px 0 0 17px;
+            padding: 0;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+
+        .version-history-item li + li {
+            margin-top: 3px;
+        }
+
+        #version-history-modal {
+            z-index: 260;
         }
 
         .setting-row {
@@ -2769,10 +2840,27 @@
                     Raritio kontroluje novú verziu pri štarte maximálne raz za 24 hodín.
                     APK sa sťahuje z GitHub Releases a pred inštaláciou sa overí SHA256.
                 </p>
-                <button class="btn-secondary" onclick="checkForUpdates()">Skontrolovať aktualizácie</button>
+                <div class="settings-action-row">
+                    <button class="btn-secondary" onclick="checkForUpdates()">Skontrolovať aktualizácie</button>
+                    <button class="btn-secondary" onclick="showVersionHistory()">História verzií</button>
+                </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.3.11</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.3.12</span></p>
+        </div>
+    </div>
+
+    <!-- Version History Modal -->
+    <div id="version-history-modal" class="modal-overlay center-modal" onclick="closeVersionHistory(event)">
+        <div class="modal-content version-history-sheet" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h2>História verzií</h2>
+                    <p class="modal-subtitle">Čo sa zmenilo v jednotlivých verziách Raritia.</p>
+                </div>
+                <button class="close-btn" onclick="closeVersionHistory()" aria-label="Zavrieť">×</button>
+            </div>
+            <div id="version-history-list" class="version-history-list"></div>
         </div>
     </div>
 
@@ -2882,9 +2970,11 @@
 
     <div id="toast" style="position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--surface-light); color:white; padding:12px 24px; border-radius:8px; display:none; z-index:300; box-shadow:0 4px 12px rgba(0,0,0,0.5); font-size:0.9rem; text-align:center; width:80%; max-width:400px;"></div>
 
+    <script src="changelog.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
+
 
 
 

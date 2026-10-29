@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.12] - 2026-10-29
+
+- Po pridaní naskenovanej karty sa appka vráti rovno do skenera na ďalšiu kartu.
+- Po pridaní karty sa vyhľadávacie pole vyčistí, aby tam starý text nezostával.
+- Opravené zobrazovanie detailu karty: názov poľa a hodnota už nie sú zlepené (napr. Rarita / Rare).
+- V Nastaveniach pribudla História verzií s prehľadom zmien jednotlivých vydaní.
+
 ## [0.3.11] - 2026-10-29
 
 - Detaily mojich kariet sú v rovnakých obdĺžnikových kartách ako zdieľané karty.

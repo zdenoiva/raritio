@@ -1,15 +1,15 @@
 {
-  "version": "0.3.11",
-  "versionCode": 311,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.11/raritio-0.3.11.apk",
-  "sha256": "a4da7753a0a1703ea9a1f529710fbda032238bdc473f1866ed6780948f211f66",
-  "size": 114350809,
-  "publishedAt": "2026-10-29T18:30:00Z",
+  "version": "0.3.12",
+  "versionCode": 312,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.12/raritio-0.3.12.apk",
+  "sha256": "2c8ed93a12259286b6e10f342a074375b29c7da632b016bc9ce2f70232f54627",
+  "size": 114353671,
+  "publishedAt": "2026-10-29T19:30:00Z",
   "changelog": [
-    "Detaily mojich kariet v obdĺžnikovom rozložení ako zdieľané karty.",
-    "Zdieľaný detail má rovnaké údaje ako môj detail.",
-    "Like srdce vpravo dole, väčšie a bez čierneho rámčeka.",
-    "Holo efekt a odlesky pre zdieľané karty.",
-    "Raritio beta 0.3.11."
+    "Po pridaní naskenovanej karty sa rovno otvorí skener na ďalšiu kartu.",
+    "Vyhľadávacie pole sa po pridaní karty vyčistí.",
+    "Opravené zlepené názvy polí a hodnôt v detaile karty.",
+    "Pridaná História verzií v Nastaveniach.",
+    "Raritio beta 0.3.12."
   ]
 }

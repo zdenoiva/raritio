@@ -51,6 +51,7 @@ let cardModalReturnTo = null;
 // Card currently shown in the preview modal
 let previewCardId = null;
 let isScanning = false;
+let searchFromScan = false;
 let stateHydrated = false;
 let saveTimer = null;
 let lastPriceRefresh = 0;
@@ -2462,7 +2463,7 @@ function updateSearchClearVisibility() {
     button.classList.toggle('hidden', input.value.trim().length === 0);
 }
 
-function clearSearchInput() {
+function clearSearchInput(focus = true) {
     const input = document.getElementById('search-input');
     if (!input) return;
     input.value = '';
@@ -2470,7 +2471,7 @@ function clearSearchInput() {
     updateSearchClearVisibility();
     const results = document.getElementById('search-results');
     if (results) results.innerHTML = '';
-    input.focus();
+    if (focus) input.focus();
 }
 
 function showSearch({ focus = true } = {}) {
@@ -2495,6 +2496,8 @@ function showSearch({ focus = true } = {}) {
 function performSearch(fromScan = false, language = null) {
     const query = document.getElementById('search-input').value.trim();
     if (!query) return;
+
+    searchFromScan = fromScan === true;
 
     const requested = language && language !== 'auto'
         ? language
@@ -2756,6 +2759,9 @@ function addCardToSelectedBinders(cardId) {
         return;
     }
 
+    const wasScanSearch = searchFromScan;
+    const wasSearch = cardModalReturnTo === 'search';
+
     saveState();
     renderBinderSelector();
     renderBinder();
@@ -2765,13 +2771,21 @@ function addCardToSelectedBinders(cardId) {
     handleSearchResults(state.searchResults);
 
     document.getElementById('card-modal').classList.remove('active');
-    if (cardModalReturnTo === 'search') {
-        document.getElementById('search-modal').classList.add('active');
-    }
+    document.getElementById('search-modal').classList.remove('active');
     previewCardId = null;
     cardModalReturnTo = null;
+    searchFromScan = false;
+    clearSearchInput(false);
 
     showToast(`Karta pridaná do ${added} ${added === 1 ? 'balíka' : 'balíkov'}.`);
+
+    if (wasScanSearch) {
+        // A card added from a scan should immediately continue with the next
+        // scan instead of leaving the user on the empty search screen.
+        setTimeout(scanCard, 250);
+    } else if (wasSearch) {
+        showSearch({ focus: false });
+    }
 }
 
 // --- Scanning ---
@@ -3348,6 +3362,44 @@ function setGlowThreshold(value) {
 function setDataStatus(message) {
     const status = document.getElementById('data-status');
     if (status) status.innerText = message;
+}
+
+function showVersionHistory() {
+    const list = document.getElementById('version-history-list');
+    const modal = document.getElementById('version-history-modal');
+    if (!list || !modal) return;
+
+    const entries = Array.isArray(window.RARITIO_CHANGELOG)
+        ? window.RARITIO_CHANGELOG
+        : [];
+    if (entries.length === 0) {
+        list.innerHTML = '<p class="settings-note">História verzií nie je dostupná.</p>';
+    } else {
+        list.innerHTML = entries.map(entry => {
+            const changes = Array.isArray(entry.changes) ? entry.changes : [];
+            const bullets = changes
+                .map(change => `<li>${escapeHtml(change)}</li>`)
+                .join('');
+            return `
+                <div class="version-history-item">
+                    <div class="version-history-head">
+                        <span class="version-history-version">v${escapeHtml(entry.version)}</span>
+                        <span class="version-history-date">${escapeHtml(entry.date || '')}</span>
+                    </div>
+                    ${bullets ? `<ul>${bullets}</ul>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    list.scrollTop = 0;
+    modal.classList.add('active');
+}
+
+function closeVersionHistory(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const modal = document.getElementById('version-history-modal');
+    if (modal) modal.classList.remove('active');
 }
 
 function checkForUpdates() {
