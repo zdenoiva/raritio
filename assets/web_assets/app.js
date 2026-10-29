@@ -529,6 +529,14 @@ function normalizeCard(card) {
     const finishes = Array.isArray(card.finishes)
         ? card.finishes.map(finish => String(finish).toLowerCase()).filter(Boolean)
         : [];
+    const normalizedHistory = normalizeHistory(card.priceHistory);
+    // Older versions could store a PriceCharting fallback (for example 80 EUR)
+    // next to a real Cardmarket price (for example 2 EUR). Drop obvious
+    // outliers so the chart does not look like a crash.
+    const priceHistory = Number.isFinite(price) && price > 0
+        ? normalizedHistory.filter(point =>
+            point.price <= price * 20 && point.price >= price * 0.05)
+        : normalizedHistory;
     return {
         ...card,
         id: String(card.id || ''),
@@ -562,7 +570,7 @@ function normalizeCard(card) {
                     price: Number(grade.price)
                 }))
             : [],
-        priceHistory: normalizeHistory(card.priceHistory)
+        priceHistory
     };
 }
 

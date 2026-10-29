@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.14] - 2026-10-29
+
+- Názov balíka a cena sú v jednom riadku, tlačidlo ... je vedľa názvu.
+- Ceruzka a + pribudli z hlavičky preč; premenovanie je v menu balíka cez ceruzku.
+- V detaile karty sa dá ručne zvoliť prevedenie (Normal, Holo, Reverse, Gold a ďalšie).
+- Ceny sa prioritne ťahajú z Cardmarketu; PriceCharting je len núdzová alternatíva.
+- História cien už neobsahuje PriceCharting skoky a staré chybné body sa čistia.
+- Android tlačidlo Späť zatvorí otvorené okno namiesto ukončenia aplikácie.
+
 ## [0.3.13] - 2026-10-29
 
 - Názov balíka a cena sú v jednom riadku, tlačidlo ... je vedľa názvu.

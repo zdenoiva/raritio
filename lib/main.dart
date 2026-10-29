@@ -1121,7 +1121,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
         'handleAndroidBack()',
       );
       final handled =
-          result == true || result.toString().toLowerCase() == 'true';
+          result == true || result.toString().trim().toLowerCase() == 'true';
       if (!handled) {
         await SystemNavigator.pop();
       }
