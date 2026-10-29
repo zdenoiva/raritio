@@ -1,6 +1,15 @@
 // --- State Management ---
 const DEFAULT_BINDER_NAME = 'Môj balík';
 const BINDER_SORT_MODES = ['custom', 'name', 'rarity', 'price_desc', 'price_asc', 'recent', 'set'];
+const BINDER_SORT_OPTIONS = [
+    { value: 'custom', label: 'Vlastné', icon: '≡', description: 'Presne tak, ako si karty uložil.' },
+    { value: 'name', label: 'Abecedne', icon: 'A', description: 'Podľa názvu karty od A po Z.' },
+    { value: 'rarity', label: 'Podľa rarity', icon: '✦', description: 'Najvzácnejšie karty hore.' },
+    { value: 'price_desc', label: 'Cena ↓', icon: '$↓', description: 'Najdrahšie karty hore.' },
+    { value: 'price_asc', label: 'Cena ↑', icon: '$↑', description: 'Najlacnejšie karty hore.' },
+    { value: 'recent', label: 'Najnovšie', icon: '◷', description: 'Naposledy pridané karty hore.' },
+    { value: 'set', label: 'Podľa edície', icon: '▤', description: 'Edícia a číslo karty.' }
+];
 
 const DEFAULT_SETTINGS = {
     rarityFrames: true,
@@ -688,6 +697,47 @@ function sortedBinderCards(cards, mode) {
     return indexed.map(item => item.card);
 }
 
+function binderSortLabel(value) {
+    const option = BINDER_SORT_OPTIONS.find(item => item.value === value);
+    return option ? option.label : 'Vlastné';
+}
+
+function renderSortPicker() {
+    const container = document.getElementById('sort-options');
+    if (!container) return;
+    const binder = getCurrentBinder();
+    const current = binder && BINDER_SORT_MODES.includes(binder.sortMode)
+        ? binder.sortMode
+        : 'custom';
+
+    container.innerHTML = BINDER_SORT_OPTIONS.map(option => `
+        <button class="sort-option ${option.value === current ? 'active' : ''}"
+                onclick="selectSortMode('${option.value}')">
+            <span class="sort-option-icon" aria-hidden="true">${option.icon}</span>
+            <span class="sort-option-copy">
+                <strong>${option.label}</strong>
+                <small>${option.description}</small>
+            </span>
+            <span class="sort-option-check" aria-hidden="true">✓</span>
+        </button>
+    `).join('');
+}
+
+function showSortPicker() {
+    renderSortPicker();
+    document.getElementById('sort-modal').classList.add('active');
+}
+
+function closeSortPicker(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('sort-modal').classList.remove('active');
+}
+
+function selectSortMode(value) {
+    setBinderSort(value);
+    closeSortPicker();
+}
+
 function setBinderSort(value) {
     const binder = getCurrentBinder();
     if (!binder || !BINDER_SORT_MODES.includes(value)) return;
@@ -730,8 +780,13 @@ function renderBinder(preserveScroll = false) {
     if (binderName) binderName.innerText = binder.name;
 
     const sortMode = binder.sortMode || 'custom';
-    const sortSelect = document.getElementById('binder-sort');
-    if (sortSelect) sortSelect.value = sortMode;
+    const sortLabel = document.getElementById('binder-sort-label');
+    if (sortLabel) sortLabel.innerText = binderSortLabel(sortMode);
+    const sortIcon = document.querySelector('#binder-sort-button .sort-button-icon');
+    if (sortIcon) {
+        const option = BINDER_SORT_OPTIONS.find(item => item.value === sortMode);
+        sortIcon.innerText = option ? option.icon : '↕';
+    }
 
     const reorderButton = document.getElementById('reorder-toggle');
     if (reorderButton) {
@@ -3248,7 +3303,7 @@ function closeCardModal(event) {
 }
 
 function closeAllModals() {
-    ['search-modal', 'card-modal', 'data-modal', 'binder-modal', 'binder-name-modal', 'binder-actions-modal', 'confirm-modal', 'overview-modal', 'rarity-legend-modal'].forEach(id => {
+    ['search-modal', 'card-modal', 'data-modal', 'binder-modal', 'binder-name-modal', 'binder-actions-modal', 'sort-modal', 'confirm-modal', 'overview-modal', 'rarity-legend-modal'].forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.remove('active');
     });

@@ -6,7 +6,6 @@ import 'package:app_links/app_links.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' hide appBuildNumber;
-import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -973,11 +972,9 @@ class _RaritioTCGState extends State<RaritioTCG> {
       jsonDecode(stateJson); // validate before wrapping
 
       final backup = _stateService.createBackup(stateJson);
-      final file = await _stateService.saveBackup(backup);
-      final statusMessage =
-          'Záloha uložená: ${p.basename(file.path)}\n${file.path}';
+      final path = await _stateService.saveBackup(backup);
       _controller.runJavaScript(
-          'onBackupResult(true, ${jsonEncode(statusMessage)})');
+          'onBackupResult(true, ${jsonEncode('Záloha uložená: $path')})');
     } catch (e) {
       print("Backup error: $e");
       _controller.runJavaScript(
@@ -990,9 +987,9 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final stateJson = message.substring('autoBackup:'.length);
       jsonDecode(stateJson); // validate before wrapping
       final backup = _stateService.createBackup(stateJson);
-      final file = await _stateService.ensureDailyBackup(backup);
-      if (file != null) {
-        print('Automatic backup: ${file.path}');
+      final path = await _stateService.ensureDailyBackup(backup);
+      if (path != null) {
+        print('Automatic backup: $path');
       }
     } catch (e) {
       print('Automatic backup error: $e');

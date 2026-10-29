@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.6] - 2026-10-29
+
+- Moderné výberové okno radenia kariet namiesto natívneho selectu.
+- Zálohy sa ukladajú do `Downloads/Raritio`.
+- Automatické aj manuálne zálohy sa v Downloads držia maximálne 5.
+- Opravené a doplnené Supabase RLS migrácie.
+
 ## [0.3.5] - 2026-10-29
 
 - Opravené RLS pravidlá pre zdieľané balíky (infinite recursion).

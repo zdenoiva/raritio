@@ -1,14 +1,14 @@
 {
-  "version": "0.3.5",
-  "versionCode": 305,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.5/raritio-0.3.5.apk",
-  "sha256": "5b384ab84d60824f438e3774214cb4ae6e4fe4c6a4a13ccc6e7d72235da7031d",
-  "size": 113905653,
-  "publishedAt": "2026-10-29T14:47:00Z",
+  "version": "0.3.6",
+  "versionCode": 306,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.6/raritio-0.3.6.apk",
+  "sha256": "934c1a0f65240c73c721d27c3d47c3bd1956802e35e51c592cc891bfacbfd7fe",
+  "size": 113906677,
+  "publishedAt": "2026-10-29T15:30:00Z",
   "changelog": [
-    "Opravené odoberanie kamošov a RLS pravidlá zdieľania.",
-    "Manuálna kontrola aktualizácií v Nastaveniach.",
-    "Zdieľané balíky sa obnovujú každých 30 sekúnd.",
-    "Raritio beta 0.3.5."
+    "Moderné výberové okno radenia kariet.",
+    "Zálohy do Downloads/Raritio.",
+    "Maximálne 5 záloh v Downloads.",
+    "Raritio beta 0.3.6."
   ]
 }

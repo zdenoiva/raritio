@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -11,6 +12,9 @@ import 'package:path_provider/path_provider.dart';
 /// be restored on another phone without any server.
 class StateService {
   static const String _fileName = 'raritio_state.json';
+  static const MethodChannel _backupChannel =
+      MethodChannel('sk.zdenoiva.raritio/backup');
+  static const int maxBackups = 5;
 
   Future<File> _stateFile() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -66,27 +70,43 @@ class StateService {
     return backupDir;
   }
 
-  /// Writes a backup directly into the app's documents/backups folder.
-  /// No system file picker is involved, so the UI can report the exact path.
-  Future<File> saveBackup(String backup) async {
+  /// Writes a backup into the public Downloads/Raritio folder on Android.
+  /// If the platform channel is unavailable (tests/desktop), it falls back to
+  /// the app's private documents/backups folder.
+  Future<String> saveBackup(String backup) async {
+    final fileName = backupFileName();
+    try {
+      final path = await _backupChannel.invokeMethod<String>(
+        'saveBackupToDownloads',
+        {
+          'fileName': fileName,
+          'content': backup,
+          'maxBackups': maxBackups,
+        },
+      );
+      if (path != null && path.trim().isNotEmpty) return path;
+    } catch (_) {
+      // Fall through to the private app folder.
+    }
+
     final dir = await _backupDirectory();
-    final file = File(p.join(dir.path, backupFileName()));
+    final file = File(p.join(dir.path, fileName));
     await file.writeAsString(backup, flush: true);
     await _pruneBackups(dir);
-    return file;
+    return file.path;
   }
 
-  /// Creates at most one automatic backup per day. Returns null when today's
-  /// backup already exists.
-  Future<File?> ensureDailyBackup(String backup) async {
-    final dir = await _backupDirectory();
+  /// Creates at most one automatic backup per day. Returns the saved path, or
+  /// null when today's backup already exists.
+  Future<String?> ensureDailyBackup(String backup) async {
+    final dir = await getApplicationDocumentsDirectory();
     final today = DateTime.now().toIso8601String().substring(0, 10);
     final marker = File(p.join(dir.path, '.auto-backup-$today'));
     if (await marker.exists()) return null;
 
-    final file = await saveBackup(backup);
-    await marker.writeAsString(file.path, flush: true);
-    return file;
+    final path = await saveBackup(backup);
+    await marker.writeAsString(path, flush: true);
+    return path;
   }
 
   Future<void> _pruneBackups(Directory dir) async {
@@ -98,7 +118,7 @@ class StateService {
           .cast<File>()
           .toList();
       files.sort((a, b) => a.path.compareTo(b.path));
-      while (files.length > 10) {
+      while (files.length > maxBackups) {
         final oldest = files.removeAt(0);
         await oldest.delete();
       }
