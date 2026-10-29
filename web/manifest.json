@@ -1,11 +1,11 @@
 {
-    "name": "raritio",
-    "short_name": "raritio",
+    "name": "Raritio",
+    "short_name": "Raritio",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0A0A0C",
+    "theme_color": "#3B82F6",
+    "description": "Raritio — osobná zbierka Pokémon a MTG kariet.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
