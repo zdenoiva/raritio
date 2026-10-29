@@ -24,6 +24,8 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
   SharedBinderData? _data;
   String? _error;
   bool _loading = true;
+  Map<String, CardLike> _likes = <String, CardLike>{};
+  final Set<String> _likePending = <String>{};
 
   @override
   void initState() {
@@ -38,9 +40,16 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
     });
     try {
       final data = await widget.service.getSharedBinder(widget.summary.id);
+      Map<String, CardLike> likes = <String, CardLike>{};
+      try {
+        likes = await widget.service.getCardLikes(widget.summary.id);
+      } catch (_) {
+        // Likes are optional; the binder still opens without them.
+      }
       if (!mounted) return;
       setState(() {
         _data = data;
+        _likes = likes;
         _loading = false;
       });
     } catch (e) {
@@ -49,6 +58,32 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
         _error = e.toString().replaceFirst('Exception: ', '');
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _toggleLike(String cardId) async {
+    if (_likePending.contains(cardId)) return;
+    setState(() => _likePending.add(cardId));
+    try {
+      final result = await widget.service.toggleCardLike(
+        widget.summary.id,
+        cardId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _likes[cardId] = result;
+        _likePending.remove(cardId);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _likePending.remove(cardId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Like sa nepodarilo uložiť: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
+      );
     }
   }
 
@@ -101,8 +136,18 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
                               mainAxisSpacing: 12,
                             ),
                             delegate: SliverChildBuilderDelegate(
-                              (context, index) =>
-                                  _SharedCard(card: cards[index]),
+                              (context, index) {
+                                final card = cards[index];
+                                final cardId = card['id']?.toString() ?? '';
+                                return _SharedCard(
+                                  card: card,
+                                  like: _likes[cardId] ??
+                                      const CardLike(count: 0, likedByMe: false),
+                                  canLike: !summary.isOwner,
+                                  pending: _likePending.contains(cardId),
+                                  onToggleLike: () => _toggleLike(cardId),
+                                );
+                              },
                               childCount: cards.length,
                             ),
                           ),
@@ -199,9 +244,19 @@ class _SharedBinderHeader extends StatelessWidget {
 }
 
 class _SharedCard extends StatelessWidget {
-  const _SharedCard({required this.card});
+  const _SharedCard({
+    required this.card,
+    required this.like,
+    required this.canLike,
+    required this.pending,
+    required this.onToggleLike,
+  });
 
   final Map<String, dynamic> card;
+  final CardLike like;
+  final bool canLike;
+  final bool pending;
+  final VoidCallback onToggleLike;
 
   @override
   Widget build(BuildContext context) {
@@ -276,13 +331,25 @@ class _SharedCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  '\$${price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Color(0xFF10B981),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '\$${price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Color(0xFF10B981),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    _LikeButton(
+                      like: like,
+                      canLike: canLike,
+                      pending: pending,
+                      onTap: onToggleLike,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -317,6 +384,72 @@ class _SharedCard extends StatelessWidget {
       );
     }
     return const _NoImage();
+  }
+}
+
+class _LikeButton extends StatelessWidget {
+  const _LikeButton({
+    required this.like,
+    required this.canLike,
+    required this.pending,
+    required this.onTap,
+  });
+
+  final CardLike like;
+  final bool canLike;
+  final bool pending;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: canLike && !pending ? onTap : null,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A0A0C),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: like.likedByMe
+                ? const Color(0x66EF4444)
+                : const Color(0xFF2D2D35),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (pending)
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Icon(
+                like.likedByMe
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                size: 15,
+                color: like.likedByMe
+                    ? const Color(0xFFF87171)
+                    : const Color(0xFF94A3B8),
+              ),
+            const SizedBox(width: 4),
+            Text(
+              '${like.count}',
+              style: TextStyle(
+                color: like.likedByMe
+                    ? const Color(0xFFFCA5A5)
+                    : const Color(0xFF94A3B8),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

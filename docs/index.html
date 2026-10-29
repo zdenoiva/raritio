@@ -123,6 +123,16 @@
       border-color: rgba(59, 130, 246, 0.35);
     }
     .version { text-align: center; color: var(--muted); font-size: 0.72rem; margin-top: 10px; }
+    .install-note {
+      margin: 12px 0 0;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      background: rgba(16, 185, 129, 0.08);
+      color: #a7f3d0;
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
     .steps {
       margin: 18px 0 0;
       padding: 16px;
@@ -175,6 +185,10 @@
           Stiahnuť najnovšiu verziu
         </a>
         <p id="version" class="version">Zisťujem najnovšiu verziu…</p>
+        <p id="install-note" class="install-note hidden">
+          Po nainštalovaní sa vráť na túto stránku a klikni
+          <strong>Už mám Raritio — otvoriť</strong>. Kód sa pridá bez nového skenovania.
+        </p>
       </div>
 
       <div id="invite-steps" class="steps hidden">
@@ -213,6 +227,7 @@
     const inviteText = document.getElementById('invite-text');
     const inviteCode = document.getElementById('invite-code');
     const inviteSteps = document.getElementById('invite-steps');
+    const installNote = document.getElementById('install-note');
     const openApp = document.getElementById('open-app');
     const copyCode = document.getElementById('copy-code');
     const download = document.getElementById('download');
@@ -230,6 +245,7 @@
       if (appLink) {
         openApp.href = appLink;
         openApp.classList.remove('hidden');
+        installNote?.classList.remove('hidden');
       }
     }
 

@@ -36,6 +36,68 @@ class _ShareBinderSheet extends StatefulWidget {
 
 class _ShareBinderSheetState extends State<_ShareBinderSheet> {
   bool _stopping = false;
+  bool _loadingFriends = true;
+  bool _savingFriends = false;
+  String? _friendsError;
+  List<FriendProfile> _friends = const [];
+  Set<String> _selectedFriendIds = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFriends();
+  }
+
+  Future<void> _loadFriends() async {
+    if (!widget.summary.isOwner) {
+      setState(() => _loadingFriends = false);
+      return;
+    }
+    try {
+      final results = await Future.wait([
+        widget.service.getFriends(),
+        widget.service.getSharedBinderFriendIds(widget.summary.id),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _friends = results[0] as List<FriendProfile>;
+        _selectedFriendIds = results[1] as Set<String>;
+        _loadingFriends = false;
+        _friendsError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingFriends = false;
+        _friendsError = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  Future<void> _saveFriends() async {
+    setState(() => _savingFriends = true);
+    try {
+      await widget.service.setSharedBinderFriends(
+        widget.summary.id,
+        _selectedFriendIds,
+      );
+      if (!mounted) return;
+      setState(() => _savingFriends = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Zdieľanie s kamošmi je uložené.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _savingFriends = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Výber sa nepodarilo uložiť: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
+      );
+    }
+  }
 
   Future<void> _share() async {
     final token = widget.summary.shareToken;
@@ -222,6 +284,138 @@ class _ShareBinderSheetState extends State<_ShareBinderSheet> {
                 ),
               ),
             ),
+            if (widget.summary.isOwner) ...[
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF16161A),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: const Color(0xFF2D2D35)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Zdieľať kamošom',
+                            style: TextStyle(
+                              color: Color(0xFFF8FAFC),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        if (_selectedFriendIds.isNotEmpty)
+                          Text(
+                            '${_selectedFriendIds.length} vybraní',
+                            style: const TextStyle(
+                              color: Color(0xFF93C5FD),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Kamoši, ktorí už majú Raritio, uvidia balík hneď po obnovení.',
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 11,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_loadingFriends)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      )
+                    else if (_friendsError != null)
+                      Text(
+                        _friendsError!,
+                        style: const TextStyle(
+                          color: Color(0xFFFCA5A5),
+                          fontSize: 11,
+                        ),
+                      )
+                    else if (_friends.isEmpty)
+                      const Text(
+                        'Zatiaľ nemáš kamošov. Pridaj si ich v Zdieľané → Kamoši.',
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 11,
+                          height: 1.35,
+                        ),
+                      )
+                    else ...[
+                      ..._friends.map(
+                        (friend) => CheckboxListTile(
+                          value: _selectedFriendIds.contains(friend.id),
+                          onChanged: (checked) {
+                            setState(() {
+                              if (checked == true) {
+                                _selectedFriendIds.add(friend.id);
+                              } else {
+                                _selectedFriendIds.remove(friend.id);
+                              }
+                            });
+                          },
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          activeColor: const Color(0xFF3B82F6),
+                          checkColor: Colors.white,
+                          title: Text(
+                            friend.nickname,
+                            style: const TextStyle(
+                              color: Color(0xFFF8FAFC),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Friend kód: ${friend.friendCode}',
+                            style: const TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: _savingFriends ? null : _saveFriends,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF93C5FD),
+                            side: const BorderSide(color: Color(0x663B82F6)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: _savingFriends
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Uložiť výber kamošov'),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             Row(
               children: [

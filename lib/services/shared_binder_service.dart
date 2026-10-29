@@ -101,6 +101,13 @@ class SharedBinderData {
   final Map<String, dynamic> snapshot;
 }
 
+class CardLike {
+  const CardLike({required this.count, required this.likedByMe});
+
+  final int count;
+  final bool likedByMe;
+}
+
 class SharedBinderService {
   final SupabaseClient _client = Supabase.instance.client;
   final Random _random = Random.secure();
@@ -387,6 +394,94 @@ class SharedBinderService {
         .eq('owner_id', _currentUserId)
         .select('id')
         .maybeSingle();
+
+    // A card removed from the owner's binder must not keep orphaned likes.
+    try {
+      final rawCards = snapshot['cards'];
+      final cardIds = rawCards is List
+          ? rawCards
+              .whereType<Map>()
+              .map((card) => card['id']?.toString() ?? '')
+              .where((id) => id.isNotEmpty)
+              .toList()
+          : <String>[];
+      await _client.rpc(
+        'prune_shared_card_likes',
+        params: {
+          'p_binder_id': sharedId,
+          'p_card_ids': cardIds,
+        },
+      );
+    } catch (_) {
+      // Likes cleanup is best-effort; snapshot sync itself must not fail.
+    }
+  }
+
+  Future<Set<String>> getSharedBinderFriendIds(String sharedId) async {
+    await _ensureAuth();
+    final data = await _client.rpc(
+      'get_shared_binder_friend_ids',
+      params: {'p_binder_id': sharedId},
+    );
+    if (data is! List) return <String>{};
+    return data
+        .whereType<Map>()
+        .map((row) => row['friend_id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toSet();
+  }
+
+  Future<void> setSharedBinderFriends(
+    String sharedId,
+    Iterable<String> friendIds,
+  ) async {
+    await _ensureAuth();
+    await _client.rpc(
+      'set_shared_binder_friends',
+      params: {
+        'p_binder_id': sharedId,
+        'p_friend_ids': friendIds.toList(),
+      },
+    );
+  }
+
+  Future<Map<String, CardLike>> getCardLikes(String sharedId) async {
+    await _ensureAuth();
+    final data = await _client.rpc(
+      'get_shared_binder_likes',
+      params: {'p_binder_id': sharedId},
+    );
+    if (data is! List) return <String, CardLike>{};
+    final likes = <String, CardLike>{};
+    for (final raw in data) {
+      if (raw is! Map) continue;
+      final cardId = raw['card_id']?.toString() ?? '';
+      if (cardId.isEmpty) continue;
+      likes[cardId] = CardLike(
+        count: int.tryParse(raw['like_count']?.toString() ?? '') ?? 0,
+        likedByMe: raw['liked_by_me'] == true,
+      );
+    }
+    return likes;
+  }
+
+  Future<CardLike> toggleCardLike(String sharedId, String cardId) async {
+    await _ensureAuth();
+    final data = await _client.rpc(
+      'toggle_card_like',
+      params: {
+        'p_binder_id': sharedId,
+        'p_card_id': cardId,
+      },
+    );
+    if (data is List && data.isNotEmpty && data.first is Map) {
+      final row = Map<String, dynamic>.from(data.first as Map);
+      return CardLike(
+        count: int.tryParse(row['like_count']?.toString() ?? '') ?? 0,
+        likedByMe: row['liked_by_me'] == true,
+      );
+    }
+    return const CardLike(count: 0, likedByMe: false);
   }
 
   Future<void> stopSharing(String sharedId) async {

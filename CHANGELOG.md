@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.8] - 2026-10-29
+
+- Pri zdieľaní balíka sa dá vybrať konkrétnych kamošov bez skenovania.
+- Kamoši môžu dať like karty v zdieľanom balíku a like môžu aj odobrať.
+- Počet like je viditeľný pri karte; owner vidí počty, kamoši môžu lajkovať.
+- Likes sa čistia, keď karta zmizne zo zdieľaného balíka.
+- Landing page po inštalácii pripomenie návrat a otvorenie kódu bez skenovania.
+
 ## [0.3.7] - 2026-10-29
 
 - QR kódy pre zdieľanie a pozvánky fungujú cez HTTPS stránku.

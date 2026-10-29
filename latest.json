@@ -1,14 +1,14 @@
 {
-  "version": "0.3.7",
-  "versionCode": 307,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.7/raritio-0.3.7.apk",
-  "sha256": "8345f35666ab3d4bc7e9b7901d26798223e876d100a7b2cab3352669a5002ca2",
-  "size": 113923225,
-  "publishedAt": "2026-10-29T16:30:00Z",
+  "version": "0.3.8",
+  "versionCode": 308,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.8/raritio-0.3.8.apk",
+  "sha256": "",
+  "size": 0,
+  "publishedAt": "2026-10-29T18:00:00Z",
   "changelog": [
-    "QR kódy pre zdieľanie a pozvánky cez HTTPS stránku.",
-    "Ikona Môj QR kód pri profile.",
-    "Web stránka s tlačidlom na stiahnutie aktuálnej verzie.",
-    "Raritio beta 0.3.7."
+    "Zdieľanie balíka konkrétnym kamošom bez skenovania.",
+    "Like srdiečko a počet like na zdieľaných kartách.",
+    "Like sa dá pridať aj odobrať, jeden na kamoša.",
+    "Raritio beta 0.3.8."
   ]
 }
