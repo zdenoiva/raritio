@@ -1,0 +1,118 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.8'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Configure release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/raritio-release.jks
+          cat > android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=../raritio-release.jks
+          EOF
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Prepare release metadata
+        id: meta
+        run: |
+          VERSION=$(sed -n 's/^version: //p' pubspec.yaml | cut -d+ -f1)
+          BUILD=$(sed -n 's/^version: //p' pubspec.yaml | cut -d+ -f2)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          cp build/app/outputs/flutter-apk/app-release.apk "raritio-$VERSION.apk"
+          SHA=$(sha256sum "raritio-$VERSION.apk" | cut -d' ' -f1)
+          SIZE=$(stat -c%s "raritio-$VERSION.apk")
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          gh release create "v$VERSION" "raritio-$VERSION.apk" \
+            --title "Raritio $VERSION" \
+            --notes-file CHANGELOG.md
+
+      - name: Update latest.json on main
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          BUILD: ${{ steps.meta.outputs.build }}
+          SHA: ${{ steps.meta.outputs.sha }}
+          SIZE: ${{ steps.meta.outputs.size }}
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          python3 - <<'PY'
+          import datetime
+          import json
+          import os
+
+          path = 'latest.json'
+          with open(path, encoding='utf-8') as handle:
+              data = json.load(handle)
+
+          version = os.environ['VERSION']
+          data['version'] = version
+          data['versionCode'] = int(os.environ['BUILD'])
+          data['apkUrl'] = (
+              'https://github.com/zdenoiva/raritio/releases/download/'
+              f'v{version}/raritio-{version}.apk'
+          )
+          data['sha256'] = os.environ['SHA']
+          data['size'] = int(os.environ['SIZE'])
+          data['publishedAt'] = (
+              datetime.datetime.now(datetime.timezone.utc)
+              .replace(microsecond=0)
+              .isoformat()
+              .replace('+00:00', 'Z')
+          )
+
+          with open(path, 'w', encoding='utf-8') as handle:
+              json.dump(data, handle, ensure_ascii=False, indent=2)
+              handle.write('\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest.json
+          git diff --cached --quiet || git commit -m "chore: update latest.json for v$VERSION"
+          git push origin main
