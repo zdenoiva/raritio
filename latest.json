@@ -2,8 +2,8 @@
   "version": "0.3.8",
   "versionCode": 308,
   "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.8/raritio-0.3.8.apk",
-  "sha256": "",
-  "size": 0,
+  "sha256": "d313b8eb8970727d8f8a4a369eb5f46669126677b4aef4931a4fc0419f96fa96",
+  "size": 114054501,
   "publishedAt": "2026-10-29T18:00:00Z",
   "changelog": [
     "Zdieľanie balíka konkrétnym kamošom bez skenovania.",
