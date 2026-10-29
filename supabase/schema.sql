@@ -57,9 +57,9 @@ begin
     raise exception 'AUTH_REQUIRED';
   end if;
 
-  select * into target
-  from public.profiles
-  where upper(trim(friend_code)) = upper(trim(p_code))
+  select p.* into target
+  from public.profiles p
+  where upper(trim(p.friend_code)) = upper(trim(p_code))
   limit 1;
 
   if not found or target.id is null then
