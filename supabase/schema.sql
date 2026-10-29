@@ -44,6 +44,10 @@ drop policy if exists "friendships_select_own" on public.friendships;
 create policy "friendships_select_own" on public.friendships
   for select using (auth.uid() = user_id);
 
+drop policy if exists "friendships_delete_own" on public.friendships;
+create policy "friendships_delete_own" on public.friendships
+  for delete using (auth.uid() = user_id);
+
 create or replace function public.add_friend_by_code(p_code text)
 returns table(friend_id uuid, nickname text, friend_code text)
 language plpgsql
@@ -242,6 +246,7 @@ grant select on public.shared_binder_access to authenticated;
 grant select on public.keepalive to anon, authenticated;
 
 revoke all on public.friendships from anon, authenticated;
+grant select, delete on public.friendships to authenticated;
 
 grant execute on function public.add_friend_by_code(text) to authenticated;
 grant execute on function public.get_friends() to authenticated;

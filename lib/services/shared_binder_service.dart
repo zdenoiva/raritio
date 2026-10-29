@@ -236,7 +236,11 @@ class SharedBinderService {
 
   Future<void> removeFriend(String friendId) async {
     await _ensureAuth();
-    await _client.rpc('remove_friend', params: {'p_friend_id': friendId});
+    await _client
+        .from('friendships')
+        .delete()
+        .eq('user_id', _currentUserId)
+        .eq('friend_id', friendId);
   }
 
   Future<List<SharedBinderSummary>> getSharedWithMe() async {
