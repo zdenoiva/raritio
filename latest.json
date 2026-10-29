@@ -1,14 +1,14 @@
 {
-  "version": "0.3.4",
-  "versionCode": 304,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.4/raritio-0.3.4.apk",
-  "sha256": "43ed273ce59476978c42bce8c9e9bf405cdd8ea8ff1ebb0dc4354142ec1e8b54",
-  "size": 113905493,
-  "publishedAt": "2026-10-29T13:10:33Z",
+  "version": "0.3.5",
+  "versionCode": 305,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.5/raritio-0.3.5.apk",
+  "sha256": "",
+  "size": 0,
+  "publishedAt": "2026-10-29T14:00:00Z",
   "changelog": [
-    "Rebrand na Raritio a nový package sk.zdenoiva.raritio.",
-    "Nová ikona aplikácie.",
-    "Zdieľané balíky cez Supabase, QR kódy a friend kódy.",
-    "Kontrola aktualizácií z GitHub Releases."
+    "Opravené odoberanie kamošov a RLS pravidlá zdieľania.",
+    "Manuálna kontrola aktualizácií v Nastaveniach.",
+    "Zdieľané balíky sa obnovujú každých 30 sekúnd.",
+    "Raritio beta 0.3.5."
   ]
 }
