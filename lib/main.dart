@@ -135,6 +135,8 @@ class _RaritioTCGState extends State<RaritioTCG> {
       unawaited(_handleSharedSync(message));
     } else if (message.startsWith('stopShared:')) {
       unawaited(_handleStopShared(message));
+    } else if (message.startsWith('checkUpdates:')) {
+      unawaited(_forceCheckForUpdates());
     } else if (message.startsWith('fetchPrice:')) {
       _handleFetchPrice(message);
     } else if (message.startsWith('fetchPriceCharting:')) {
@@ -186,6 +188,28 @@ class _RaritioTCGState extends State<RaritioTCG> {
     } catch (_) {
       // Update checks must never block the app.
     }
+  }
+
+  Future<void> _forceCheckForUpdates() async {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Hľadám novú verziu Raritio...')),
+    );
+    final info = await _updateService.check();
+    if (!mounted) return;
+    if (info == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aktualizácie sa nepodarilo skontrolovať.')),
+      );
+      return;
+    }
+    if (info.versionCode <= appBuildNumber) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Máš najnovšiu verziu ${info.version}.')),
+      );
+      return;
+    }
+    await _showUpdateDialog(info);
   }
 
   Future<void> _showUpdateDialog(UpdateInfo info) async {

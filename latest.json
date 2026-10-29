@@ -2,9 +2,9 @@
   "version": "0.3.4",
   "versionCode": 304,
   "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.4/raritio-0.3.4.apk",
-  "sha256": "8d21e95b16e97546868ac19285a8dbb5d42bb108d6ca35c02c393e91d17e2815",
-  "size": 113889101,
-  "publishedAt": "2026-10-29T12:55:00Z",
+  "sha256": "0d1e6d96edc24bc5166d717650d9491cd265d349e9c7314c707e4cd1bb7a0def",
+  "size": 113905653,
+  "publishedAt": "2026-10-29T13:15:00Z",
   "changelog": [
     "Rebrand na Raritio a nový package sk.zdenoiva.raritio.",
     "Nová ikona aplikácie.",

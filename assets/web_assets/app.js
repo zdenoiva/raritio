@@ -3177,6 +3177,14 @@ function setDataStatus(message) {
     if (status) status.innerText = message;
 }
 
+function checkForUpdates() {
+    if (!window.flutterBridge) {
+        showToast('Bridge nie je dostupný.');
+        return;
+    }
+    window.flutterBridge.postMessage('checkUpdates:');
+}
+
 function backupData() {
     if (dataBusy) return;
     if (!window.flutterBridge) {
