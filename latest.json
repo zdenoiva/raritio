@@ -1,17 +1,18 @@
 {
-  "version": "0.4.1",
-  "versionCode": 401,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.1/raritio-0.4.1.apk",
-  "sha256": "1980027f17ee931efcd0a1d2ff18d7a5073d5f7c4788d83930ad76f5b3e87feb",
-  "size": 118280148,
-  "publishedAt": "2026-10-31T17:08:01Z",
+  "version": "0.4.2",
+  "versionCode": 402,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.2/raritio-0.4.2.apk",
+  "sha256": "dee5d196b84815cc000f4f210b6d6f39103c749d24067d7d1a685fc3f1f269a6",
+  "size": 118282348,
+  "publishedAt": "2026-10-31T18:05:32Z",
   "changelog": [
-    "Skener je opäť jednoduchý pevný rámik 63 : 88 s manuálnou spúšťou.",
-    "Odstránená dynamická detekcia hrán a balík flutter_better_scanner.",
-    "OCR ide raz na výrez z rámika; latin model má prednosť.",
-    "Detaily a cena sa načítajú len pre vybranú kartu.",
-    "Rýchlejšie hľadanie a až 6 návrhov.",
-    "Výber Normal / Holo / Reverse Holo zostáva.",
-    "Raritio beta 0.3.21."
+    "Poke a Magic majú rarity rámiky a výraznejšie menovky kariet.",
+    "Poke používa Pokémon nameplate, Magic MTG serifovú menovku so zlatým lemom.",
+    "Hlavička Poke a Magic je výraznejšia a farebnejšia.",
+    "Legenda rarity cez „i“ má popisy podľa zvolenej témy.",
+    "História verzií už nemá viditeľný náznak kliknutia.",
+    "Zmena témy už nezobrazuje toast.",
+    "Update dialóg zobrazuje zmeny verzie, ktorá sa ide nainštalovať.",
+    "Skryté štatistiky počítajú aktívnych používateľov namiesto prázdnych testovacích profilov."
   ]
 }
