@@ -96,6 +96,8 @@ jobs:
           import datetime
           import json
           import os
+          import re
+          from pathlib import Path
 
           path = 'latest.json'
           with open(path, encoding='utf-8') as handle:
@@ -116,6 +118,21 @@ jobs:
               .isoformat()
               .replace('+00:00', 'Z')
           )
+
+          changelog_text = Path('CHANGELOG.md').read_text(encoding='utf-8')
+          section = re.search(
+              rf'^## \[{re.escape(version)}\][^\n]*\n(.*?)(?=^## \[|\Z)',
+              changelog_text,
+              re.MULTILINE | re.DOTALL,
+          )
+          changes = []
+          if section:
+              for line in section.group(1).splitlines():
+                  match = re.match(r'^\s*[-*]\s+(.+)$', line)
+                  if match:
+                      changes.append(match.group(1).strip())
+          if changes:
+              data['changelog'] = changes
 
           with open(path, 'w', encoding='utf-8') as handle:
               json.dump(data, handle, ensure_ascii=False, indent=2)

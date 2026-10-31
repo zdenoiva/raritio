@@ -444,7 +444,18 @@ security definer
 set search_path = public
 as $$
   select jsonb_build_object(
-    'users', (select count(*) from public.profiles),
+    'users', (
+      select count(*)
+      from public.profiles p
+      where exists (
+        select 1 from public.shared_binders b
+        where b.owner_id = p.id and b.is_active = true
+      )
+      or exists (
+        select 1 from public.shared_card_likes l
+        where l.user_id = p.id
+      )
+    ),
     'sharedBinders', (
       select count(*) from public.shared_binders where is_active = true
     ),

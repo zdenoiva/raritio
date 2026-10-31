@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.2] - 2026-10-31
+
+- Poke a Magic majú rarity rámiky a výraznejšie menovky kariet.
+- Poke používa Pokémon nameplate, Magic MTG serifovú menovku so zlatým lemom.
+- Hlavička Poke a Magic je výraznejšia a farebnejšia.
+- Legenda rarity cez „i“ má popisy podľa zvolenej témy.
+- História verzií už nemá viditeľný náznak kliknutia.
+- Zmena témy už nezobrazuje toast.
+- Update dialóg zobrazuje zmeny verzie, ktorá sa ide nainštalovať.
+- Skryté štatistiky počítajú aktívnych používateľov namiesto prázdnych testovacích profilov.
+
 ## [0.4.1] - 2026-10-31
 
 - Štyri témy: Klasika, Poke, Magic a Stone.

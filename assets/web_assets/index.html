@@ -2996,7 +2996,208 @@
             font-family: Georgia, serif;
         }
 
-        #version-history-title { cursor: pointer; user-select: none; }
+        body[data-theme="poke"] header { box-shadow: inset 0 3px 0 #e3350d; }
+        body[data-theme="magic"] header { box-shadow: inset 0 2px 0 #c9a227; }
+        body[data-theme="stone"] header { box-shadow: inset 0 3px 0 #c9a227; }
+
+        body[data-theme="poke"] .binder-picker-button {
+            background: linear-gradient(135deg, #e3350d, #c42b0a);
+            border-color: rgba(255, 203, 5, 0.78);
+            color: #fff8e7;
+            box-shadow: 0 3px 0 rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        }
+
+        body[data-theme="poke"] .binder-picker-icon,
+        body[data-theme="poke"] .binder-picker-chevron { color: #ffcb05; }
+        body[data-theme="poke"] .total-value {
+            background: #ffcb05;
+            color: #3a2200;
+            padding: 3px 8px;
+            border-radius: 999px;
+        }
+
+        body[data-theme="magic"] .binder-picker-button {
+            background: linear-gradient(180deg, #0b2b3a, #071c28);
+            border-color: rgba(201, 162, 39, 0.55);
+            box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.16);
+        }
+
+        body[data-theme="magic"] .binder-picker-icon,
+        body[data-theme="magic"] .binder-picker-chevron { color: #e8c967; }
+        body[data-theme="magic"] .total-value { color: #e8c967; }
+
+        body[data-theme="stone"] .binder-picker-button {
+            background: linear-gradient(180deg, #2a2018, #1b140f);
+            border-color: rgba(201, 162, 39, 0.55);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        body[data-theme="stone"] .binder-picker-icon,
+        body[data-theme="stone"] .binder-picker-chevron { color: #e8c967; }
+        body[data-theme="stone"] .total-value { color: #e8c967; }
+
+        /* Poke rarity frames and nameplates */
+        body[data-theme="poke"] .card-item.rarity-common {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #94a3b8, #e2e8f0 48%, #64748b) border-box;
+        }
+        body[data-theme="poke"] .card-item.rarity-uncommon {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #22c55e, #86efac 48%, #15803d) border-box;
+        }
+        body[data-theme="poke"] .card-item.rarity-rare {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #3b82f6, #93c5fd 48%, #1d4ed8) border-box;
+        }
+        body[data-theme="poke"] .card-item.rarity-holo,
+        body[data-theme="poke"] .card-item.rarity-ultra {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #e3350d, #ffcb05 48%, #e3350d) border-box;
+            box-shadow: 0 0 14px rgba(255, 203, 5, 0.2), 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        body[data-theme="poke"] .card-item.rarity-illustration,
+        body[data-theme="poke"] .card-item.rarity-secret {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #a78bfa, #f472b6 32%, #fbbf24 58%, #34d399 82%, #60a5fa) border-box;
+        }
+        body[data-theme="poke"] .card-item.rarity-promo {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #ec4899, #f9a8d4 48%, #be185d) border-box;
+        }
+
+        body[data-theme="poke"] .card-name {
+            margin: -3px 4px 4px;
+            padding: 3px 5px;
+            border-radius: 3px;
+            background: linear-gradient(180deg, #fff3bf, #ffd75e);
+            color: #5b2b00;
+            border: 1px solid #e3350d;
+            font-family: Georgia, serif;
+            text-align: center;
+        }
+
+        body[data-theme="poke"] .card-item.rarity-common .card-name {
+            background: linear-gradient(180deg, #f5edd6, #dfd2ad);
+            color: #3a2a12;
+            border-color: #b8a76e;
+        }
+        body[data-theme="poke"] .card-item.rarity-uncommon .card-name {
+            background: linear-gradient(180deg, #d9f7e8, #b7e4cf);
+            color: #073b2b;
+            border-color: #4ade80;
+        }
+        body[data-theme="poke"] .card-item.rarity-rare .card-name {
+            background: linear-gradient(180deg, #e4efff, #c4d8f5);
+            color: #122a52;
+            border-color: #93c5fd;
+        }
+        body[data-theme="poke"] .card-item.rarity-illustration .card-name,
+        body[data-theme="poke"] .card-item.rarity-secret .card-name {
+            background: linear-gradient(135deg, #ede9fe, #fce7f3 45%, #fef3c7);
+            color: #4c1d95;
+            border-color: #a78bfa;
+        }
+        body[data-theme="poke"] .card-item.rarity-promo .card-name {
+            background: linear-gradient(180deg, #fce7f3, #fbcfe8);
+            color: #831843;
+            border-color: #ec4899;
+        }
+
+        /* Magic rarity frames and nameplates */
+        body[data-theme="magic"] .card-item.rarity-common {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #64748b, #cbd5e1 48%, #334155) border-box;
+        }
+        body[data-theme="magic"] .card-item.rarity-uncommon {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #2dd4bf, #cbd5e1 48%, #0f766e) border-box;
+        }
+        body[data-theme="magic"] .card-item.rarity-rare {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #c9a227, #f3df9a 42%, #7a5622) border-box;
+            box-shadow: 0 0 12px rgba(201, 162, 39, 0.16), 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        body[data-theme="magic"] .card-item.rarity-mythic {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #f97316, #dc2626 52%, #7f1d1d) border-box;
+            box-shadow: 0 0 14px rgba(249, 115, 22, 0.2), 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        body[data-theme="magic"] .card-item.rarity-holo {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #e8c967, #2dd4bf 52%, #c9a227) border-box;
+        }
+
+        body[data-theme="magic"] .card-name {
+            margin: -3px 4px 4px;
+            padding: 3px 5px;
+            text-align: center;
+            border-radius: 3px;
+            background: linear-gradient(180deg, #0b2b3a, #071c28);
+            border: 1px solid rgba(201, 162, 39, 0.45);
+            color: #f2e8c8;
+        }
+        body[data-theme="magic"] .card-item.rarity-rare .card-name {
+            border-color: #c9a227;
+            color: #f7e8b5;
+        }
+        body[data-theme="magic"] .card-item.rarity-mythic .card-name {
+            border-color: #f97316;
+            color: #ffe7cf;
+        }
+        body[data-theme="magic"] .card-item.rarity-mythic .card-price { color: #fb923c; }
+
+        /* Stone rarity frames */
+        body[data-theme="stone"] .card-item.rarity-common {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #78716c, #d6d3d1 48%, #44403c) border-box;
+        }
+        body[data-theme="stone"] .card-item.rarity-rare {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #3b82f6, #bfdbfe 48%, #1e3a8a) border-box;
+        }
+        body[data-theme="stone"] .card-item.rarity-illustration,
+        body[data-theme="stone"] .card-item.rarity-epic {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #a855f7, #e9d5ff 48%, #6b21a8) border-box;
+        }
+        body[data-theme="stone"] .card-item.rarity-holo,
+        body[data-theme="stone"] .card-item.rarity-ultra,
+        body[data-theme="stone"] .card-item.rarity-mythic,
+        body[data-theme="stone"] .card-item.rarity-legendary {
+            background: linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #d8b44a, #fff3bf 42%, #7a5622) border-box;
+            box-shadow: 0 0 14px rgba(201, 162, 39, 0.18), 0 8px 20px rgba(0, 0, 0, 0.45);
+        }
+        body[data-theme="stone"] .card-item.rarity-illustration .card-name,
+        body[data-theme="stone"] .card-item.rarity-epic .card-name {
+            border-color: #a855f7;
+            color: #f3e8ff;
+        }
+        body[data-theme="stone"] .card-item.rarity-ultra .card-name,
+        body[data-theme="stone"] .card-item.rarity-mythic .card-name,
+        body[data-theme="stone"] .card-item.rarity-legendary .card-name {
+            border-color: #e8c967;
+            color: #ffe7a3;
+        }
+
+        .rarity-legend-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .rarity-legend-description {
+            color: var(--text-muted);
+            font-size: 0.64rem;
+            line-height: 1.3;
+        }
+
+        #version-history-title {
+            cursor: default;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         #hidden-stats-modal { z-index: 280; }
 
@@ -3315,7 +3516,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.4.1</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.4.2</span></p>
         </div>
     </div>
 

@@ -224,6 +224,22 @@ function rarityColor(rarity) {
     return '#64748b';
 }
 
+function rarityKey(rarity) {
+    const value = String(rarity || '').toLowerCase();
+    if (/secret|rainbow|hyper/.test(value)) return 'secret';
+    if (/special illustration|illustration rare|alt art/.test(value)) return 'illustration';
+    if (/mythic/.test(value)) return 'mythic';
+    if (/legendary/.test(value)) return 'legendary';
+    if (/epic/.test(value)) return 'epic';
+    if (/ultra|gold|vmax|vstar|ex\b|gx\b/.test(value)) return 'ultra';
+    if (/holo|foil/.test(value)) return 'holo';
+    if (/promo/.test(value)) return 'promo';
+    if (/rare/.test(value)) return 'rare';
+    if (/uncommon/.test(value)) return 'uncommon';
+    if (/common/.test(value)) return 'common';
+    return 'unknown';
+}
+
 const FINISH_ALIASES = {
     nonfoil: 'normal',
     holofoil: 'holo',
@@ -846,7 +862,6 @@ function setTheme(theme) {
     state.settings.theme = theme;
     saveState();
     applyTheme(theme);
-    showToast(`Téma: ${THEMES.find(item => item.id === theme).label}`);
 }
 
 function renderThemePicker() {
@@ -869,6 +884,7 @@ function renderThemePicker() {
 function cardTileHtml(card, options = {}) {
     const price = Number(card.currentPrice) || 0;
     const color = rarityColor(card.rarity);
+    const rarity = rarityKey(card.rarity);
     const finishKey = primaryFinish(card);
     const finish = finishLabel(card);
     const glow = state.settings.glowEffect && isHighValue(card);
@@ -884,7 +900,7 @@ function cardTileHtml(card, options = {}) {
         : null;
 
     return `
-        <div class="card-item ${glow ? 'glow' : ''} game-${gameClassValue} ${reorder ? 'reorder-mode' : ''}"
+        <div class="card-item rarity-${rarity} ${glow ? 'glow' : ''} game-${gameClassValue} ${reorder ? 'reorder-mode' : ''}"
              data-card-id="${cardId}"
              style="--rarity-color:${color}"
              title="${escapeHtml(card.rarity || '')}">
@@ -3643,25 +3659,62 @@ function closeDataModal(event) {
     document.getElementById('data-modal').classList.remove('active');
 }
 
-const RARITY_LEGEND = [
-    { label: 'Rainbow / Secret / Hyper Rare', value: 'secret rainbow hyper' },
-    { label: 'Special Illustration / Alt Art', value: 'special illustration alt art' },
-    { label: 'Ultra / Gold / VMAX / VSTAR / ex / GX', value: 'ultra gold vmax vstar ex gx' },
-    { label: 'Holo / Foil', value: 'holo foil' },
-    { label: 'Promo', value: 'promo' },
-    { label: 'Rare', value: 'rare' },
-    { label: 'Uncommon', value: 'uncommon' },
-    { label: 'Common', value: 'common' },
-    { label: 'Neznáma', value: 'unknown' }
-];
+const RARITY_LEGEND_BY_THEME = {
+    classic: [
+        { label: 'Rainbow / Secret / Hyper Rare', description: 'Dúhový alebo secret rám – najvzácnejšie karty.', value: 'secret rainbow hyper' },
+        { label: 'Special Illustration / Alt Art', description: 'Full-art, alt-art alebo illustration rare.', value: 'special illustration alt art' },
+        { label: 'Ultra / Gold / VMAX / VSTAR / ex / GX', description: 'Ultra, gold a veľké Pokémon formy.', value: 'ultra gold vmax vstar ex gx' },
+        { label: 'Holo / Foil', description: 'Holo alebo foil lesk.', value: 'holo foil' },
+        { label: 'Promo', description: 'Promo karty.', value: 'promo' },
+        { label: 'Rare', description: 'Bežná rare karta.', value: 'rare' },
+        { label: 'Uncommon', description: 'Nezvyčajná karta.', value: 'uncommon' },
+        { label: 'Common', description: 'Základná karta.', value: 'common' },
+        { label: 'Neznáma', description: 'Rarita sa nepodarila rozpoznať.', value: 'unknown' }
+    ],
+    poke: [
+        { label: 'Secret / Rainbow', description: 'Dúhový rám – najvzácnejšia Pokémon karta.', value: 'secret rainbow hyper', color: '#f472b6' },
+        { label: 'Illustration / Alt Art', description: 'Full-art alebo alt-art, fialový rám.', value: 'special illustration alt art', color: '#a78bfa' },
+        { label: 'Ultra / Gold / VMAX / VSTAR', description: 'Ultra, gold a veľké formy, zlatý rám.', value: 'ultra gold vmax vstar', color: '#f59e0b' },
+        { label: 'Holo / Foil', description: 'Holo lesk, červeno-žltý rám.', value: 'holo foil', color: '#ef4444' },
+        { label: 'Promo', description: 'Promo karta, ružový akcent.', value: 'promo', color: '#ec4899' },
+        { label: 'Rare', description: 'Modrý rám.', value: 'rare', color: '#3b82f6' },
+        { label: 'Uncommon', description: 'Zelený rám.', value: 'uncommon', color: '#22c55e' },
+        { label: 'Common', description: 'Sivý rám.', value: 'common', color: '#94a3b8' },
+        { label: 'Neznáma', description: 'Neznáma rarita, neutrálny rám.', value: 'unknown', color: '#64748b' }
+    ],
+    magic: [
+        { label: 'Mythic', description: 'Mythic – oranžovo-červený rám.', value: 'mythic', color: '#f97316' },
+        { label: 'Rare', description: 'Rare – zlatý rám.', value: 'rare', color: '#c9a227' },
+        { label: 'Uncommon', description: 'Uncommon – strieborno-tealový rám.', value: 'uncommon', color: '#2dd4bf' },
+        { label: 'Common', description: 'Common – grafitový rám.', value: 'common', color: '#94a3b8' },
+        { label: 'Special / Foil', description: 'Foil alebo special – zlatý lesk.', value: 'holo foil', color: '#e8c967' },
+        { label: 'Promo', description: 'Promo – purpurový akcent.', value: 'promo', color: '#c084fc' },
+        { label: 'Neznáma', description: 'Neznáma rarita, tmavý rám.', value: 'unknown', color: '#64748b' }
+    ],
+    stone: [
+        { label: 'Legendary', description: 'Legendary – zlatý vyrezávaný rám.', value: 'ultra gold', color: '#f59e0b' },
+        { label: 'Epic', description: 'Epic – fialový kameň.', value: 'special illustration', color: '#a855f7' },
+        { label: 'Rare', description: 'Rare – modrý kameň.', value: 'rare', color: '#3b82f6' },
+        { label: 'Common', description: 'Common – kamenný rám.', value: 'common', color: '#94a3b8' },
+        { label: 'Foil', description: 'Foil – zlatý lesk.', value: 'holo foil', color: '#e8c967' },
+        { label: 'Neznáma', description: 'Neznáma rarita, neutrálny rám.', value: 'unknown', color: '#64748b' }
+    ]
+};
+
+const RARITY_LEGEND = RARITY_LEGEND_BY_THEME.classic;
 
 function showRarityLegend() {
     const container = document.getElementById('rarity-legend-content');
     if (container) {
-        container.innerHTML = RARITY_LEGEND.map(item => `
+        const theme = state.settings.theme || 'classic';
+        const entries = RARITY_LEGEND_BY_THEME[theme] || RARITY_LEGEND_BY_THEME.classic;
+        container.innerHTML = entries.map(item => `
             <div class="rarity-legend-item">
-                <span class="rarity-swatch" style="background:${rarityColor(item.value)}"></span>
-                <span class="rarity-legend-label">${escapeHtml(item.label)}</span>
+                <span class="rarity-swatch" style="background:${item.color || rarityColor(item.value)}"></span>
+                <span class="rarity-legend-copy">
+                    <span class="rarity-legend-label">${escapeHtml(item.label)}</span>
+                    <small class="rarity-legend-description">${escapeHtml(item.description || '')}</small>
+                </span>
             </div>
         `).join('');
     }
@@ -3774,7 +3827,7 @@ function handlePublicStats(data) {
     const note = document.querySelector('#hidden-stats-modal .hidden-stats-note');
     if (note) {
         note.innerText = stats.note ||
-            'Stiahnutia sú zo GitHub Releases, ostatné čísla zo Supabase.';
+                'Stiahnutia sú zo GitHub Releases, ostatné čísla zo Supabase. Prázdne anonymné profily sa do používateľov nepočítajú.';
     }
     if (stats.error) {
         content.innerHTML = `<div class="hidden-stat" style="grid-column:1/-1"><div class="hidden-stat-label">Chyba</div><div class="hidden-stat-value" style="font-size:.8rem">${escapeHtml(stats.error)}</div></div>`;
@@ -3787,7 +3840,7 @@ function handlePublicStats(data) {
     };
     const rows = [
         ['Stiahnutia APK', value(stats.downloads), 'GitHub Releases'],
-        ['Registrovaní používatelia', value(stats.users), 'profiles'],
+        ['Aktívni používatelia', value(stats.users), 'so zdieľaním alebo lajkom'],
         ['Zdieľané balíky', value(stats.sharedBinders), 'aktívne'],
         ['Karty v zdieľaní', value(stats.sharedCards), 'v balíkoch'],
         ['Priateľské väzby', value(stats.friends), 'friendships / 2'],
