@@ -28,7 +28,7 @@ Workflow potrebuje repository secrets:
 
 Anon key je verejný, ale držíme ho v secrets, aby nebol v kóde.
 
-## 4. Migrácia 0.3.16
+## 4. Migrácia 0.4.1\n\nPre skryté štatistiky spusti v SQL Editore aj:\n\n```text\nsupabase/2026-10-31_public_stats.sql\n```\n\n## 5. Migrácia 0.3.16
 
 Pred inštaláciou verzie 0.3.16 spusti v SQL Editore:
 

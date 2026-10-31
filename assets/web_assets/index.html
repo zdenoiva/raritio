@@ -244,16 +244,21 @@
             align-items: center;
             gap: 6px;
             min-width: 0;
-            width: 156px;
-            flex: 0 0 156px;
+            min-height: 44px;
+            flex: 1 1 auto;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 7px 9px;
+            padding: 7px 10px;
             color: var(--text);
             cursor: pointer;
             text-align: left;
             transition: border-color 0.2s, background 0.2s;
+        }
+
+        .sort-button.compact {
+            width: 156px;
+            flex: 0 0 156px;
         }
 
         .sort-button:active {
@@ -298,6 +303,10 @@
         .reorder-toggle {
             flex-shrink: 0;
             width: 156px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             background: var(--surface);
             border: 1px solid var(--border);
             color: var(--text-muted);
@@ -2731,6 +2740,312 @@
                 transition: none;
             }
         }
+
+        /* Themes */
+        .theme-picker {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
+            padding: 9px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface-light);
+            color: var(--text);
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .theme-option.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+
+        .theme-option-preview {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        }
+
+        .theme-option-copy {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            gap: 2px;
+        }
+
+        .theme-option-copy strong { font-size: 0.78rem; }
+        .theme-option-copy small { color: var(--text-muted); font-size: 0.58rem; }
+
+        body[data-theme="poke"] {
+            --bg: #0b1220;
+            --surface: #131c2e;
+            --surface-light: #1b2740;
+            --primary: #e3350d;
+            --primary-hover: #c42b0a;
+            --text: #fff8e7;
+            --text-muted: #a9b4c8;
+            --border: #2a3a57;
+            --success: #ffcb05;
+            --header-bg: rgba(11, 18, 32, 0.9);
+            --nav-bg: rgba(11, 18, 32, 0.96);
+            background:
+                radial-gradient(circle at 14% 0%, rgba(227, 53, 13, 0.25), transparent 36%),
+                radial-gradient(circle at 90% 4%, rgba(255, 203, 5, 0.14), transparent 34%),
+                repeating-linear-gradient(118deg, transparent 0 28px, rgba(255, 203, 5, 0.028) 28px 30px),
+                linear-gradient(180deg, #0b1220, #101b31 70%, #0b1220);
+            background-attachment: fixed;
+        }
+
+        body[data-theme="magic"] {
+            --bg: #061724;
+            --surface: #081f2c;
+            --surface-light: #0d2a38;
+            --primary: #c9a227;
+            --primary-hover: #a9861b;
+            --text: #f2e8c8;
+            --text-muted: #9fc4c7;
+            --border: #2a4a58;
+            --success: #e8c967;
+            --header-bg: rgba(6, 23, 36, 0.9);
+            --nav-bg: rgba(6, 23, 36, 0.96);
+            background:
+                radial-gradient(circle at 18% 0%, rgba(45, 212, 191, 0.14), transparent 36%),
+                radial-gradient(circle at 88% 8%, rgba(201, 162, 39, 0.12), transparent 34%),
+                repeating-radial-gradient(ellipse at 72% 18%, rgba(201, 162, 39, 0.045) 0 1px, transparent 1px 34px),
+                linear-gradient(180deg, #061724, #0a2231 68%, #061724);
+            background-attachment: fixed;
+        }
+
+        body[data-theme="stone"] {
+            --bg: #16120f;
+            --surface: #211912;
+            --surface-light: #2a2018;
+            --primary: #c9a227;
+            --primary-hover: #a9861b;
+            --text: #f4e6c8;
+            --text-muted: #cbbfa8;
+            --border: #4b3824;
+            --success: #e8c967;
+            --header-bg: rgba(22, 18, 15, 0.92);
+            --nav-bg: rgba(22, 18, 15, 0.97);
+            background:
+                radial-gradient(circle at 20% 0%, rgba(201, 162, 39, 0.14), transparent 34%),
+                radial-gradient(circle at 90% 8%, rgba(120, 83, 45, 0.2), transparent 38%),
+                repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 28px),
+                linear-gradient(180deg, #16120f, #221a14 65%, #120f0c);
+            background-attachment: fixed;
+        }
+
+        body[data-theme="poke"] header,
+        body[data-theme="magic"] header,
+        body[data-theme="stone"] header {
+            background: var(--header-bg);
+            border-bottom-color: var(--border);
+        }
+
+        body[data-theme="poke"] .bottom-nav,
+        body[data-theme="magic"] .bottom-nav,
+        body[data-theme="stone"] .bottom-nav {
+            background: var(--nav-bg);
+        }
+
+        body[data-theme="poke"] .brand-mark {
+            background: linear-gradient(135deg, #e3350d, #ffcb05);
+            color: #111;
+        }
+
+        body[data-theme="magic"] .brand-mark {
+            background: linear-gradient(135deg, #c9a227, #2dd4bf);
+            color: #061724;
+        }
+
+        body[data-theme="stone"] .brand-mark {
+            background: linear-gradient(135deg, #c9a227, #7c4a1c);
+            color: #140f0a;
+        }
+
+        body[data-theme="poke"] .card-item,
+        body[data-theme="magic"] .card-item,
+        body[data-theme="stone"] .card-item {
+            border: 2px solid transparent;
+            background:
+                linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #c9a227, #6d4a1d 30%, #e8c967 52%, #5a3b16 72%, #c9a227) border-box;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.38);
+        }
+
+        body[data-theme="poke"] .card-item {
+            background:
+                linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #e3350d, #ffcb05 50%, #e3350d) border-box;
+        }
+
+        body[data-theme="magic"] .card-item {
+            background:
+                linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #c9a227, #6d4a1d 24%, #e8c967 46%, #5a3b16 66%, #c9a227) border-box;
+        }
+
+        body[data-theme="stone"] .card-item {
+            border-width: 3px;
+            background:
+                linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(135deg, #d8b44a, #6d4a1d 22%, #e8c967 45%, #5a3b16 64%, #c9a227 84%, #7a5622) border-box;
+        }
+
+        body[data-theme="poke"] .card-item::before,
+        body[data-theme="magic"] .card-item::before,
+        body[data-theme="stone"] .card-item::before {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border-radius: calc(var(--radius) - 4px);
+            border: 1px solid rgba(201, 162, 39, 0.28);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        body[data-theme="poke"] .card-item::before { border-color: rgba(255, 203, 5, 0.25); }
+        body[data-theme="stone"] .card-item::before { border-color: rgba(45, 212, 191, 0.38); }
+
+        body[data-theme="poke"] .card-image-wrap { border-bottom: 2px solid rgba(255, 203, 5, 0.32); }
+        body[data-theme="magic"] .card-image-wrap { border-bottom: 1px solid rgba(45, 212, 191, 0.28); }
+        body[data-theme="stone"] .card-image-wrap {
+            margin: 3px 3px 0;
+            padding-top: 2px;
+            border-bottom: 2px solid rgba(201, 162, 39, 0.5);
+            background: #0a1d28;
+        }
+
+        body[data-theme="stone"] .card-image-wrap img {
+            border-radius: 44% 44% 5px 5px / 15% 15% 5px 5px;
+        }
+
+        body[data-theme="poke"] .card-info { background: linear-gradient(180deg, rgba(19, 28, 46, 0.96), rgba(11, 18, 32, 0.98)); }
+        body[data-theme="magic"] .card-info { background: linear-gradient(180deg, rgba(8, 31, 44, 0.98), rgba(6, 23, 36, 1)); }
+        body[data-theme="stone"] .card-info {
+            padding: 12px 8px 8px;
+            background: linear-gradient(180deg, #0a1d28, #07161f);
+            border-top: 2px solid rgba(201, 162, 39, 0.55);
+        }
+
+        body[data-theme="poke"] .card-name { color: #fff8e7; }
+        body[data-theme="magic"] .card-name { color: #f2e8c8; font-family: Georgia, serif; }
+        body[data-theme="stone"] .card-name {
+            margin: -18px 5px 5px;
+            padding: 4px 6px;
+            text-align: center;
+            background: linear-gradient(180deg, #0e3242, #08202e);
+            border: 1px solid rgba(201, 162, 39, 0.75);
+            border-radius: 5px;
+            font-family: Georgia, serif;
+            position: relative;
+            z-index: 3;
+        }
+
+        body[data-theme="poke"] .card-price { color: #ffcb05; }
+        body[data-theme="magic"] .card-price { color: #e8c967; }
+        body[data-theme="stone"] .card-price { color: #e8c967; }
+        body[data-theme="stone"] .card-set::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin-right: 5px;
+            transform: rotate(45deg);
+            background: linear-gradient(135deg, #2dd4bf, #0e7490);
+            border: 1px solid #d8b44a;
+        }
+
+        body[data-theme="poke"] .badge-game.pokemon { background: #ffcb05; color: #3a2200; }
+        body[data-theme="magic"] .badge-foil,
+        body[data-theme="stone"] .badge-foil {
+            background: linear-gradient(135deg, #c9a227, #7a5622);
+            color: #fff7d6;
+        }
+
+        body[data-theme="magic"] .btn-primary,
+        body[data-theme="stone"] .btn-primary {
+            color: #140f0a;
+        }
+
+        body[data-theme="magic"] .holo-card-inner {
+            box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.75), 0 0 0 5px rgba(6, 23, 36, 0.9), 0 0 0 6px rgba(45, 212, 191, 0.28), 0 16px 36px rgba(0, 0, 0, 0.5);
+        }
+
+        body[data-theme="stone"] .holo-card-inner {
+            box-shadow: 0 0 0 3px #c9a227, 0 0 0 6px #2a2018, 0 0 0 7px rgba(45, 212, 191, 0.35), 0 16px 38px rgba(0, 0, 0, 0.55);
+        }
+
+        body[data-theme="poke"] .holo-card-inner {
+            box-shadow: 0 0 0 3px #e3350d, 0 0 0 6px #ffcb05, 0 16px 36px rgba(0, 0, 0, 0.5);
+        }
+
+        body[data-theme="magic"] .detail-name,
+        body[data-theme="stone"] .detail-name {
+            font-family: Georgia, serif;
+        }
+
+        #version-history-title { cursor: pointer; user-select: none; }
+
+        #hidden-stats-modal { z-index: 280; }
+
+        /* Hidden stats */
+        .hidden-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .hidden-stat {
+            padding: 10px;
+            border-radius: 11px;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            min-width: 0;
+        }
+
+        .hidden-stat-label {
+            color: var(--text-muted);
+            font-size: 0.58rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .hidden-stat-value {
+            margin-top: 4px;
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hidden-stat-sub {
+            margin-top: 2px;
+            color: var(--text-muted);
+            font-size: 0.58rem;
+        }
+
+        .hidden-stats-note {
+            margin-top: 10px;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -2949,6 +3264,11 @@
             </div>
 
             <div class="settings-section">
+                <div class="settings-section-title">Vzhľad</div>
+                <div id="theme-picker" class="theme-picker"></div>
+            </div>
+
+            <div class="settings-section">
                 <div class="settings-section-title">Ceny a história</div>
 
                 <label class="setting-row">
@@ -2995,7 +3315,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.3.22</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.4.1</span></p>
         </div>
     </div>
 
@@ -3018,12 +3338,29 @@
         <div class="modal-content version-history-sheet" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div>
-                    <h2>História verzií</h2>
+                    <h2 id="version-history-title">História verzií</h2>
                     <p class="modal-subtitle">Čo sa zmenilo v jednotlivých verziách Raritia.</p>
                 </div>
                 <button class="close-btn" onclick="closeVersionHistory()" aria-label="Zavrieť">×</button>
             </div>
             <div id="version-history-list" class="version-history-list"></div>
+        </div>
+    </div>
+
+    <!-- Hidden public stats modal -->
+    <div id="hidden-stats-modal" class="modal-overlay center-modal" onclick="closeHiddenStats(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h2>Raritio štatistiky</h2>
+                    <p class="modal-subtitle">Agregované čísla, bez osobných údajov.</p>
+                </div>
+                <button class="close-btn" onclick="closeHiddenStats()" aria-label="Zavrieť">×</button>
+            </div>
+            <div id="hidden-stats-content" class="hidden-stats-grid">
+                <div class="hidden-stat"><div class="hidden-stat-label">Načítavam</div><div class="hidden-stat-value">…</div></div>
+            </div>
+            <p class="hidden-stats-note">Stiahnutia sú zo GitHub Releases, ostatné čísla zo Supabase.</p>
         </div>
     </div>
 

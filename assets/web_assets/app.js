@@ -19,8 +19,16 @@ const DEFAULT_SETTINGS = {
     holoEffect: true,
     priceCharting: true,
     autoBackup: true,
-    glowThreshold: 20
+    glowThreshold: 20,
+    theme: 'classic'
 };
+
+const THEMES = [
+    { id: 'classic', label: 'Klasika', hint: 'Súčasný vzhľad', colors: ['#0a0a0c', '#16161a', '#3b82f6'] },
+    { id: 'poke', label: 'Poke', hint: 'Trainer energia', colors: ['#0b1220', '#e3350d', '#ffcb05'] },
+    { id: 'magic', label: 'Magic', hint: 'MTG card back', colors: ['#061724', '#c9a227', '#2dd4bf'] },
+    { id: 'stone', label: 'Stone', hint: 'Hearthstone rám', colors: ['#16120f', '#c9a227', '#7c4a1c'] }
+];
 
 function createDefaultState() {
     return {
@@ -163,6 +171,9 @@ function normalizeSettings(raw) {
         if (key === 'glowThreshold') {
             const value = Number(safe[key]);
             if (Number.isFinite(value) && value > 0) settings[key] = value;
+        } else if (key === 'theme') {
+            const value = String(safe[key] || '');
+            if (THEMES.some(theme => theme.id === value)) settings.theme = value;
         } else if (typeof safe[key] === 'boolean') {
             settings[key] = safe[key];
         }
@@ -816,6 +827,42 @@ function applySettings() {
     document.body.classList.toggle('hide-foil-badges', !settings.foilBadges);
     document.body.classList.toggle('hide-glow', !settings.glowEffect);
     document.body.classList.toggle('hide-holo', !settings.holoEffect);
+    applyTheme(settings.theme || 'classic');
+}
+
+function applyTheme(theme) {
+    const value = THEMES.some(item => item.id === theme) ? theme : 'classic';
+    document.body.dataset.theme = value;
+    renderThemePicker();
+    if (window.flutterBridge) {
+        try {
+            window.flutterBridge.postMessage('setAppTheme:' + JSON.stringify({ theme: value }));
+        } catch (_) {}
+    }
+}
+
+function setTheme(theme) {
+    if (!THEMES.some(item => item.id === theme)) return;
+    state.settings.theme = theme;
+    saveState();
+    applyTheme(theme);
+    showToast(`Téma: ${THEMES.find(item => item.id === theme).label}`);
+}
+
+function renderThemePicker() {
+    const container = document.getElementById('theme-picker');
+    if (!container) return;
+    const selected = state.settings.theme || 'classic';
+    container.innerHTML = THEMES.map(theme => `
+        <button type="button" class="theme-option ${theme.id === selected ? 'active' : ''}"
+                onclick="setTheme('${theme.id}')" aria-pressed="${theme.id === selected}">
+            <span class="theme-option-preview" style="background:linear-gradient(135deg,${theme.colors[0]},${theme.colors[1]} 55%,${theme.colors[2]})"></span>
+            <span class="theme-option-copy">
+                <strong>${theme.label}</strong>
+                <small>${theme.hint}</small>
+            </span>
+        </button>
+    `).join('');
 }
 
 // --- Rendering ---
@@ -1047,6 +1094,10 @@ function renderBinder(preserveScroll = false) {
     const sortMode = binder.sortMode || 'custom';
     const sortLabel = document.getElementById('binder-sort-label');
     if (sortLabel) sortLabel.innerText = binderSortLabel(sortMode);
+    const sortButton = document.getElementById('binder-sort-button');
+    if (sortButton) {
+        sortButton.classList.toggle('compact', sortMode === 'custom');
+    }
 
     const reorderButton = document.getElementById('reorder-toggle');
     if (reorderButton) {
@@ -3678,6 +3729,80 @@ function setDataStatus(message) {
     if (status) status.innerText = message;
 }
 
+let historyTapCount = 0;
+let historyTapTimer = null;
+
+function handleHistoryTitleTap() {
+    historyTapCount += 1;
+    clearTimeout(historyTapTimer);
+    historyTapTimer = setTimeout(() => { historyTapCount = 0; }, 3000);
+    if (historyTapCount >= 8) {
+        historyTapCount = 0;
+        clearTimeout(historyTapTimer);
+        showHiddenStats();
+    }
+}
+
+function showHiddenStats() {
+    const modal = document.getElementById('hidden-stats-modal');
+    const content = document.getElementById('hidden-stats-content');
+    if (!modal || !content) return;
+    content.innerHTML = `
+        <div class="hidden-stat">
+            <div class="hidden-stat-label">Načítavam</div>
+            <div class="hidden-stat-value">…</div>
+        </div>
+    `;
+    modal.classList.add('active');
+    if (window.flutterBridge) {
+        window.flutterBridge.postMessage('fetchPublicStats:');
+    } else {
+        handlePublicStats({ error: 'Bridge nie je dostupný.' });
+    }
+}
+
+function closeHiddenStats(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const modal = document.getElementById('hidden-stats-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+function handlePublicStats(data) {
+    const content = document.getElementById('hidden-stats-content');
+    if (!content) return;
+    const stats = data && typeof data === 'object' ? data : {};
+    const note = document.querySelector('#hidden-stats-modal .hidden-stats-note');
+    if (note) {
+        note.innerText = stats.note ||
+            'Stiahnutia sú zo GitHub Releases, ostatné čísla zo Supabase.';
+    }
+    if (stats.error) {
+        content.innerHTML = `<div class="hidden-stat" style="grid-column:1/-1"><div class="hidden-stat-label">Chyba</div><div class="hidden-stat-value" style="font-size:.8rem">${escapeHtml(stats.error)}</div></div>`;
+        return;
+    }
+
+    const value = (number) => {
+        if (number === null || number === undefined || Number.isNaN(Number(number))) return '—';
+        return Number(number).toLocaleString('sk-SK');
+    };
+    const rows = [
+        ['Stiahnutia APK', value(stats.downloads), 'GitHub Releases'],
+        ['Registrovaní používatelia', value(stats.users), 'profiles'],
+        ['Zdieľané balíky', value(stats.sharedBinders), 'aktívne'],
+        ['Karty v zdieľaní', value(stats.sharedCards), 'v balíkoch'],
+        ['Priateľské väzby', value(stats.friends), 'friendships / 2'],
+        ['Lajky', value(stats.likes), 'shared_card_likes'],
+        ['Posledná verzia', escapeHtml(stats.latestVersion || '—'), 'latest.json']
+    ];
+    content.innerHTML = rows.map(([label, number, sub]) => `
+        <div class="hidden-stat">
+            <div class="hidden-stat-label">${label}</div>
+            <div class="hidden-stat-value">${number}</div>
+            <div class="hidden-stat-sub">${sub}</div>
+        </div>
+    `).join('');
+}
+
 function showVersionHistory() {
     const list = document.getElementById('version-history-list');
     const modal = document.getElementById('version-history-modal');
@@ -3796,6 +3921,7 @@ function handleAndroidBack() {
 
     if (closeIfOpen('confirm-modal', closeConfirm)) return true;
     if (closeIfOpen('finish-options-modal', closeFinishOptions)) return true;
+    if (closeIfOpen('hidden-stats-modal', closeHiddenStats)) return true;
     if (closeIfOpen('version-history-modal', closeVersionHistory)) return true;
     if (closeIfOpen('binder-name-modal', closeBinderNameModal)) return true;
     if (closeIfOpen('sort-modal', closeSortPicker)) return true;
@@ -3823,7 +3949,7 @@ function closeCardModal(event) {
 }
 
 function closeAllModals() {
-    ['search-modal', 'card-modal', 'data-modal', 'finish-options-modal', 'version-history-modal', 'binder-modal', 'binder-name-modal', 'binder-actions-modal', 'sort-modal', 'confirm-modal', 'overview-modal', 'rarity-legend-modal'].forEach(id => {
+    ['search-modal', 'card-modal', 'data-modal', 'finish-options-modal', 'version-history-modal', 'hidden-stats-modal', 'binder-modal', 'binder-name-modal', 'binder-actions-modal', 'sort-modal', 'confirm-modal', 'overview-modal', 'rarity-legend-modal'].forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.remove('active');
     });
@@ -3895,6 +4021,9 @@ function init() {
     }, true);
 
     arrangeHeader();
+    const historyTitle = document.getElementById('version-history-title');
+    if (historyTitle) historyTitle.addEventListener('click', handleHistoryTitleTap);
+    applySettings();
     renderBinderSelector();
     renderBinder();
     updateSearchClearVisibility();

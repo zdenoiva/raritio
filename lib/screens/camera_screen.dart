@@ -43,12 +43,14 @@ class CameraScreen extends StatefulWidget {
     super.key,
     this.initialGame = 'pokemon',
     this.captureOnly = false,
+    this.theme = 'classic',
     this.onRecognize,
     this.onResolveDetails,
     this.onAdd,
   });
 
   final String initialGame;
+  final String theme;
 
   /// Used by the custom-card-photo flow. It only takes a photo and returns it
   /// without running recognition or showing the card suggestion sheet.
@@ -63,8 +65,9 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  static const Color _neon = Color(0xFFB6FF3B);
   static const double _cardAspect = 63 / 88;
+  late final _ScannerPalette _palette = _paletteFor(widget.theme);
+  Color get _neon => _palette.accent;
 
   CameraController? _controller;
   List<CameraDescription>? _cameras;
@@ -537,7 +540,7 @@ class _CameraScreenState extends State<CameraScreen> {
       fit: StackFit.expand,
       children: [
         _cameraPreview(controller),
-        _FixedFrameOverlay(frameRect: frameRect),
+        _FixedFrameOverlay(frameRect: frameRect, accent: _palette.accent),
         Positioned(
           top: 0,
           left: 0,
@@ -743,7 +746,7 @@ class _CameraScreenState extends State<CameraScreen> {
       right: 0,
       bottom: 0,
       child: Material(
-        color: const Color(0xFF101114),
+        color: _palette.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
         child: SafeArea(
           top: false,
@@ -774,8 +777,8 @@ class _CameraScreenState extends State<CameraScreen> {
                   ],
                 ),
                 if (_processing)
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(0, 8, 0, 22),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 22),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -903,7 +906,7 @@ class _CameraScreenState extends State<CameraScreen> {
                                   ),
                                   child: Text(
                                     _cardTypeLabel(selected),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: _neon,
                                       fontSize: 10,
                                       fontWeight: FontWeight.w800,
@@ -915,7 +918,7 @@ class _CameraScreenState extends State<CameraScreen> {
                                   _resolvingDetails
                                       ? 'Načítavam…'
                                       : _priceLabel(selected),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: _neon,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
@@ -1137,8 +1140,8 @@ class _CameraScreenState extends State<CameraScreen> {
               child: Row(
                 children: [
                   if (style.id == current.id)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
                       child: Icon(Icons.check_rounded, size: 16, color: _neon),
                     ),
                   Text(style.label),
@@ -1158,17 +1161,17 @@ class _CameraScreenState extends State<CameraScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.palette_outlined, color: _neon, size: 15),
+            Icon(Icons.palette_outlined, color: _neon, size: 15),
             const SizedBox(width: 5),
             Text(
               current.label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _neon,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const Icon(Icons.arrow_drop_down_rounded, color: _neon, size: 19),
+            Icon(Icons.arrow_drop_down_rounded, color: _neon, size: 19),
           ],
         ),
       ),
@@ -1211,6 +1214,34 @@ class _CameraScreenState extends State<CameraScreen> {
     final symbol = currency == 'EUR' ? '€' : r'$';
     return '$symbol${price.toStringAsFixed(2)}';
   }
+}
+
+class _ScannerPalette {
+  const _ScannerPalette({required this.accent, required this.surface});
+
+  final Color accent;
+  final Color surface;
+}
+
+_ScannerPalette _paletteFor(String theme) {
+  return switch (theme) {
+    'poke' => const _ScannerPalette(
+      accent: Color(0xFFFFCB05),
+      surface: Color(0xFF131C2E),
+    ),
+    'magic' => const _ScannerPalette(
+      accent: Color(0xFFE8C967),
+      surface: Color(0xFF081F2C),
+    ),
+    'stone' => const _ScannerPalette(
+      accent: Color(0xFFC9A227),
+      surface: Color(0xFF211912),
+    ),
+    _ => const _ScannerPalette(
+      accent: Color(0xFFB6FF3B),
+      surface: Color(0xFF101114),
+    ),
+  };
 }
 
 class _CardStyle {
@@ -1372,15 +1403,16 @@ class _RoundIconButton extends StatelessWidget {
 }
 
 class _FixedFrameOverlay extends StatelessWidget {
-  const _FixedFrameOverlay({required this.frameRect});
+  const _FixedFrameOverlay({required this.frameRect, required this.accent});
 
   final Rect frameRect;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
       child: CustomPaint(
-        painter: _FixedFramePainter(frameRect),
+        painter: _FixedFramePainter(frameRect, accent),
         child: const SizedBox.expand(),
       ),
     );
@@ -1388,9 +1420,10 @@ class _FixedFrameOverlay extends StatelessWidget {
 }
 
 class _FixedFramePainter extends CustomPainter {
-  _FixedFramePainter(this.frameRect);
+  _FixedFramePainter(this.frameRect, this.accent);
 
   final Rect frameRect;
+  final Color accent;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1406,7 +1439,7 @@ class _FixedFramePainter extends CustomPainter {
     final glow = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 10
-      ..color = const Color(0x44B6FF3B)
+      ..color = accent.withValues(alpha: 0.27)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
     canvas.drawRRect(
       RRect.fromRectAndRadius(frameRect, const Radius.circular(22)),
@@ -1421,11 +1454,11 @@ class _FixedFramePainter extends CustomPainter {
       border,
     );
 
-    final accent = Paint()
+    final cornerPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5
       ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFFB6FF3B);
+      ..color = accent;
     const corner = 26.0;
     final corners = <List<Offset>>[
       [
@@ -1453,13 +1486,13 @@ class _FixedFramePainter extends CustomPainter {
       final path = Path()..moveTo(points[0].dx, points[0].dy);
       path.lineTo(points[1].dx, points[1].dy);
       path.lineTo(points[2].dx, points[2].dy);
-      canvas.drawPath(path, accent);
+      canvas.drawPath(path, cornerPaint);
     }
   }
 
   @override
   bool shouldRepaint(covariant _FixedFramePainter oldDelegate) {
-    return oldDelegate.frameRect != frameRect;
+    return oldDelegate.frameRect != frameRect || oldDelegate.accent != accent;
   }
 }
 

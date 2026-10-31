@@ -1,6 +1,20 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.4.1",
+    "date": "2026-10-31",
+    "changes": [
+      "Štyri témy: Klasika, Poke, Magic a Stone.",
+      "Klasika je predvolená a presne zachováva pôvodný vzhľad.",
+      "Poke má červeno-žlté rámiky a energy pozadie.",
+      "Magic má MTG card-back atmosféru so zlatým rámom.",
+      "Stone je samostatná Hearthstone inšpirácia s vyrezávaným rámom.",
+      "Zoradenie je pri „Vlastné“ kompaktné, pri inom type na celú šírku.",
+      "Skryté štatistiky sa otvoria 8 klikmi na „História“ v histórii verzií.",
+      "Štatistiky: stiahnutia, používatelia, zdieľania, karty, priatelia a lajky."
+    ]
+  },
+  {
     "version": "0.3.22",
     "date": "2026-10-31",
     "changes": [

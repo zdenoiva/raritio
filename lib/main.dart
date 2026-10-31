@@ -6,6 +6,7 @@ import 'package:app_links/app_links.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' hide appBuildNumber;
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -88,6 +89,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
   bool _updateCheckStarted = false;
   bool _sharedScreenOpen = false;
   String _lastScanGame = 'pokemon';
+  String _appTheme = 'classic';
   StreamSubscription<Uri>? _linkSubscription;
   String _lastHandledLink = '';
 
@@ -162,6 +164,15 @@ class _RaritioTCGState extends State<RaritioTCG> {
       unawaited(_handleSharedSync(message));
     } else if (message.startsWith('stopShared:')) {
       unawaited(_handleStopShared(message));
+    } else if (message.startsWith('fetchPublicStats:')) {
+      unawaited(_handlePublicStats());
+    } else if (message.startsWith('setAppTheme:')) {
+      try {
+        final data = jsonDecode(message.substring('setAppTheme:'.length));
+        if (data is Map) {
+          _appTheme = (data['theme'] ?? 'classic').toString();
+        }
+      } catch (_) {}
     } else if (message.startsWith('checkUpdates:')) {
       unawaited(_forceCheckForUpdates());
     } else if (message.startsWith('fetchPrice:')) {
@@ -479,6 +490,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
         MaterialPageRoute(
           builder: (context) => CameraScreen(
             initialGame: _lastScanGame,
+            theme: _appTheme,
             onRecognize: _recognizeScanCandidates,
             onResolveDetails: _resolveScanDetails,
             onAdd: _addScannedCard,
@@ -653,6 +665,52 @@ class _RaritioTCGState extends State<RaritioTCG> {
       }
     }
     return card;
+  }
+
+  Future<void> _handlePublicStats() async {
+    final stats = <String, dynamic>{};
+    try {
+      final data = await Supabase.instance.client.rpc('get_public_stats');
+      if (data is Map) {
+        stats.addAll(Map<String, dynamic>.from(data));
+      }
+    } catch (_) {
+      stats['note'] = 'Supabase štatistiky nie sú dostupné. Spusti SQL migráciu public_stats.';
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://api.github.com/repos/zdenoiva/raritio/releases?per_page=100',
+        ),
+        headers: const {
+          'Accept': 'application/vnd.github+json',
+          'User-Agent': 'Raritio',
+        },
+      );
+      if (response.statusCode == 200) {
+        final releases = jsonDecode(response.body);
+        if (releases is List) {
+          var downloads = 0;
+          for (final release in releases) {
+            if (release is! Map) continue;
+            final assets = release['assets'];
+            if (assets is! List) continue;
+            for (final asset in assets) {
+              if (asset is Map) {
+                downloads += (asset['download_count'] as num?)?.toInt() ?? 0;
+              }
+            }
+          }
+          stats['downloads'] = downloads;
+        }
+      }
+    } catch (_) {
+      // GitHub rate limit or offline: leave the value empty.
+    }
+
+    stats['latestVersion'] = appVersion;
+    _controller.runJavaScript('handlePublicStats(${jsonEncode(stats)})');
   }
 
   Future<bool> _addScannedCard(Map<String, dynamic> card) async {
@@ -969,7 +1027,8 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final CameraResult? cameraResult = await Navigator.push<CameraResult>(
         context,
         MaterialPageRoute(
-          builder: (context) => const CameraScreen(captureOnly: true),
+          builder: (context) =>
+              CameraScreen(captureOnly: true, theme: _appTheme),
         ),
       );
 
