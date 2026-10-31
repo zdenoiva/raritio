@@ -9,22 +9,27 @@ import 'package:share_plus/share_plus.dart';
 import 'package:raritio/screens/qr_scan_screen.dart';
 import 'package:raritio/screens/shared_binder_detail_screen.dart';
 import 'package:raritio/services/shared_binder_service.dart';
+import 'package:raritio/theme/app_theme_palette.dart';
 
 class SharedBindersScreen extends StatefulWidget {
   const SharedBindersScreen({
     super.key,
     required this.service,
     this.onAccountDeleted,
+    this.theme = 'classic',
   });
 
   final SharedBinderService service;
   final VoidCallback? onAccountDeleted;
+  final String theme;
 
   @override
   State<SharedBindersScreen> createState() => _SharedBindersScreenState();
 }
 
 class _SharedBindersScreenState extends State<SharedBindersScreen> {
+  late final AppThemePalette _palette = AppThemePalette.forName(widget.theme);
+  AppThemePalette get palette => _palette;
   RaritioProfile? _profile;
   List<FriendProfile> _friends = const [];
   List<SharedBinderSummary> _shared = const [];
@@ -110,8 +115,8 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF0F0F13),
+        decoration: BoxDecoration(
+          color: palette.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
         padding: EdgeInsets.fromLTRB(
@@ -128,24 +133,24 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                 width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3F3F46),
+                  color: palette.border,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Môj QR kód',
                 style: TextStyle(
-                  color: Color(0xFFF8FAFC),
+                  color: palette.text,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Kamoš naskenuje kód a pridá si ťa ako kamoša.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                style: TextStyle(color: palette.muted, fontSize: 12),
               ),
               const SizedBox(height: 18),
               Container(
@@ -160,13 +165,13 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                   size: 220,
                   padding: EdgeInsets.zero,
                   backgroundColor: Colors.white,
-                  eyeStyle: const QrEyeStyle(
+                  eyeStyle: QrEyeStyle(
                     eyeShape: QrEyeShape.square,
-                    color: Color(0xFF0A0A0C),
+                    color: Colors.black,
                   ),
-                  dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleStyle: QrDataModuleStyle(
                     dataModuleShape: QrDataModuleShape.square,
-                    color: Color(0xFF0A0A0C),
+                    color: Colors.black,
                   ),
                   errorCorrectionLevel: QrErrorCorrectLevel.M,
                 ),
@@ -174,16 +179,16 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
               const SizedBox(height: 14),
               Text(
                 profile.nickname,
-                style: const TextStyle(
-                  color: Color(0xFFF8FAFC),
+                style: TextStyle(
+                  color: palette.text,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 4),
               SelectableText(
                 'Friend kód: ${profile.friendCode}',
-                style: const TextStyle(
-                  color: Color(0xFF93C5FD),
+                style: TextStyle(
+                  color: palette.accent,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -193,14 +198,14 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(13),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF16161A),
+                  color: palette.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF2D2D35)),
+                  border: Border.all(color: palette.border),
                 ),
-                child: const Text(
+                child: Text(
                   'Ak appku ešte nemá, po naskenovaní sa mu otvorí stránka s tlačidlom na stiahnutie. Potom zadá kód v Zdieľané → Pridať kód.',
                   style: TextStyle(
-                    color: Color(0xFF94A3B8),
+                    color: palette.muted,
                     fontSize: 12,
                     height: 1.4,
                   ),
@@ -219,8 +224,8 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.ios_share_rounded),
-                  label: const Text('Zdieľať pozvánku'),
+                  icon: Icon(Icons.ios_share_rounded),
+                  label: Text('Zdieľať pozvánku'),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -229,7 +234,7 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Zavrieť'),
+                child: Text('Zavrieť'),
               ),
             ],
           ),
@@ -251,7 +256,8 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Môj profil'),
+          backgroundColor: palette.surface,
+          title: Text('Môj profil'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -260,7 +266,15 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                   controller: nicknameController,
                   autofocus: true,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
+                    labelStyle: TextStyle(color: palette.muted),
+                    hintStyle: TextStyle(color: palette.muted),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: palette.border),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: palette.accent),
+                    ),
                     labelText: 'Prezývka',
                     hintText: 'Ako ťa majú vidieť kamoši',
                   ),
@@ -268,19 +282,13 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                 const SizedBox(height: 10),
                 Text(
                   'Friend kód: ${profile?.friendCode ?? '—'}',
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: palette.muted, fontSize: 12),
                 ),
                 if (localError != null) ...[
                   const SizedBox(height: 10),
                   Text(
                     localError!,
-                    style: const TextStyle(
-                      color: Color(0xFFFCA5A5),
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Color(0xFFFCA5A5), fontSize: 12),
                   ),
                 ],
               ],
@@ -297,13 +305,18 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFFFCA5A5),
               ),
-              child: const Text('Zmazať účet'),
+              child: Text('Zmazať účet'),
             ),
             TextButton(
               onPressed: saving ? null : () => Navigator.pop(context),
-              child: const Text('Zrušiť'),
+              style: TextButton.styleFrom(foregroundColor: palette.accent),
+              child: Text('Zrušiť'),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: palette.accent,
+                foregroundColor: palette.onAccent,
+              ),
               onPressed: saving
                   ? null
                   : () async {
@@ -341,7 +354,7 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Uložiť'),
+                  : Text('Uložiť'),
             ),
           ],
         ),
@@ -359,22 +372,23 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Zmazať účet?'),
-        content: const Text(
+        backgroundColor: palette.surface,
+        title: Text('Zmazať účet?'),
+        content: Text(
           'Vymažú sa tvoje zdieľané balíky, lajky, kamošské väzby a účet. '
           'Lokálne balíky v tomto zariadení zostanú. Táto akcia sa nedá vrátiť.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Zrušiť'),
+            child: Text('Zrušiť'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
             ),
-            child: const Text('Zmazať účet'),
+            child: Text('Zmazať účet'),
           ),
         ],
       ),
@@ -405,7 +419,7 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     final code = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Pridať kamoša'),
+        title: Text('Pridať kamoša'),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -418,12 +432,12 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Zrušiť'),
+            child: Text('Zrušiť'),
           ),
           FilledButton(
             onPressed: () =>
                 Navigator.pop(context, controller.text.trim().toUpperCase()),
-            child: const Text('Pridať'),
+            child: Text('Pridať'),
           ),
         ],
       ),
@@ -449,7 +463,7 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     final code = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Pridať zdieľaný balík'),
+        title: Text('Pridať zdieľaný balík'),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -461,11 +475,11 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Zrušiť'),
+            child: Text('Zrušiť'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Pridať'),
+            child: Text('Pridať'),
           ),
         ],
       ),
@@ -559,8 +573,11 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            SharedBinderDetailScreen(service: widget.service, summary: summary),
+        builder: (context) => SharedBinderDetailScreen(
+          service: widget.service,
+          summary: summary,
+          theme: widget.theme,
+        ),
       ),
     );
     if (mounted) await _load(quiet: true);
@@ -571,20 +588,18 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Odobrať ${friend.nickname}?'),
-        content: const Text(
-          'Kamoš nebude mať prístup k tvojim novým zdieľaniam.',
-        ),
+        content: Text('Kamoš nebude mať prístup k tvojim novým zdieľaniam.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Zrušiť'),
+            child: Text('Zrušiť'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
             ),
-            child: const Text('Odobrať'),
+            child: Text('Odobrať'),
           ),
         ],
       ),
@@ -603,21 +618,21 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Zrušiť zdieľanie?'),
+        title: Text('Zrušiť zdieľanie?'),
         content: Text(
           'Balík „${summary.name}“ prestane byť dostupný kamošom. Karty v tvojom balíku zostanú.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Nechať'),
+            child: Text('Nechať'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
             ),
-            child: const Text('Zrušiť zdieľanie'),
+            child: Text('Zrušiť zdieľanie'),
           ),
         ],
       ),
@@ -663,53 +678,86 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0A0A0C),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF0A0A0C),
-          foregroundColor: Colors.white,
-          title: const Text('Zdieľané'),
-          actions: [
-            IconButton(
-              onPressed: _acceptShareCode,
-              tooltip: 'Pridať zdieľanie podľa kódu',
-              icon: const Icon(Icons.add_link_rounded),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme:
+            ColorScheme.fromSeed(
+              seedColor: palette.accent,
+              brightness: Brightness.dark,
+            ).copyWith(
+              primary: palette.accent,
+              onPrimary: palette.onAccent,
+              secondary: palette.accentAlt,
+              surface: palette.surface,
+              onSurface: palette.text,
             ),
-            IconButton(
-              onPressed: _openQr,
-              tooltip: 'Skenovať QR',
-              icon: const Icon(Icons.qr_code_scanner_rounded),
-            ),
-            IconButton(
-              onPressed: () => _load(),
-              tooltip: 'Obnoviť',
-              icon: const Icon(Icons.refresh_rounded),
-            ),
-          ],
-          bottom: const TabBar(
-            indicatorColor: Color(0xFF3B82F6),
-            labelColor: Colors.white,
-            unselectedLabelColor: Color(0xFF94A3B8),
-            tabs: [
-              Tab(text: 'Od kamošov'),
-              Tab(text: 'Moje zdieľané'),
-              Tab(text: 'Kamoši'),
-            ],
+        scaffoldBackgroundColor: palette.background,
+        appBarTheme: AppBarTheme(
+          backgroundColor: palette.background,
+          foregroundColor: palette.text,
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: palette.accent),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: palette.accent,
+            foregroundColor: palette.onAccent,
           ),
         ),
-        body: _loading && _profile == null
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null && _profile == null
-            ? _ErrorView(message: _error!, onRetry: () => _load())
-            : TabBarView(
-                children: [
-                  _buildSharedTab(),
-                  _buildMineTab(),
-                  _buildFriendsTab(),
-                ],
+      ),
+      child: DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          backgroundColor: palette.background,
+          appBar: AppBar(
+            backgroundColor: palette.background,
+            foregroundColor: palette.text,
+            title: Text('Zdieľané'),
+            actions: [
+              IconButton(
+                onPressed: _acceptShareCode,
+                tooltip: 'Pridať zdieľanie podľa kódu',
+                icon: Icon(Icons.add_link_rounded),
               ),
+              IconButton(
+                onPressed: _openQr,
+                tooltip: 'Skenovať QR',
+                icon: Icon(Icons.qr_code_scanner_rounded),
+              ),
+              IconButton(
+                onPressed: () => _load(),
+                tooltip: 'Obnoviť',
+                icon: Icon(Icons.refresh_rounded),
+              ),
+            ],
+            bottom: TabBar(
+              indicatorColor: palette.accent,
+              labelColor: palette.text,
+              unselectedLabelColor: palette.muted,
+              tabs: [
+                Tab(text: 'Od kamošov'),
+                Tab(text: 'Moje zdieľané'),
+                Tab(text: 'Kamoši'),
+              ],
+            ),
+          ),
+          body: _loading && _profile == null
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null && _profile == null
+              ? _ErrorView(
+                  message: _error!,
+                  palette: _palette,
+                  onRetry: () => _load(),
+                )
+              : TabBarView(
+                  children: [
+                    _buildSharedTab(),
+                    _buildMineTab(),
+                    _buildFriendsTab(),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -718,13 +766,14 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     final groups = _ownerGroups();
     return RefreshIndicator(
       onRefresh: () => _load(quiet: true),
-      color: const Color(0xFF3B82F6),
-      backgroundColor: const Color(0xFF16161A),
+      color: palette.accent,
+      backgroundColor: palette.surface,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
         children: [
           _ProfileCard(
+            palette: _palette,
             profile: _profile,
             onEdit: _editProfile,
             onCopy: _copyCode,
@@ -733,11 +782,11 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
           const SizedBox(height: 14),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Balíky od kamošov',
                   style: TextStyle(
-                    color: Color(0xFFF8FAFC),
+                    color: palette.text,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -745,20 +794,25 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
               ),
               TextButton.icon(
                 onPressed: _acceptShareCode,
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Pridať kód'),
+                icon: Icon(Icons.add_rounded, size: 18),
+                label: Text('Pridať kód'),
               ),
             ],
           ),
           if (_shared.isEmpty)
-            const _EmptyState(
+            _EmptyState(
+              palette: _palette,
               icon: Icons.people_outline_rounded,
               title: 'Zatiaľ ti nikto nezdieľal balík',
               text: 'Keď ti kamoš pošle kód alebo QR, pridáš si balík sem.',
             )
           else
             ...groups.map(
-              (group) => _OwnerTile(group: group, onOpen: _openSharedBinder),
+              (group) => _OwnerTile(
+                group: group,
+                palette: _palette,
+                onOpen: _openSharedBinder,
+              ),
             ),
         ],
       ),
@@ -768,28 +822,29 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
   Widget _buildMineTab() {
     return RefreshIndicator(
       onRefresh: () => _load(quiet: true),
-      color: const Color(0xFF3B82F6),
-      backgroundColor: const Color(0xFF16161A),
+      color: palette.accent,
+      backgroundColor: palette.surface,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
-          const Text(
+          Text(
             'Balíky, ktoré zdieľaš',
             style: TextStyle(
-              color: Color(0xFFF8FAFC),
+              color: palette.text,
               fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Zmeny sa kamošom prejavia pri ďalšom obnovení.',
-            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+            style: TextStyle(color: palette.muted, fontSize: 12),
           ),
           const SizedBox(height: 14),
           if (_mine.isEmpty)
-            const _EmptyState(
+            _EmptyState(
+              palette: _palette,
               icon: Icons.ios_share_rounded,
               title: 'Zatiaľ nezdieľaš žiadny balík',
               text:
@@ -798,15 +853,13 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
           else
             ..._mine.map(
               (summary) => _BinderTile(
+                palette: _palette,
                 summary: summary,
                 onTap: () => _openSharedBinder(summary),
                 trailing: IconButton(
                   tooltip: 'Zrušiť zdieľanie',
                   onPressed: () => _stopSharing(summary),
-                  icon: const Icon(
-                    Icons.link_off_rounded,
-                    color: Color(0xFFFCA5A5),
-                  ),
+                  icon: Icon(Icons.link_off_rounded, color: Color(0xFFFCA5A5)),
                 ),
               ),
             ),
@@ -818,13 +871,14 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
   Widget _buildFriendsTab() {
     return RefreshIndicator(
       onRefresh: () => _load(quiet: true),
-      color: const Color(0xFF3B82F6),
-      backgroundColor: const Color(0xFF16161A),
+      color: palette.accent,
+      backgroundColor: palette.surface,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
         children: [
           _ProfileCard(
+            palette: _palette,
             profile: _profile,
             onEdit: _editProfile,
             onCopy: _copyCode,
@@ -833,11 +887,11 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Kamoši',
                   style: TextStyle(
-                    color: Color(0xFFF8FAFC),
+                    color: palette.text,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -845,13 +899,14 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
               ),
               TextButton.icon(
                 onPressed: _addFriendByCode,
-                icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                label: const Text('Pridať'),
+                icon: Icon(Icons.person_add_alt_1_rounded, size: 18),
+                label: Text('Pridať'),
               ),
             ],
           ),
           if (_friends.isEmpty)
-            const _EmptyState(
+            _EmptyState(
+              palette: _palette,
               icon: Icons.person_outline_rounded,
               title: 'Zatiaľ nemáš kamošov',
               text: 'Pridaj kamoša podľa friend kódu alebo QR.',
@@ -861,14 +916,14 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
               (friend) => Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF16161A),
+                  color: palette.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF2D2D35)),
+                  border: Border.all(color: palette.border),
                 ),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: const Color(0xFF1E3A8A),
-                    foregroundColor: Colors.white,
+                    backgroundColor: palette.accent,
+                    foregroundColor: palette.onAccent,
                     child: Text(
                       friend.nickname.isEmpty
                           ? '?'
@@ -877,19 +932,19 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                   ),
                   title: Text(
                     friend.nickname,
-                    style: const TextStyle(
-                      color: Color(0xFFF8FAFC),
+                    style: TextStyle(
+                      color: palette.text,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   subtitle: Text(
                     'Friend kód: ${friend.friendCode}',
-                    style: const TextStyle(color: Color(0xFF94A3B8)),
+                    style: TextStyle(color: palette.muted),
                   ),
                   trailing: IconButton(
                     tooltip: 'Odobrať kamoša',
                     onPressed: () => _removeFriend(friend),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.person_remove_outlined,
                       color: Color(0xFFFCA5A5),
                     ),
@@ -916,9 +971,14 @@ class _OwnerGroup {
 }
 
 class _OwnerTile extends StatelessWidget {
-  const _OwnerTile({required this.group, required this.onOpen});
+  const _OwnerTile({
+    required this.group,
+    required this.palette,
+    required this.onOpen,
+  });
 
   final _OwnerGroup group;
+  final AppThemePalette palette;
   final Future<void> Function(SharedBinderSummary) onOpen;
 
   @override
@@ -926,9 +986,9 @@ class _OwnerTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF16161A),
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2D2D35)),
+        border: Border.all(color: palette.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Theme(
@@ -939,13 +999,13 @@ class _OwnerTile extends StatelessWidget {
         ),
         child: ExpansionTile(
           initiallyExpanded: true,
-          iconColor: const Color(0xFF94A3B8),
-          collapsedIconColor: const Color(0xFF94A3B8),
+          iconColor: palette.muted,
+          collapsedIconColor: palette.muted,
           tilePadding: const EdgeInsets.symmetric(horizontal: 14),
           childrenPadding: const EdgeInsets.only(bottom: 6),
           leading: CircleAvatar(
-            backgroundColor: const Color(0xFF1E3A8A),
-            foregroundColor: Colors.white,
+            backgroundColor: palette.accent,
+            foregroundColor: palette.onAccent,
             child: Text(
               group.nickname.isEmpty
                   ? '?'
@@ -954,18 +1014,16 @@ class _OwnerTile extends StatelessWidget {
           ),
           title: Text(
             group.nickname,
-            style: const TextStyle(
-              color: Color(0xFFF8FAFC),
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(color: palette.text, fontWeight: FontWeight.w800),
           ),
           subtitle: Text(
             '${group.binders.length} ${group.binders.length == 1 ? 'balík' : 'balíky'}',
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+            style: TextStyle(color: palette.muted, fontSize: 12),
           ),
           children: group.binders
               .map(
                 (summary) => _BinderTile(
+                  palette: palette,
                   summary: summary,
                   onTap: () => onOpen(summary),
                   padding: const EdgeInsets.fromLTRB(14, 0, 8, 6),
@@ -980,12 +1038,14 @@ class _OwnerTile extends StatelessWidget {
 
 class _BinderTile extends StatelessWidget {
   const _BinderTile({
+    required this.palette,
     required this.summary,
     required this.onTap,
     this.trailing,
     this.padding = const EdgeInsets.fromLTRB(0, 0, 0, 8),
   });
 
+  final AppThemePalette palette;
   final SharedBinderSummary summary;
   final VoidCallback onTap;
   final Widget? trailing;
@@ -1000,7 +1060,7 @@ class _BinderTile extends StatelessWidget {
     return Padding(
       padding: padding,
       child: Material(
-        color: const Color(0xFF1E1E24),
+        color: palette.surfaceAlt,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -1013,14 +1073,14 @@ class _BinderTile extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                    gradient: LinearGradient(
+                      colors: [palette.accent, palette.accentAlt],
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.style_outlined,
-                    color: Colors.white,
+                    color: palette.onAccent,
                     size: 20,
                   ),
                 ),
@@ -1033,8 +1093,8 @@ class _BinderTile extends StatelessWidget {
                         summary.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFF8FAFC),
+                        style: TextStyle(
+                          color: palette.text,
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                         ),
@@ -1044,19 +1104,13 @@ class _BinderTile extends StatelessWidget {
                         '${summary.cardCount} kariet · \$${summary.totalValue.toStringAsFixed(2)}$updatedText',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF94A3B8),
-                          fontSize: 11,
-                        ),
+                        style: TextStyle(color: palette.muted, fontSize: 11),
                       ),
                     ],
                   ),
                 ),
                 trailing ??
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Color(0xFF94A3B8),
-                    ),
+                    Icon(Icons.chevron_right_rounded, color: palette.muted),
               ],
             ),
           ),
@@ -1068,12 +1122,14 @@ class _BinderTile extends StatelessWidget {
 
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({
+    required this.palette,
     required this.profile,
     required this.onEdit,
     required this.onCopy,
     required this.onQr,
   });
 
+  final AppThemePalette palette;
   final RaritioProfile? profile;
   final VoidCallback onEdit;
   final VoidCallback onCopy;
@@ -1086,13 +1142,13 @@ class _ProfileCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF172554), Color(0xFF16161A)],
+          colors: [palette.surfaceAlt, palette.surface],
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x553B82F6)),
+        border: Border.all(color: palette.accent.withValues(alpha: 0.33)),
       ),
       child: Row(
         children: [
@@ -1100,16 +1156,16 @@ class _ProfileCard extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+              gradient: LinearGradient(
+                colors: [palette.accent, palette.accentAlt],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
             alignment: Alignment.center,
             child: Text(
               nickname.isEmpty ? 'R' : nickname.characters.first.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: palette.onAccent,
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
               ),
@@ -1124,8 +1180,8 @@ class _ProfileCard extends StatelessWidget {
                   nickname,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFF8FAFC),
+                  style: TextStyle(
+                    color: palette.text,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1141,17 +1197,17 @@ class _ProfileCard extends StatelessWidget {
                       children: [
                         Text(
                           'Friend kód: $code',
-                          style: const TextStyle(
-                            color: Color(0xFF93C5FD),
+                          style: TextStyle(
+                            color: palette.accent,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(
+                        Icon(
                           Icons.copy_rounded,
                           size: 13,
-                          color: Color(0xFF93C5FD),
+                          color: palette.accent,
                         ),
                       ],
                     ),
@@ -1163,12 +1219,12 @@ class _ProfileCard extends StatelessWidget {
           IconButton(
             onPressed: onQr,
             tooltip: 'Môj QR kód',
-            icon: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF93C5FD)),
+            icon: Icon(Icons.qr_code_2_rounded, color: palette.accent),
           ),
           IconButton(
             onPressed: onEdit,
             tooltip: 'Upraviť profil',
-            icon: const Icon(Icons.edit_outlined, color: Color(0xFF93C5FD)),
+            icon: Icon(Icons.edit_outlined, color: palette.accent),
           ),
         ],
       ),
@@ -1178,11 +1234,13 @@ class _ProfileCard extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({
+    required this.palette,
     required this.icon,
     required this.title,
     required this.text,
   });
 
+  final AppThemePalette palette;
   final IconData icon;
   final String title;
   final String text;
@@ -1193,25 +1251,18 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 34, horizontal: 18),
       child: Column(
         children: [
-          Icon(icon, size: 44, color: const Color(0xFF64748B)),
+          Icon(icon, size: 44, color: palette.muted),
           const SizedBox(height: 12),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFFF8FAFC),
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(color: palette.text, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF94A3B8),
-              fontSize: 12,
-              height: 1.4,
-            ),
+            style: TextStyle(color: palette.muted, fontSize: 12, height: 1.4),
           ),
         ],
       ),
@@ -1220,9 +1271,14 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
+  const _ErrorView({
+    required this.message,
+    required this.palette,
+    required this.onRetry,
+  });
 
   final String message;
+  final AppThemePalette palette;
   final VoidCallback onRetry;
 
   @override
@@ -1233,22 +1289,18 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.cloud_off_rounded,
-              size: 46,
-              color: Color(0xFF94A3B8),
-            ),
+            Icon(Icons.cloud_off_rounded, size: 46, color: palette.muted),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFFF8FAFC)),
+              style: TextStyle(color: palette.text),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Skúsiť znova'),
+              icon: Icon(Icons.refresh_rounded),
+              label: Text('Skúsiť znova'),
             ),
           ],
         ),

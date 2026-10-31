@@ -1,6 +1,18 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.4.3",
+    "date": "2026-10-31",
+    "changes": [
+      "Zdieľané, detaily zdieľaných balíkov a detail karty používajú zvolenú tému.",
+      "Poke má energický červeno-žltý efekt drahých kariet.",
+      "Magic má arkanálny zlato-tealový efekt.",
+      "Stone má jemný kamenný ember efekt.",
+      "Klasika si zachováva pôvodnú zlatú žiaru.",
+      "Efekt sa dá vypnúť v Nastaveniach."
+    ]
+  },
+  {
     "version": "0.4.2",
     "date": "2026-10-31",
     "changes": [

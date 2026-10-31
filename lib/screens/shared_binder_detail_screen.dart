@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:raritio/screens/shared_card_detail_screen.dart';
 import 'package:raritio/services/shared_binder_service.dart';
+import 'package:raritio/theme/app_theme_palette.dart';
 import 'package:raritio/utils/card_finish.dart';
 
 class SharedBinderDetailScreen extends StatefulWidget {
@@ -12,10 +13,12 @@ class SharedBinderDetailScreen extends StatefulWidget {
     super.key,
     required this.service,
     required this.summary,
+    this.theme = 'classic',
   });
 
   final SharedBinderService service;
   final SharedBinderSummary summary;
+  final String theme;
 
   @override
   State<SharedBinderDetailScreen> createState() =>
@@ -23,6 +26,8 @@ class SharedBinderDetailScreen extends StatefulWidget {
 }
 
 class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
+  late final AppThemePalette _palette = AppThemePalette.forName(widget.theme);
+  AppThemePalette get palette => _palette;
   SharedBinderData? _data;
   String? _error;
   bool _loading = true;
@@ -70,6 +75,7 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => SharedCardDetailScreen(
+          theme: widget.theme,
           service: widget.service,
           summary: summary,
           card: card,
@@ -114,66 +120,100 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
     final summary = _data?.summary ?? widget.summary;
     final cards = _cardsFromSnapshot(_data?.snapshot);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0C),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A0C),
-        foregroundColor: Colors.white,
-        title: Text(summary.name, overflow: TextOverflow.ellipsis),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme:
+            ColorScheme.fromSeed(
+              seedColor: palette.accent,
+              brightness: Brightness.dark,
+            ).copyWith(
+              primary: palette.accent,
+              onPrimary: palette.onAccent,
+              secondary: palette.accentAlt,
+              surface: palette.surface,
+              onSurface: palette.text,
+            ),
+        scaffoldBackgroundColor: palette.background,
+        appBarTheme: AppBarTheme(
+          backgroundColor: palette.background,
+          foregroundColor: palette.text,
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: palette.accent),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: palette.accent,
+            foregroundColor: palette.onAccent,
+          ),
+        ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? _ErrorView(message: _error!, onRetry: _load)
-          : RefreshIndicator(
-              onRefresh: _load,
-              color: const Color(0xFF3B82F6),
-              backgroundColor: const Color(0xFF16161A),
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _SharedBinderHeader(
-                      summary: summary,
-                      cardCount: cards.length,
-                    ),
-                  ),
-                  if (cards.isEmpty)
-                    const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _EmptyCards(),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 220,
-                              mainAxisExtent: 318,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final card = cards[index];
-                          final cardId = card['id']?.toString() ?? '';
-                          final like =
-                              _likes[cardId] ??
-                              const CardLike(count: 0, likedByMe: false);
-                          return _SharedCard(
-                            card: card,
-                            like: like,
-                            canLike: !summary.isOwner,
-                            pending: _likePending.contains(cardId),
-                            onToggleLike: () => _toggleLike(cardId),
-                            onOpen: () => _openCard(card, like),
-                          );
-                        }, childCount: cards.length),
+      child: Scaffold(
+        backgroundColor: palette.background,
+        appBar: AppBar(
+          backgroundColor: palette.background,
+          foregroundColor: palette.text,
+          title: Text(summary.name, overflow: TextOverflow.ellipsis),
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+            ? _ErrorView(message: _error!, palette: _palette, onRetry: _load)
+            : RefreshIndicator(
+                onRefresh: _load,
+                color: palette.accent,
+                backgroundColor: palette.surface,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _SharedBinderHeader(
+                        palette: _palette,
+                        summary: summary,
+                        cardCount: cards.length,
                       ),
                     ),
-                ],
+                    if (cards.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _EmptyCards(palette: _palette),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 220,
+                                mainAxisExtent: 318,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final card = cards[index];
+                            final cardId = card['id']?.toString() ?? '';
+                            final like =
+                                _likes[cardId] ??
+                                const CardLike(count: 0, likedByMe: false);
+                            return _SharedCard(
+                              palette: _palette,
+                              card: card,
+                              like: like,
+                              canLike: !summary.isOwner,
+                              pending: _likePending.contains(cardId),
+                              onToggleLike: () => _toggleLike(cardId),
+                              onOpen: () => _openCard(card, like),
+                            );
+                          }, childCount: cards.length),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -190,8 +230,13 @@ class _SharedBinderDetailScreenState extends State<SharedBinderDetailScreen> {
 }
 
 class _SharedBinderHeader extends StatelessWidget {
-  const _SharedBinderHeader({required this.summary, required this.cardCount});
+  const _SharedBinderHeader({
+    required this.palette,
+    required this.summary,
+    required this.cardCount,
+  });
 
+  final AppThemePalette palette;
   final SharedBinderSummary summary;
   final int cardCount;
 
@@ -207,44 +252,48 @@ class _SharedBinderHeader extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF16161A),
+          color: palette.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF2D2D35)),
+          border: Border.all(color: palette.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.lock_outline_rounded,
                   size: 16,
-                  color: Color(0xFF94A3B8),
+                  color: palette.muted,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'Zdieľa ${summary.ownerNickname}',
-                    style: const TextStyle(
-                      color: Color(0xFFF8FAFC),
+                    style: TextStyle(
+                      color: palette.text,
                       fontWeight: FontWeight.w700,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                _Pill(icon: Icons.style_outlined, text: '$cardCount kariet'),
+                _Pill(
+                  palette: palette,
+                  icon: Icons.style_outlined,
+                  text: '$cardCount kariet',
+                ),
               ],
             ),
             const SizedBox(height: 10),
             Text(
               'Aktualizované $updatedText',
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              style: TextStyle(color: palette.muted, fontSize: 12),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Read-only náhľad. Vlastné fotky sa v zdieľaní nezobrazujú.',
               style: TextStyle(
-                color: Color(0xFF64748B),
+                color: palette.muted,
                 fontSize: 11,
                 height: 1.35,
               ),
@@ -258,6 +307,7 @@ class _SharedBinderHeader extends StatelessWidget {
 
 class _SharedCard extends StatelessWidget {
   const _SharedCard({
+    required this.palette,
     required this.card,
     required this.like,
     required this.canLike,
@@ -266,6 +316,7 @@ class _SharedCard extends StatelessWidget {
     required this.onOpen,
   });
 
+  final AppThemePalette palette;
   final Map<String, dynamic> card;
   final CardLike like;
   final bool canLike;
@@ -287,7 +338,7 @@ class _SharedCard extends StatelessWidget {
       onTap: onOpen,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF16161A),
+          color: palette.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: color.withValues(alpha: 0.55)),
         ),
@@ -307,10 +358,12 @@ class _SharedCard extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (rarity.isNotEmpty) _Pill(text: rarity, small: true),
+                        if (rarity.isNotEmpty)
+                          _Pill(palette: palette, text: rarity, small: true),
                         const Spacer(),
                         if (finish.isNotEmpty && finish != 'normal')
                           _Pill(
+                            palette: palette,
                             text: finishLabelFor(finish),
                             small: true,
                             accent: true,
@@ -322,6 +375,7 @@ class _SharedCard extends StatelessWidget {
                     right: 7,
                     bottom: 7,
                     child: _LikeButton(
+                      palette: palette,
                       like: like,
                       canLike: canLike,
                       pending: pending,
@@ -340,8 +394,8 @@ class _SharedCard extends StatelessWidget {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFFF8FAFC),
+                    style: TextStyle(
+                      color: palette.text,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
@@ -351,16 +405,13 @@ class _SharedCard extends StatelessWidget {
                     set,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: palette.muted, fontSize: 11),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     '\$${price.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      color: Color(0xFF10B981),
+                    style: TextStyle(
+                      color: palette.success,
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                     ),
@@ -381,35 +432,37 @@ class _SharedCard extends StatelessWidget {
         return Image.memory(
           bytes,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const _NoImage(),
+          errorBuilder: (_, _, _) => _NoImage(palette: palette),
         );
       } catch (_) {
-        return const _NoImage();
+        return _NoImage(palette: palette);
       }
     }
     if (uri.startsWith('http://') || uri.startsWith('https://')) {
       return Image.network(
         uri,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const _NoImage(),
+        errorBuilder: (_, _, _) => _NoImage(palette: palette),
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
-          return const _NoImage(loading: true);
+          return _NoImage(palette: palette, loading: true);
         },
       );
     }
-    return const _NoImage();
+    return _NoImage(palette: palette);
   }
 }
 
 class _LikeButton extends StatelessWidget {
   const _LikeButton({
+    required this.palette,
     required this.like,
     required this.canLike,
     required this.pending,
     required this.onTap,
   });
 
+  final AppThemePalette palette;
   final CardLike like;
   final bool canLike;
   final bool pending;
@@ -430,12 +483,12 @@ class _LikeButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (pending)
-                const SizedBox(
+                SizedBox(
                   width: 24,
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    color: palette.text,
                   ),
                 )
               else
@@ -457,9 +510,7 @@ class _LikeButton extends StatelessWidget {
               Text(
                 '${like.count}',
                 style: TextStyle(
-                  color: filled
-                      ? const Color(0xFFFCA5A5)
-                      : const Color(0xFFF8FAFC),
+                  color: filled ? const Color(0xFFFCA5A5) : palette.text,
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
                   shadows: const [Shadow(color: Colors.black87, blurRadius: 7)],
@@ -474,14 +525,15 @@ class _LikeButton extends StatelessWidget {
 }
 
 class _NoImage extends StatelessWidget {
-  const _NoImage({this.loading = false});
+  const _NoImage({required this.palette, this.loading = false});
 
+  final AppThemePalette palette;
   final bool loading;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF1E1E24),
+      color: palette.surfaceAlt,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -493,16 +545,16 @@ class _NoImage extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             else
-              const Icon(
+              Icon(
                 Icons.image_not_supported_outlined,
-                color: Color(0xFF64748B),
+                color: palette.muted,
                 size: 26,
               ),
             if (!loading) ...[
               const SizedBox(height: 5),
-              const Text(
+              Text(
                 'Bez obrázka',
-                style: TextStyle(color: Color(0xFF64748B), fontSize: 10),
+                style: TextStyle(color: palette.muted, fontSize: 10),
               ),
             ],
           ],
@@ -514,12 +566,14 @@ class _NoImage extends StatelessWidget {
 
 class _Pill extends StatelessWidget {
   const _Pill({
+    required this.palette,
     this.icon,
     required this.text,
     this.small = false,
     this.accent = false,
   });
 
+  final AppThemePalette palette;
   final IconData? icon;
   final String text;
   final bool small;
@@ -534,8 +588,8 @@ class _Pill extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: accent
-            ? const Color(0xFF3B82F6).withValues(alpha: 0.85)
-            : const Color(0xFF0A0A0C).withValues(alpha: 0.78),
+            ? palette.accent.withValues(alpha: 0.85)
+            : palette.background.withValues(alpha: 0.78),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: const Color(0x33FFFFFF)),
       ),
@@ -543,13 +597,13 @@ class _Pill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 12, color: Colors.white),
+            Icon(icon, size: 12, color: palette.onAccent),
             const SizedBox(width: 4),
           ],
           Text(
             text,
             style: TextStyle(
-              color: Colors.white,
+              color: palette.onAccent,
               fontSize: small ? 9 : 11,
               fontWeight: FontWeight.w700,
             ),
@@ -561,22 +615,24 @@ class _Pill extends StatelessWidget {
 }
 
 class _EmptyCards extends StatelessWidget {
-  const _EmptyCards();
+  const _EmptyCards({required this.palette});
+
+  final AppThemePalette palette;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(30),
+        padding: const EdgeInsets.all(30),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.style_outlined, size: 44, color: Color(0xFF64748B)),
+            Icon(Icons.style_outlined, size: 44, color: palette.muted),
             SizedBox(height: 12),
             Text(
               'Balík je prázdny',
               style: TextStyle(
-                color: Color(0xFFF8FAFC),
+                color: palette.text,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -588,9 +644,14 @@ class _EmptyCards extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
+  const _ErrorView({
+    required this.message,
+    required this.palette,
+    required this.onRetry,
+  });
 
   final String message;
+  final AppThemePalette palette;
   final VoidCallback onRetry;
 
   @override
@@ -601,22 +662,18 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.cloud_off_rounded,
-              size: 46,
-              color: Color(0xFF94A3B8),
-            ),
+            Icon(Icons.cloud_off_rounded, size: 46, color: palette.muted),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFFF8FAFC)),
+              style: TextStyle(color: palette.text),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Skúsiť znova'),
+              icon: Icon(Icons.refresh_rounded),
+              label: Text('Skúsiť znova'),
             ),
           ],
         ),

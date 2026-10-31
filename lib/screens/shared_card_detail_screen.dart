@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'package:raritio/services/shared_binder_service.dart';
+import 'package:raritio/theme/app_theme_palette.dart';
 import 'package:raritio/utils/card_finish.dart';
 import 'package:raritio/widgets/holo_card_view.dart';
 
@@ -14,6 +15,7 @@ class SharedCardDetailScreen extends StatefulWidget {
     required this.card,
     required this.initialLike,
     required this.onLikeChanged,
+    this.theme = 'classic',
   });
 
   final SharedBinderService service;
@@ -21,12 +23,15 @@ class SharedCardDetailScreen extends StatefulWidget {
   final Map<String, dynamic> card;
   final CardLike initialLike;
   final ValueChanged<CardLike> onLikeChanged;
+  final String theme;
 
   @override
   State<SharedCardDetailScreen> createState() => _SharedCardDetailScreenState();
 }
 
 class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
+  late final AppThemePalette _palette = AppThemePalette.forName(widget.theme);
+  AppThemePalette get palette => _palette;
   late CardLike _like = widget.initialLike;
   bool _pending = false;
 
@@ -74,91 +79,120 @@ class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
         0;
     final image = card['imageUri']?.toString() ?? '';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0C),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A0C),
-        foregroundColor: Colors.white,
-        title: const Text('Detail karty'),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme:
+            ColorScheme.fromSeed(
+              seedColor: palette.accent,
+              brightness: Brightness.dark,
+            ).copyWith(
+              primary: palette.accent,
+              onPrimary: palette.onAccent,
+              secondary: palette.accentAlt,
+              surface: palette.surface,
+              onSurface: palette.text,
+            ),
+        scaffoldBackgroundColor: palette.background,
+        appBarTheme: AppBarTheme(
+          backgroundColor: palette.background,
+          foregroundColor: palette.text,
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: palette.accent),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: palette.accent,
+            foregroundColor: palette.onAccent,
+          ),
+        ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
-        children: [
-          HoloCardView(
-            image: _cardImage(image),
-            finish: finish,
-            maxWidth: 320,
-            borderRadius: 18,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            name,
-            style: const TextStyle(
-              color: Color(0xFFF8FAFC),
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
+      child: Scaffold(
+        backgroundColor: palette.background,
+        appBar: AppBar(
+          backgroundColor: palette.background,
+          foregroundColor: palette.text,
+          title: Text('Detail karty'),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
+          children: [
+            HoloCardView(
+              image: _cardImage(image),
+              finish: finish,
+              maxWidth: 320,
+              borderRadius: 18,
             ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            set.isEmpty ? '-' : set,
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-          _infoRow(
-            _infoCard('Jazyk', _languageValue(language)),
-            _infoCard('Edícia', set.isEmpty ? '-' : set),
-          ),
-          const SizedBox(height: 10),
-          _infoRow(
-            _infoCard('Rarita', rarity.isEmpty ? '-' : rarity),
-            _infoCard('Prevedenie', finishLabelFor(finish)),
-          ),
-          const SizedBox(height: 10),
-          _infoRow(
-            _infoCard('Číslo', number.isEmpty ? '-' : number),
-            _infoCard('Autor', artist.isEmpty ? '-' : artist),
-          ),
-          const SizedBox(height: 10),
-          _infoRow(
-            _infoCard(
-              'Cena',
-              '\$${price.toStringAsFixed(2)}',
-              valueColor: const Color(0xFF10B981),
+            const SizedBox(height: 16),
+            Text(
+              name,
+              style: TextStyle(
+                color: palette.text,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-            _infoCard('Zdroj ceny', _priceSourceLabel(card)),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF16161A),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF2D2D35)),
+            const SizedBox(height: 3),
+            Text(
+              set.isEmpty ? '-' : set,
+              style: TextStyle(color: palette.muted, fontSize: 13),
             ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.person_outline_rounded,
-                  color: Color(0xFF93C5FD),
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${widget.summary.ownerNickname} · ${widget.summary.name}',
-                    style: const TextStyle(
-                      color: Color(0xFFF8FAFC),
-                      fontWeight: FontWeight.w600,
+            const SizedBox(height: 12),
+            _infoRow(
+              _infoCard('Jazyk', _languageValue(language)),
+              _infoCard('Edícia', set.isEmpty ? '-' : set),
+            ),
+            const SizedBox(height: 10),
+            _infoRow(
+              _infoCard('Rarita', rarity.isEmpty ? '-' : rarity),
+              _infoCard('Prevedenie', finishLabelFor(finish)),
+            ),
+            const SizedBox(height: 10),
+            _infoRow(
+              _infoCard('Číslo', number.isEmpty ? '-' : number),
+              _infoCard('Autor', artist.isEmpty ? '-' : artist),
+            ),
+            const SizedBox(height: 10),
+            _infoRow(
+              _infoCard(
+                'Cena',
+                '\$${price.toStringAsFixed(2)}',
+                valueColor: palette.success,
+              ),
+              _infoCard('Zdroj ceny', _priceSourceLabel(card)),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: palette.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.person_outline_rounded,
+                    color: palette.accent,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${widget.summary.ownerNickname} · ${widget.summary.name}',
+                      style: TextStyle(
+                        color: palette.text,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          _likeRow(),
-        ],
+            const SizedBox(height: 10),
+            _likeRow(),
+          ],
+        ),
       ),
     );
   }
@@ -179,25 +213,22 @@ class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
       constraints: const BoxConstraints(minHeight: 64),
       padding: const EdgeInsets.fromLTRB(13, 10, 13, 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF16161A),
+        color: palette.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF2D2D35)),
+        border: Border.all(color: palette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            label,
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
-          ),
+          Text(label, style: TextStyle(color: palette.muted, fontSize: 11)),
           const SizedBox(height: 4),
           Text(
             value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: valueColor ?? const Color(0xFFF8FAFC),
+              color: valueColor ?? palette.text,
               fontWeight: FontWeight.w800,
               fontSize: 13,
               height: 1.2,
@@ -210,9 +241,7 @@ class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
 
   Widget _likeRow() {
     final owner = widget.summary.isOwner;
-    final color = _like.likedByMe
-        ? const Color(0xFFF87171)
-        : const Color(0xFF94A3B8);
+    final color = _like.likedByMe ? const Color(0xFFF87171) : palette.muted;
     return Row(
       children: [
         Expanded(
@@ -220,10 +249,7 @@ class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
             owner
                 ? 'Lajky od kamošov: ${_like.count}'
                 : '${_like.count} ${_like.count == 1 ? 'like' : 'likes'}',
-            style: const TextStyle(
-              color: Color(0xFFF8FAFC),
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: palette.text, fontWeight: FontWeight.w700),
           ),
         ),
         Material(
@@ -262,8 +288,8 @@ class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
                     owner
                         ? 'Lajky'
                         : (_like.likedByMe ? 'Odobrať like' : 'Dať like'),
-                    style: const TextStyle(
-                      color: Color(0xFF93C5FD),
+                    style: TextStyle(
+                      color: palette.accent,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -312,47 +338,49 @@ class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
         return Image.memory(
           base64Decode(uri.split(',').last),
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const _NoImage(),
+          errorBuilder: (_, _, _) => _NoImage(palette: palette),
         );
       } catch (_) {
-        return const _NoImage();
+        return _NoImage(palette: palette);
       }
     }
     if (uri.startsWith('http://') || uri.startsWith('https://')) {
       return Image.network(
         uri,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const _NoImage(),
+        errorBuilder: (_, _, _) => _NoImage(palette: palette),
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
-          return const _NoImage();
+          return _NoImage(palette: palette);
         },
       );
     }
-    return const _NoImage();
+    return _NoImage(palette: palette);
   }
 }
 
 class _NoImage extends StatelessWidget {
-  const _NoImage();
+  const _NoImage({required this.palette});
+
+  final AppThemePalette palette;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF1E1E24),
-      child: const Center(
+      color: palette.surfaceAlt,
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.image_not_supported_outlined,
               size: 40,
-              color: Color(0xFF64748B),
+              color: palette.muted,
             ),
             SizedBox(height: 8),
             Text(
               'Bez obrázka',
-              style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+              style: TextStyle(color: palette.muted, fontSize: 12),
             ),
           ],
         ),

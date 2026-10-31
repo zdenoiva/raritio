@@ -247,6 +247,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
           builder: (context) => SharedBinderDetailScreen(
             service: _sharedBinderService,
             summary: data.summary,
+            theme: _appTheme,
           ),
         ),
       );
@@ -1079,6 +1080,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
         MaterialPageRoute(
           builder: (context) => SharedBindersScreen(
             service: _sharedBinderService,
+            theme: _appTheme,
             onAccountDeleted: () {
               _controller.runJavaScript('handleAccountDeleted()');
             },
@@ -1224,6 +1226,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
             builder: (context) => SharedBinderDetailScreen(
               service: _sharedBinderService,
               summary: data.summary,
+              theme: _appTheme,
             ),
           ),
         );

@@ -3180,6 +3180,169 @@
             color: #ffe7a3;
         }
 
+        /* Theme-specific high-value card effects */
+        @keyframes poke-energy {
+            0%, 100% {
+                box-shadow:
+                    0 0 0 1px rgba(255, 203, 5, 0.4),
+                    0 0 18px rgba(227, 53, 13, 0.34),
+                    0 0 38px rgba(255, 203, 5, 0.16);
+            }
+            50% {
+                box-shadow:
+                    0 0 0 2px rgba(255, 203, 5, 0.65),
+                    0 0 28px rgba(227, 53, 13, 0.48),
+                    0 0 58px rgba(255, 203, 5, 0.24);
+            }
+        }
+
+        @keyframes poke-sweep {
+            0%, 55% { transform: translateX(-130%); }
+            100% { transform: translateX(130%); }
+        }
+
+        @keyframes magic-arcane {
+            0%, 100% {
+                box-shadow:
+                    0 0 0 1px rgba(201, 162, 39, 0.42),
+                    0 0 20px rgba(45, 212, 191, 0.28),
+                    0 0 42px rgba(201, 162, 39, 0.16);
+            }
+            50% {
+                box-shadow:
+                    0 0 0 2px rgba(232, 201, 103, 0.7),
+                    0 0 30px rgba(45, 212, 191, 0.4),
+                    0 0 62px rgba(201, 162, 39, 0.24);
+            }
+        }
+
+        @keyframes magic-rune {
+            0% { transform: rotate(0deg) scale(1); opacity: 0.5; }
+            50% { transform: rotate(180deg) scale(1.08); opacity: 0.8; }
+            100% { transform: rotate(360deg) scale(1); opacity: 0.5; }
+        }
+
+        @keyframes stone-ember {
+            0%, 100% {
+                box-shadow:
+                    0 0 0 1px rgba(201, 162, 39, 0.38),
+                    0 0 18px rgba(201, 162, 39, 0.2),
+                    0 0 36px rgba(120, 83, 45, 0.16);
+            }
+            50% {
+                box-shadow:
+                    0 0 0 2px rgba(232, 201, 103, 0.58),
+                    0 0 28px rgba(201, 162, 39, 0.34),
+                    0 0 54px rgba(120, 83, 45, 0.24);
+            }
+        }
+
+        @keyframes stone-shift {
+            0%, 100% { opacity: 0.45; transform: translateY(4px); }
+            50% { opacity: 0.8; transform: translateY(-2px); }
+        }
+
+        body[data-theme="poke"] .card-item.glow {
+            border-color: #ffcb05;
+            animation: poke-energy 2.3s ease-in-out infinite;
+        }
+
+        body[data-theme="poke"] .card-item.glow::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: linear-gradient(
+                115deg,
+                transparent 18%,
+                rgba(255, 203, 5, 0.16) 44%,
+                rgba(255, 255, 255, 0.08) 50%,
+                transparent 72%
+            );
+            animation: poke-sweep 3.2s ease-in-out infinite;
+            mix-blend-mode: screen;
+        }
+
+        body[data-theme="magic"] .card-item.glow {
+            border-color: #e8c967;
+            animation: magic-arcane 3.1s ease-in-out infinite;
+        }
+
+        body[data-theme="magic"] .card-item.glow::after {
+            content: '';
+            position: absolute;
+            inset: -20%;
+            z-index: 1;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 50% 50%, rgba(45, 212, 191, 0.13), transparent 42%),
+                conic-gradient(
+                    from 0deg,
+                    transparent,
+                    rgba(201, 162, 39, 0.14),
+                    transparent 30%,
+                    rgba(45, 212, 191, 0.12),
+                    transparent 70%
+                );
+            animation: magic-rune 7s linear infinite;
+        }
+
+        body[data-theme="stone"] .card-item.glow {
+            border-color: #e8c967;
+            animation: stone-ember 3.6s ease-in-out infinite;
+        }
+
+        body[data-theme="stone"] .card-item.glow::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: radial-gradient(
+                ellipse at 50% 100%,
+                rgba(249, 115, 22, 0.18),
+                rgba(201, 162, 39, 0.08) 36%,
+                transparent 68%
+            );
+            animation: stone-shift 3.8s ease-in-out infinite;
+            mix-blend-mode: screen;
+        }
+
+        body[data-theme="poke"] .holo-card.glow {
+            box-shadow: 0 0 28px rgba(255, 203, 5, 0.45), 0 0 64px rgba(227, 53, 13, 0.22);
+        }
+
+        body[data-theme="magic"] .holo-card.glow {
+            box-shadow: 0 0 28px rgba(232, 201, 103, 0.4), 0 0 64px rgba(45, 212, 191, 0.2);
+        }
+
+        body[data-theme="stone"] .holo-card.glow {
+            box-shadow: 0 0 28px rgba(232, 201, 103, 0.38), 0 0 64px rgba(120, 83, 45, 0.24);
+        }
+
+        body[data-theme="poke"] .glow-caption { color: #ffcb05; }
+        body[data-theme="magic"] .glow-caption { color: #e8c967; }
+        body[data-theme="stone"] .glow-caption { color: #e8c967; }
+
+        body.hide-glow .card-item.glow {
+            animation: none !important;
+            box-shadow: none !important;
+        }
+
+        body.hide-glow .card-item.glow::after { display: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            body[data-theme="poke"] .card-item.glow,
+            body[data-theme="magic"] .card-item.glow,
+            body[data-theme="stone"] .card-item.glow,
+            body[data-theme="poke"] .card-item.glow::after,
+            body[data-theme="magic"] .card-item.glow::after,
+            body[data-theme="stone"] .card-item.glow::after {
+                animation: none;
+            }
+        }
+
         .rarity-legend-copy {
             display: flex;
             flex-direction: column;
@@ -3445,8 +3608,8 @@
 
                 <label class="setting-row">
                     <span class="setting-copy">
-                        <strong>Glow effect</strong>
-                        <small>Jemná žiara okolo drahších kariet.</small>
+                        <strong>Efekt drahých kariet</strong>
+                        <small>Žiara alebo energia podľa zvolenej témy.</small>
                     </span>
                     <input type="checkbox" class="setting-switch" data-setting="glowEffect" onchange="toggleSetting('glowEffect', this.checked)">
                     <span class="switch-track" aria-hidden="true"></span>
@@ -3454,8 +3617,8 @@
 
                 <label class="setting-row setting-row-number">
                     <span class="setting-copy">
-                        <strong>Glow threshold</strong>
-                        <small>Minimálna cena karty pre žiaru.</small>
+                        <strong>Prah efektu</strong>
+                        <small>Minimálna cena karty pre efekt.</small>
                     </span>
                     <span class="setting-number-wrap">
                         <span>$</span>
@@ -3516,7 +3679,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.4.2</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.4.3</span></p>
         </div>
     </div>
 
