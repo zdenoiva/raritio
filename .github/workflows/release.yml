@@ -11,13 +11,13 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -63,14 +63,24 @@ jobs:
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           echo "size=$SIZE" >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub release
+      - name: Create or update GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.meta.outputs.version }}"
-          gh release create "v$VERSION" "raritio-$VERSION.apk" \
-            --title "Raritio $VERSION" \
-            --notes-file CHANGELOG.md
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # A release may already have been created manually from the same
+            # tag. Upload/replace the APK instead of failing the workflow.
+            gh release upload "$TAG" "raritio-$VERSION.apk" --clobber
+            gh release edit "$TAG" \
+              --title "Raritio $VERSION" \
+              --notes-file CHANGELOG.md
+          else
+            gh release create "$TAG" "raritio-$VERSION.apk" \
+              --title "Raritio $VERSION" \
+              --notes-file CHANGELOG.md
+          fi
 
       - name: Update latest.json on main
         env:
