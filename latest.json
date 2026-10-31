@@ -1,17 +1,19 @@
 {
-  "version": "0.3.15",
-  "versionCode": 315,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.15/raritio-0.3.15.apk",
-  "sha256": "5849e4d3a7729b8a8287bcc78aeb7a8c6093ef5f14e83348ad5a0298d9482d0c",
-  "size": 114471391,
-  "publishedAt": "2026-10-29T22:30:00Z",
+  "version": "0.3.16",
+  "versionCode": 316,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.16/raritio-0.3.16.apk",
+  "sha256": "0f4bff71f4fc4555ee8074af2e4bf9a364889c71bac0d3e11d2f408651ce5196",
+  "size": 118028932,
+  "publishedAt": "2026-10-31T12:00:00Z",
   "changelog": [
-    "Ikonky nastavení a cien hore, názov balíka a cena pod nimi.",
-    "Širšie like srdce.",
-    "Prevedenie sa vyberá kliknutím na políčko Prevedenie.",
-    "Len existujúce varianty karty s vlastnou cenou a obrázkom.",
-    "Opravená cena – už sa neberie drahý set-logo variant.",
-    "Ceny z Cardmarketu v eurách.",
-    "Raritio beta 0.3.15."
+    "Bez emailu v účte; zostáva prezývka a friend kód.",
+    "Možnosť zmazať účet a zdieľané dáta.",
+    "Bezpečnejšie RLS a owner-only share token.",
+    "Externé odkazy s funkčným tlačidlom Späť.",
+    "Šifrované zálohy vrátane profilu a prihlásenia.",
+    "Overenie podpisu APK pri aktualizácii.",
+    "Nový full-screen skener s výberom typu a zoomom.",
+    "Aktualizované závislosti.",
+    "Raritio beta 0.3.16."
   ]
 }

@@ -1,9 +1,19 @@
 import 'package:camera/camera.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+class CameraResult {
+  const CameraResult({required this.path, required this.game});
+
+  final String path;
+  final String game;
+}
+
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  const CameraScreen({super.key, this.initialGame = 'pokemon'});
+
+  final String initialGame;
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -15,6 +25,9 @@ class _CameraScreenState extends State<CameraScreen> {
   String? _error;
   bool _isTakingPicture = false;
   bool _torchOn = false;
+  late String _game = widget.initialGame == 'mtg' ? 'mtg' : 'pokemon';
+  double _zoom = 1;
+  double _maxZoom = 1;
 
   @override
   void initState() {
@@ -30,8 +43,9 @@ class _CameraScreenState extends State<CameraScreen> {
       );
       if (_cameras == null || _cameras!.isEmpty) {
         if (mounted) {
-          setState(() => _error =
-              "Kameru sa nepodarilo spustiť.\nSkontroluj povolenie kamery v nastaveniach aplikácie.");
+          setState(
+            () => _error = "Kameru sa nepodarilo spustiť.\nSkontroluj povolenie kamery v nastaveniach aplikácie.",
+          );
         }
         return;
       }
@@ -52,9 +66,9 @@ class _CameraScreenState extends State<CameraScreen> {
             imageFormatGroup: ImageFormatGroup.jpeg,
           );
           await controller.initialize().timeout(
-                const Duration(seconds: 20),
-                onTimeout: () => throw Exception("Kamera nereaguje (timeout)."),
-              );
+            const Duration(seconds: 20),
+            onTimeout: () => throw Exception("Kamera nereaguje (timeout)."),
+          );
           try {
             await controller.setFocusMode(FocusMode.auto);
           } catch (_) {
@@ -63,6 +77,11 @@ class _CameraScreenState extends State<CameraScreen> {
           try {
             await controller.setExposureMode(ExposureMode.auto);
           } catch (_) {}
+          try {
+            _maxZoom = await controller.getMaxZoomLevel();
+          } catch (_) {
+            _maxZoom = 1;
+          }
           if (!mounted) {
             await controller.dispose();
             return;
@@ -79,8 +98,10 @@ class _CameraScreenState extends State<CameraScreen> {
       }
 
       if (mounted) {
-        setState(() => _error =
-            "Kameru sa nepodarilo spustiť.\nSkontroluj povolenie kamery v nastaveniach aplikácie.\n\n$lastError");
+        setState(
+          () => _error =
+              "Kameru sa nepodarilo spustiť.\nSkontroluj povolenie kamery v nastaveniach aplikácie.\n\n$lastError",
+        );
       }
     } catch (e) {
       print("Camera init error: $e");
@@ -97,7 +118,9 @@ class _CameraScreenState extends State<CameraScreen> {
     setState(() => _isTakingPicture = true);
     try {
       final XFile file = await _controller!.takePicture();
-      if (mounted) Navigator.pop(context, file.path);
+      if (mounted) {
+        Navigator.pop(context, CameraResult(path: file.path, game: _game));
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -108,6 +131,109 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  Future<void> _pickFromGallery() async {
+    final picked = await FilePicker.pickFile(
+      dialogTitle: 'Vybrať fotku karty',
+      type: FileType.image,
+    );
+    if (picked == null || !mounted) return;
+    final path = picked.path;
+    if (path == null || path.isEmpty) return;
+    Navigator.pop(context, CameraResult(path: path, game: _game));
+  }
+
+  Future<void> _setZoom(double value) async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    final target = value.clamp(1.0, _maxZoom > 1 ? _maxZoom : 1.0).toDouble();
+    try {
+      await controller.setZoomLevel(target);
+      if (mounted) setState(() => _zoom = target);
+    } catch (_) {}
+  }
+
+  Future<void> _chooseGame() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF16161A),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Čo skenuješ?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            _GameOption(
+              icon: Icons.catching_pokemon_rounded,
+              title: 'Pokémon',
+              selected: _game == 'pokemon',
+              onTap: () => Navigator.pop(context, 'pokemon'),
+            ),
+            _GameOption(
+              icon: Icons.style_rounded,
+              title: 'MTG',
+              selected: _game == 'mtg',
+              onTap: () => Navigator.pop(context, 'mtg'),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+    if (selected != null && mounted) {
+      setState(() => _game = selected);
+    }
+  }
+
+  Future<void> _showCameraSettings() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF16161A),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                _torchOn
+                    ? Icons.flashlight_on_rounded
+                    : Icons.flashlight_off_rounded,
+                color: Colors.white,
+              ),
+              title: const Text('Blesk', style: TextStyle(color: Colors.white)),
+              trailing: Switch(
+                value: _torchOn,
+                onChanged: (_) {
+                  Navigator.pop(context);
+                  _toggleTorch();
+                },
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 18),
+              child: Text(
+                'Podrž kartu v ráme, telefon rovnobežne s kartou. '
+                'Pri slabom svetle zapni blesk.',
+                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _toggleTorch() async {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) return;
@@ -116,9 +242,9 @@ class _CameraScreenState extends State<CameraScreen> {
       if (mounted) setState(() => _torchOn = !_torchOn);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Blesk nie je dostupný.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Blesk nie je dostupný.')));
       }
     }
   }
@@ -147,12 +273,12 @@ class _CameraScreenState extends State<CameraScreen> {
                 },
               )
             : _controller == null || !_controller!.value.isInitialized
-                ? _CameraMessage(
-                    message: 'Spúšťam kameru...',
-                    loading: true,
-                    onClose: () => Navigator.pop(context),
-                  )
-                : _buildCamera(context),
+            ? _CameraMessage(
+                message: 'Spúšťam kameru...',
+                loading: true,
+                onClose: () => Navigator.pop(context),
+              )
+            : _buildCamera(context),
       ),
     );
   }
@@ -193,18 +319,9 @@ class _CameraScreenState extends State<CameraScreen> {
                     onTap: () => Navigator.pop(context),
                     tooltip: 'Zavrieť',
                   ),
-                  const Expanded(
-                    child: Text(
-                      'Naskenuj kartu',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        shadows: [
-                          Shadow(color: Colors.black54, blurRadius: 8),
-                        ],
-                      ),
+                  Expanded(
+                    child: Center(
+                      child: _GamePill(game: _game, onTap: _chooseGame),
                     ),
                   ),
                   _RoundIconButton(
@@ -251,43 +368,105 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         ),
         Positioned(
-          bottom: 34 + MediaQuery.of(context).padding.bottom,
+          top: frameRect.bottom + 42,
           left: 0,
           right: 0,
-          child: Center(
-            child: GestureDetector(
-              onTap: _isTakingPicture ? null : _takePicture,
-              child: Container(
-                width: 86,
-                height: 86,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  color: Colors.white.withValues(alpha: 0.18),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black54, blurRadius: 16),
-                  ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [1.0, 2.0, 3.0].map((value) {
+              final available = value <= _maxZoom + 0.01;
+              final active = (_zoom - value).abs() < 0.05;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: GestureDetector(
+                  onTap: available ? () => _setZoom(value) : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? const Color(0xFFFFC107)
+                          : const Color(0x99000000),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: available
+                            ? Colors.white.withValues(alpha: 0.25)
+                            : Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Text(
+                      '${value.toStringAsFixed(0)}x',
+                      style: TextStyle(
+                        color: active
+                            ? Colors.black
+                            : available
+                            ? Colors.white
+                            : Colors.white38,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
                 ),
-                child: _isTakingPicture
-                    ? const Padding(
-                        padding: EdgeInsets.all(25),
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 3,
-                        ),
-                      )
-                    : Center(
-                        child: Container(
-                          width: 62,
-                          height: 62,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
+              );
+            }).toList(),
+          ),
+        ),
+        Positioned(
+          bottom: 28 + MediaQuery.of(context).padding.bottom,
+          left: 24,
+          right: 24,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _BottomCircleButton(
+                icon: Icons.photo_library_outlined,
+                onTap: _pickFromGallery,
+                tooltip: 'Vybrať z galérie',
+              ),
+              GestureDetector(
+                onTap: _isTakingPicture ? null : _takePicture,
+                child: Container(
+                  width: 82,
+                  height: 82,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 4),
+                    color: Colors.white.withValues(alpha: 0.18),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black54, blurRadius: 16),
+                    ],
+                  ),
+                  child: _isTakingPicture
+                      ? const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator(
                             color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        )
+                      : Center(
+                          child: Container(
+                            width: 58,
+                            height: 58,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                      ),
+                ),
               ),
-            ),
+              _BottomCircleButton(
+                icon: Icons.tune_rounded,
+                onTap: _showCameraSettings,
+                tooltip: 'Nastavenia skenera',
+              ),
+            ],
           ),
         ),
       ],
@@ -309,6 +488,112 @@ class _CameraScreenState extends State<CameraScreen> {
           width: width,
           height: height,
           child: CameraPreview(controller),
+        ),
+      ),
+    );
+  }
+}
+
+class _GamePill extends StatelessWidget {
+  const _GamePill({required this.game, required this.onTap});
+
+  final String game;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isMtg = game == 'mtg';
+    return Material(
+      color: const Color(0xAA000000),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isMtg ? Icons.style_rounded : Icons.catching_pokemon_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                isMtg ? 'MTG' : 'Pokémon',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 5),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.white70,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GameOption extends StatelessWidget {
+  const _GameOption({
+    required this.icon,
+    required this.title,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: Colors.white),
+      title: Text(title, style: const TextStyle(color: Colors.white)),
+      trailing: selected
+          ? const Icon(Icons.check_rounded, color: Color(0xFF93C5FD))
+          : null,
+    );
+  }
+}
+
+class _BottomCircleButton extends StatelessWidget {
+  const _BottomCircleButton({
+    required this.icon,
+    required this.onTap,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: const Color(0xAA000000),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Icon(icon, color: Colors.white, size: 22),
+          ),
         ),
       ),
     );
@@ -374,14 +659,22 @@ class _ScannerOverlayPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final outer = Path()..addRect(Offset.zero & size);
     final frame = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(frameRect, const Radius.circular(26)),
-      );
+      ..addRRect(RRect.fromRectAndRadius(frameRect, const Radius.circular(26)));
     final cutout = Path.combine(PathOperation.difference, outer, frame);
 
     canvas.drawPath(
       cutout,
       Paint()..color = Colors.black.withValues(alpha: 0.52),
+    );
+
+    final glow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..color = const Color(0x44B6FF3B)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(frameRect, const Radius.circular(26)),
+      glow,
     );
 
     final border = Paint()
@@ -396,9 +689,9 @@ class _ScannerOverlayPainter extends CustomPainter {
 
     final accent = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
+      ..strokeWidth = 5
       ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFF93C5FD);
+      ..color = const Color(0xFFB6FF3B);
     const corner = 26.0;
     final corners = <List<Offset>>[
       [

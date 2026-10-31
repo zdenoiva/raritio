@@ -13,8 +13,10 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:raritio/app_version.dart';
 import 'package:raritio/config/supabase_config.dart';
 import 'package:raritio/screens/camera_screen.dart';
+import 'package:raritio/screens/external_browser_screen.dart';
 import 'package:raritio/screens/shared_binder_detail_screen.dart';
 import 'package:raritio/screens/shared_binders_screen.dart';
+import 'package:raritio/services/backup_crypto_service.dart';
 import 'package:raritio/services/bridge_service.dart';
 import 'package:raritio/services/card_service.dart';
 import 'package:raritio/services/custom_card_image_service.dart';
@@ -78,12 +80,14 @@ class _RaritioTCGState extends State<RaritioTCG> {
   final CardService _cardService = CardService();
   final PriceChartingService _priceChartingService = PriceChartingService();
   final StateService _stateService = StateService();
+  final BackupCryptoService _backupCrypto = BackupCryptoService();
   final CustomCardImageService _customCardImageService =
       CustomCardImageService();
   final UpdateService _updateService = UpdateService();
   final SharedBinderService _sharedBinderService = SharedBinderService();
   bool _updateCheckStarted = false;
   bool _sharedScreenOpen = false;
+  String _lastScanGame = 'pokemon';
   StreamSubscription<Uri>? _linkSubscription;
   String _lastHandledLink = '';
 
@@ -97,7 +101,18 @@ class _RaritioTCGState extends State<RaritioTCG> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
-        NavigationDelegate(onPageFinished: (_) => _hydrateStateFromDisk()),
+        NavigationDelegate(
+          onPageFinished: (_) => _hydrateStateFromDisk(),
+          onNavigationRequest: (request) {
+            final uri = Uri.tryParse(request.url);
+            if (uri != null &&
+                (uri.scheme == 'http' || uri.scheme == 'https')) {
+              unawaited(_openExternal(request.url));
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
+        ),
       )
       ..addJavaScriptChannel(
         'flutterBridge',
@@ -118,6 +133,13 @@ class _RaritioTCGState extends State<RaritioTCG> {
   void _handleMessage(String message) {
     if (message.startsWith('scanCard:')) {
       _handleScanAction();
+    } else if (message.startsWith('openExternal:')) {
+      try {
+        final data = jsonDecode(message.substring('openExternal:'.length));
+        if (data is Map) {
+          unawaited(_openExternal((data['url'] ?? '').toString()));
+        }
+      } catch (_) {}
     } else if (message.startsWith('searchCards:')) {
       _handleSearchCards(message);
     } else if (message.startsWith('cardDetails:')) {
@@ -171,6 +193,20 @@ class _RaritioTCGState extends State<RaritioTCG> {
     }
     unawaited(_refreshSharedBinderSummaries());
     unawaited(_maybeCheckForUpdates());
+  }
+
+  Future<void> _openExternal(String rawUrl) async {
+    final uri = Uri.tryParse(rawUrl.trim());
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return;
+    }
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExternalBrowserScreen(url: uri.toString()),
+      ),
+    );
   }
 
   Future<void> _refreshSharedBinderSummaries() async {
@@ -438,18 +474,21 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
   Future<void> _handleScanAction() async {
     try {
-      final String? imagePath = await Navigator.push<String>(
+      final CameraResult? cameraResult = await Navigator.push<CameraResult>(
         context,
-        MaterialPageRoute(builder: (context) => CameraScreen()),
+        MaterialPageRoute(
+          builder: (context) => CameraScreen(initialGame: _lastScanGame),
+        ),
       );
 
-      if (imagePath == null) {
+      if (cameraResult == null) {
         // The user closed the camera without taking a photo.
         _controller.runJavaScript('isScanning = false');
         return;
       }
+      _lastScanGame = cameraResult.game;
 
-      final result = await _bridge.scanImagePath(imagePath);
+      final result = await _bridge.scanImagePath(cameraResult.path);
       if (result == null) {
         _controller.runJavaScript(
           'showError(${jsonEncode("Nepodarilo sa rozpoznať text. Skús kartu odfotiť znovu.")})',
@@ -461,6 +500,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
       if (error is String && error.isNotEmpty) {
         _controller.runJavaScript('showError(${jsonEncode(error)})');
       } else {
+        result['game'] = cameraResult.game;
         _controller.runJavaScript('handleScanResult(${jsonEncode(result)})');
       }
     } catch (e) {
@@ -475,6 +515,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
       var query = payload;
       var fromOcr = false;
       var requestedLanguage = 'auto';
+      var requestedGame = 'all';
 
       if (payload.startsWith('{')) {
         final data = jsonDecode(payload);
@@ -483,6 +524,9 @@ class _RaritioTCGState extends State<RaritioTCG> {
           fromOcr = data['ocr'] == true;
           requestId = data['requestId'];
           requestedLanguage = (data['language']?.toString() ?? 'auto')
+              .trim()
+              .toLowerCase();
+          requestedGame = (data['game']?.toString() ?? 'all')
               .trim()
               .toLowerCase();
         }
@@ -513,19 +557,20 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
       for (final variant in variants) {
         if (language == 'en') {
-          final searches = await Future.wait([
-            _cardService.searchPokemon(variant),
-            _cardService.searchMtg(variant),
-          ]);
-          final combined = <Map<String, dynamic>>[
-            ...searches[0],
-            ...searches[1],
-          ];
+          final combined = <Map<String, dynamic>>[];
+          if (requestedGame != 'mtg') {
+            combined.addAll(await _cardService.searchPokemon(variant));
+          }
+          if (requestedGame != 'pokemon') {
+            combined.addAll(await _cardService.searchMtg(variant));
+          }
           if (combined.isNotEmpty) {
             results = combined;
             usedQuery = variant;
             break;
           }
+        } else if (requestedGame == 'mtg') {
+          continue;
         } else {
           for (final searchLanguage in cjkLanguages) {
             final found = await _cardService.searchPokemon(
@@ -660,17 +705,18 @@ class _RaritioTCGState extends State<RaritioTCG> {
       cardId = (data['id'] as String? ?? '').trim();
       if (cardId.isEmpty) return;
 
-      final String? imagePath = await Navigator.push<String>(
+      final CameraResult? cameraResult = await Navigator.push<CameraResult>(
         context,
         MaterialPageRoute(builder: (context) => const CameraScreen()),
       );
 
-      if (imagePath == null) {
+      if (cameraResult == null) {
         _controller.runJavaScript(
           'handleCustomCardImageCancelled(${jsonEncode(cardId)})',
         );
         return;
       }
+      final imagePath = cameraResult.path;
 
       _controller.runJavaScript(
         'handleCustomCardImageProcessing(${jsonEncode(cardId)})',
@@ -709,8 +755,12 @@ class _RaritioTCGState extends State<RaritioTCG> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              SharedBindersScreen(service: _sharedBinderService),
+          builder: (context) => SharedBindersScreen(
+            service: _sharedBinderService,
+            onAccountDeleted: () {
+              _controller.runJavaScript('handleAccountDeleted()');
+            },
+          ),
         ),
       );
     } finally {
@@ -1048,15 +1098,46 @@ class _RaritioTCGState extends State<RaritioTCG> {
     }
   }
 
+  Future<Map<String, dynamic>?> _backupAccountData() async {
+    try {
+      final profile =
+          await _sharedBinderService.getProfile() ??
+          await _sharedBinderService.ensureProfile();
+      final session = Supabase.instance.client.auth.currentSession;
+      return <String, dynamic>{
+        'userId': profile.id,
+        'nickname': profile.nickname,
+        'friendCode': profile.friendCode,
+        'accessToken': session?.accessToken ?? '',
+        'refreshToken': session?.refreshToken ?? '',
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _handleBackupState(String message) async {
     try {
       final stateJson = message.substring('backupState:'.length);
       jsonDecode(stateJson); // validate before wrapping
 
-      final backup = _stateService.createBackup(stateJson);
-      final path = await _stateService.saveBackup(backup);
+      final password = await _askBackupPassword();
+      if (password == null) {
+        _controller.runJavaScript(
+          'onBackupResult(false, ${jsonEncode("Záloha bola zrušená.")})',
+        );
+        return;
+      }
+
+      final account = await _backupAccountData();
+      final backup = _stateService.createBackup(stateJson, account: account);
+      final encrypted = await _backupCrypto.encryptWithPassword(
+        backup,
+        password,
+      );
+      final path = await _stateService.saveBackup(encrypted);
       _controller.runJavaScript(
-        'onBackupResult(true, ${jsonEncode('Záloha uložená: $path')})',
+        'onBackupResult(true, ${jsonEncode("Záloha uložená: $path")})',
       );
     } catch (e) {
       print("Backup error: $e");
@@ -1070,8 +1151,10 @@ class _RaritioTCGState extends State<RaritioTCG> {
     try {
       final stateJson = message.substring('autoBackup:'.length);
       jsonDecode(stateJson); // validate before wrapping
-      final backup = _stateService.createBackup(stateJson);
-      final path = await _stateService.ensureDailyBackup(backup);
+      final account = await _backupAccountData();
+      final backup = _stateService.createBackup(stateJson, account: account);
+      final encrypted = await _backupCrypto.encryptWithDeviceKey(backup);
+      final path = await _stateService.ensureDailyBackup(encrypted);
       if (path != null) {
         print('Automatic backup: $path');
       }
@@ -1095,31 +1178,191 @@ class _RaritioTCGState extends State<RaritioTCG> {
       }
 
       final bytes = await picked.readAsBytes();
-      final content = utf8.decode(bytes);
-      final state = _stateService.extractState(content);
+      final raw = utf8.decode(bytes, allowMalformed: true);
+      String content = raw;
+      var sessionRestored = false;
 
-      if (state == null) {
+      if (_backupCrypto.isEncrypted(raw)) {
+        final kind = _backupCrypto.encryptionKind(raw);
+        if (kind == 'device') {
+          try {
+            content = await _backupCrypto.decryptWithDeviceKey(raw);
+          } catch (_) {
+            _controller.runJavaScript(
+              'onRestoreResult(false, ${jsonEncode("Táto záloha je viazaná na pôvodné zariadenie. Použi manuálnu zálohu chránenú heslom.")})',
+            );
+            return;
+          }
+        } else {
+          final password = await _askRestorePassword();
+          if (password == null) {
+            _controller.runJavaScript(
+              'onRestoreResult(false, ${jsonEncode("Obnova bola zrušená.")})',
+            );
+            return;
+          }
+          try {
+            content = await _backupCrypto.decryptWithPassword(raw, password);
+          } catch (_) {
+            _controller.runJavaScript(
+              'onRestoreResult(false, ${jsonEncode("Nesprávne heslo alebo poškodená záloha.")})',
+            );
+            return;
+          }
+        }
+      }
+
+      final envelope = _stateService.extractEnvelope(content);
+      if (envelope == null || envelope['state'] is! Map) {
         _controller.runJavaScript(
           'onRestoreResult(false, ${jsonEncode("Vybraný súbor nie je platná záloha Raritio.")})',
         );
         return;
       }
 
-      final stateJson = jsonEncode(state);
+      final state = Map<String, dynamic>.from(envelope['state'] as Map);
+      final account = envelope['account'];
+      if (account is Map) {
+        final refreshToken = (account['refreshToken'] ?? '').toString();
+        final accessToken = (account['accessToken'] ?? '').toString();
+        if (refreshToken.isNotEmpty) {
+          try {
+            await Supabase.instance.client.auth.setSession(
+              refreshToken,
+              accessToken: accessToken.isEmpty ? null : accessToken,
+            );
+            sessionRestored = true;
+          } catch (_) {
+            // Local data can still be restored; the new device will create a
+            // fresh anonymous account if the old session has expired.
+          }
+        }
+      }
 
-      // Write the restored state before the web app switches to it.
+      final stateJson = jsonEncode(state);
       _stateWriteChain = _stateWriteChain.then((_) {
         return _stateService.saveState(stateJson);
       });
       await _stateWriteChain;
 
       _controller.runJavaScript('hydrateState(${jsonEncode(state)}, true)');
+      unawaited(_refreshSharedBinderSummaries());
+      if (sessionRestored) {
+        _controller.runJavaScript(
+          'onRestoreResult(true, ${jsonEncode("Účet, zdieľania a lokálne dáta boli obnovené.")})',
+        );
+      } else {
+        _controller.runJavaScript(
+          'onRestoreResult(true, ${jsonEncode("Lokálne dáta boli obnovené. Účet sa nepodarilo prihlásiť, vytvorí sa nový.")})',
+        );
+      }
     } catch (e) {
       print("Restore error: $e");
       _controller.runJavaScript(
         'onRestoreResult(false, ${jsonEncode("Obnovu sa nepodarilo dokončiť: $e")})',
       );
     }
+  }
+
+  Future<String?> _askBackupPassword() async {
+    final password = TextEditingController();
+    final confirm = TextEditingController();
+    String? error;
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Heslo k zálohe'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Záloha bude šifrovaná heslom. Bez hesla ju nebude možné obnoviť.',
+                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: password,
+                obscureText: true,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Heslo'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: confirm,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Heslo znova'),
+              ),
+              if (error != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  error!,
+                  style: const TextStyle(
+                    color: Color(0xFFFCA5A5),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Zrušiť'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = password.text;
+                if (value.length < 8) {
+                  setDialogState(
+                    () => error = 'Heslo musí mať aspoň 8 znakov.',
+                  );
+                  return;
+                }
+                if (value != confirm.text) {
+                  setDialogState(() => error = 'Heslá sa nezhodujú.');
+                  return;
+                }
+                Navigator.pop(context, value);
+              },
+              child: const Text('Zálohovať'),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(() {
+      password.dispose();
+      confirm.dispose();
+    });
+  }
+
+  Future<String?> _askRestorePassword() async {
+    final password = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Heslo k zálohe'),
+        content: TextField(
+          controller: password,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Heslo'),
+          onSubmitted: (_) => Navigator.pop(context, password.text),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Zrušiť'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, password.text),
+            child: const Text('Obnoviť'),
+          ),
+        ],
+      ),
+    ).whenComplete(password.dispose);
   }
 
   Future<void> _handleAndroidBack() async {

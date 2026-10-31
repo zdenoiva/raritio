@@ -28,7 +28,23 @@ Workflow potrebuje repository secrets:
 
 Anon key je verejný, ale držíme ho v secrets, aby nebol v kóde.
 
-## 4. Overenie
+## 4. Migrácia 0.3.16
+
+Pred inštaláciou verzie 0.3.16 spusti v SQL Editore:
+
+```text
+supabase/2026-10-31_account_privacy.sql
+```
+
+Migrácia:
+
+- odstráni z profilu stĺpec `email`,
+- pridá `delete_my_account()`,
+- skryje `share_token` pred bežnými používateľmi a sprístupní ho len ownerovi cez RPC,
+- opraví odobratie kamoša tak, aby mu zrušilo aj prístup k zdieľaným balíkom,
+- opraví hromadné nastavenie kamošov.
+
+## 5. Overenie
 
 V SQL Editore môžeš spustiť:
 

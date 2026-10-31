@@ -7,20 +7,17 @@ class RaritioProfile {
     required this.id,
     required this.nickname,
     required this.friendCode,
-    this.email = '',
   });
 
   final String id;
   final String nickname;
   final String friendCode;
-  final String email;
 
   factory RaritioProfile.fromRow(Map<String, dynamic> row) {
     return RaritioProfile(
       id: row['id']?.toString() ?? '',
       nickname: row['nickname']?.toString() ?? 'Raritio hráč',
       friendCode: row['friend_code']?.toString() ?? '',
-      email: row['email']?.toString() ?? '',
     );
   }
 }
@@ -98,8 +95,7 @@ class SharedBinderSummary {
       ownerNickname: row['owner_nickname']?.toString() ?? 'Raritio hráč',
       name: row['name']?.toString() ?? 'Balík',
       cardCount: int.tryParse(row['card_count']?.toString() ?? '') ?? 0,
-      totalValue:
-          double.tryParse(row['total_value']?.toString() ?? '') ?? 0.0,
+      totalValue: double.tryParse(row['total_value']?.toString() ?? '') ?? 0.0,
       updatedAt: DateTime.tryParse(row['updated_at']?.toString() ?? ''),
       shareToken: row['share_token']?.toString() ?? '',
       isActive: row['is_active'] != false,
@@ -126,10 +122,7 @@ class SharedBinderSummary {
 }
 
 class SharedBinderData {
-  const SharedBinderData({
-    required this.summary,
-    required this.snapshot,
-  });
+  const SharedBinderData({required this.summary, required this.snapshot});
 
   final SharedBinderSummary summary;
   final Map<String, dynamic> snapshot;
@@ -176,21 +169,12 @@ class SharedBinderService {
     return RaritioProfile.fromRow(Map<String, dynamic>.from(row));
   }
 
-  Future<RaritioProfile> ensureProfile({
-    String? nickname,
-    String? email,
-  }) async {
+  Future<RaritioProfile> ensureProfile({String? nickname}) async {
     await _ensureAuth();
     final existing = await getProfile();
     if (existing != null) {
-      if ((nickname != null && nickname.trim().isNotEmpty) ||
-          (email != null && email.trim().isNotEmpty)) {
-        return saveProfile(
-          nickname: nickname?.trim().isNotEmpty == true
-              ? nickname!.trim()
-              : existing.nickname,
-          email: email ?? existing.email,
-        );
+      if (nickname != null && nickname.trim().isNotEmpty) {
+        return saveProfile(nickname: nickname.trim());
       }
       return existing;
     }
@@ -198,7 +182,6 @@ class SharedBinderService {
     final finalNickname = (nickname?.trim().isNotEmpty == true)
         ? nickname!.trim()
         : 'Raritio hráč';
-    final finalEmail = (email?.trim().isNotEmpty == true) ? email!.trim() : '';
 
     for (var attempt = 0; attempt < 8; attempt++) {
       final code = _newFriendCode();
@@ -209,7 +192,6 @@ class SharedBinderService {
               'id': _currentUserId,
               'nickname': finalNickname,
               'friend_code': code,
-              'email': finalEmail.isEmpty ? null : finalEmail,
             })
             .select()
             .single();
@@ -222,22 +204,15 @@ class SharedBinderService {
     throw Exception('Nepodarilo sa vytvoriť unikátny friend kód.');
   }
 
-  Future<RaritioProfile> saveProfile({
-    required String nickname,
-    String? email,
-  }) async {
+  Future<RaritioProfile> saveProfile({required String nickname}) async {
     await _ensureAuth();
     final trimmedNickname = nickname.trim();
     if (trimmedNickname.isEmpty) {
       throw Exception('Prezývka nemôže byť prázdna.');
     }
-    final trimmedEmail = email?.trim() ?? '';
     final row = await _client
         .from('profiles')
-        .update({
-          'nickname': trimmedNickname,
-          'email': trimmedEmail.isEmpty ? null : trimmedEmail,
-        })
+        .update({'nickname': trimmedNickname})
         .eq('id', _currentUserId)
         .select()
         .single();
@@ -246,6 +221,12 @@ class SharedBinderService {
         .update({'owner_nickname': trimmedNickname})
         .eq('owner_id', _currentUserId);
     return RaritioProfile.fromRow(Map<String, dynamic>.from(row));
+  }
+
+  Future<void> deleteAccount() async {
+    await _ensureAuth();
+    await _client.rpc('delete_my_account');
+    await _client.auth.signOut();
   }
 
   Future<List<FriendProfile>> getFriends() async {
@@ -288,53 +269,92 @@ class SharedBinderService {
     await _ensureAuth();
     final rows = await _client
         .from('shared_binders')
-        .select()
+        .select(
+          'id, owner_id, owner_nickname, name, snapshot, card_count, '
+          'total_value, is_active, updated_at',
+        )
         .eq('is_active', true)
         .neq('owner_id', _currentUserId)
         .order('updated_at', ascending: false);
     return rows
-        .map((row) => SharedBinderSummary.fromRow(
-              Map<String, dynamic>.from(row),
-              currentUserId: _currentUserId,
-            ))
+        .map(
+          (row) => SharedBinderSummary.fromRow(
+            Map<String, dynamic>.from(row),
+            currentUserId: _currentUserId,
+          ),
+        )
         .where((item) => item.id.isNotEmpty)
         .toList();
   }
 
   Future<List<SharedBinderSummary>> getMySharedBinders() async {
     await _ensureAuth();
-    final rows = await _client
-        .from('shared_binders')
-        .select()
-        .eq('owner_id', _currentUserId)
-        .eq('is_active', true)
-        .order('updated_at', ascending: false);
-    return rows
-        .map((row) => SharedBinderSummary.fromRow(
-              Map<String, dynamic>.from(row),
-              currentUserId: _currentUserId,
-            ))
+    dynamic rows;
+    try {
+      rows = await _client.rpc('get_my_shared_binders');
+    } catch (_) {
+      // Older deployments do not have the owner-only token RPC yet.
+      rows = await _client
+          .from('shared_binders')
+          .select()
+          .eq('owner_id', _currentUserId)
+          .eq('is_active', true)
+          .order('updated_at', ascending: false);
+    }
+    final list = rows is List ? rows : const [];
+    return list
+        .map(
+          (row) => SharedBinderSummary.fromRow(
+            Map<String, dynamic>.from(row),
+            currentUserId: _currentUserId,
+          ),
+        )
         .where((item) => item.id.isNotEmpty)
         .toList();
+  }
+
+  Future<String> _loadMyBinderToken(String sharedId) async {
+    try {
+      final token = await _client.rpc(
+        'get_my_shared_binder_token',
+        params: {'p_binder_id': sharedId},
+      );
+      return token?.toString() ?? '';
+    } catch (_) {
+      try {
+        final row = await _client
+            .from('shared_binders')
+            .select('share_token')
+            .eq('id', sharedId)
+            .eq('owner_id', _currentUserId)
+            .maybeSingle();
+        return row?['share_token']?.toString() ?? '';
+      } catch (_) {
+        return '';
+      }
+    }
   }
 
   Future<SharedBinderData> getSharedBinder(String id) async {
     await _ensureAuth();
     final row = await _client
         .from('shared_binders')
-        .select()
+        .select(
+          'id, owner_id, owner_nickname, name, snapshot, card_count, '
+          'total_value, is_active, updated_at',
+        )
         .eq('id', id)
         .maybeSingle();
     if (row == null) {
       throw Exception('Balík už nie je dostupný.');
     }
     final map = Map<String, dynamic>.from(row);
+    if (map['owner_id']?.toString() == _currentUserId) {
+      map['share_token'] = await _loadMyBinderToken(id);
+    }
     final snapshot = map['snapshot'];
     return SharedBinderData(
-      summary: SharedBinderSummary.fromRow(
-        map,
-        currentUserId: _currentUserId,
-      ),
+      summary: SharedBinderSummary.fromRow(map, currentUserId: _currentUserId),
       snapshot: snapshot is Map
           ? Map<String, dynamic>.from(snapshot)
           : <String, dynamic>{},
@@ -368,13 +388,20 @@ class SharedBinderService {
           })
           .eq('id', sharedId)
           .eq('owner_id', _currentUserId)
-          .select()
+          .select(
+            'id, owner_id, owner_nickname, name, card_count, total_value, '
+            'is_active, updated_at',
+          )
           .maybeSingle();
       if (updated != null) {
-        return SharedBinderSummary.fromRow(
-          Map<String, dynamic>.from(updated),
-          currentUserId: _currentUserId,
-        );
+        final map = Map<String, dynamic>.from(updated);
+        var savedToken = existingToken?.trim() ?? '';
+        if (savedToken.isEmpty) {
+          savedToken = await _loadMyBinderToken(sharedId);
+          if (savedToken.isEmpty) savedToken = token;
+        }
+        map['share_token'] = savedToken;
+        return SharedBinderSummary.fromRow(map, currentUserId: _currentUserId);
       }
     }
 
@@ -393,12 +420,14 @@ class SharedBinderService {
               'share_token': actualToken,
               'is_active': true,
             })
-            .select()
+            .select(
+              'id, owner_id, owner_nickname, name, card_count, total_value, '
+              'is_active, updated_at',
+            )
             .single();
-        return SharedBinderSummary.fromRow(
-          Map<String, dynamic>.from(row),
-          currentUserId: _currentUserId,
-        );
+        final map = Map<String, dynamic>.from(row);
+        map['share_token'] = actualToken;
+        return SharedBinderSummary.fromRow(map, currentUserId: _currentUserId);
       } on PostgrestException catch (e) {
         if (e.code == '23505') continue;
         rethrow;
@@ -434,17 +463,14 @@ class SharedBinderService {
       final rawCards = snapshot['cards'];
       final cardIds = rawCards is List
           ? rawCards
-              .whereType<Map>()
-              .map((card) => card['id']?.toString() ?? '')
-              .where((id) => id.isNotEmpty)
-              .toList()
+                .whereType<Map>()
+                .map((card) => card['id']?.toString() ?? '')
+                .where((id) => id.isNotEmpty)
+                .toList()
           : <String>[];
       await _client.rpc(
         'prune_shared_card_likes',
-        params: {
-          'p_binder_id': sharedId,
-          'p_card_ids': cardIds,
-        },
+        params: {'p_binder_id': sharedId, 'p_card_ids': cardIds},
       );
     } catch (_) {
       // Likes cleanup is best-effort; snapshot sync itself must not fail.
@@ -472,10 +498,7 @@ class SharedBinderService {
     await _ensureAuth();
     await _client.rpc(
       'set_shared_binder_friends',
-      params: {
-        'p_binder_id': sharedId,
-        'p_friend_ids': friendIds.toList(),
-      },
+      params: {'p_binder_id': sharedId, 'p_friend_ids': friendIds.toList()},
     );
   }
 
@@ -503,10 +526,7 @@ class SharedBinderService {
     await _ensureAuth();
     final data = await _client.rpc(
       'toggle_card_like',
-      params: {
-        'p_binder_id': sharedId,
-        'p_card_id': cardId,
-      },
+      params: {'p_binder_id': sharedId, 'p_card_id': cardId},
     );
     if (data is List && data.isNotEmpty && data.first is Map) {
       final row = Map<String, dynamic>.from(data.first as Map);
@@ -554,14 +574,18 @@ class SharedBinderService {
 
   String _newFriendCode() {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    return List.generate(6, (_) => alphabet[_random.nextInt(alphabet.length)])
-        .join();
+    return List.generate(
+      6,
+      (_) => alphabet[_random.nextInt(alphabet.length)],
+    ).join();
   }
 
   String _newShareToken() {
     const alphabet =
         'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    return List.generate(24, (_) => alphabet[_random.nextInt(alphabet.length)])
-        .join();
+    return List.generate(
+      24,
+      (_) => alphabet[_random.nextInt(alphabet.length)],
+    ).join();
   }
 }

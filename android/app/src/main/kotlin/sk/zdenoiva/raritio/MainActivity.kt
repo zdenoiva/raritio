@@ -15,9 +15,11 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.security.MessageDigest
 
 class MainActivity : FlutterActivity() {
     private val backupChannel = "sk.zdenoiva.raritio/backup"
+    private val securityChannel = "sk.zdenoiva.raritio/security"
     private val storagePermissionRequest = 1002
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -49,6 +51,53 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            securityChannel,
+        ).setMethodCallHandler { call, result ->
+            if (call.method == "getApkSignerSha256") {
+                val path = call.argument<String>("path")
+                if (path.isNullOrBlank()) {
+                    result.error("ARG_ERROR", "path is required", null)
+                    return@setMethodCallHandler
+                }
+                try {
+                    result.success(apkSignerSha256(path))
+                } catch (e: Exception) {
+                    result.error("SIGNATURE_ERROR", e.message, null)
+                }
+            } else {
+                result.notImplemented()
+            }
+        }
+    }
+
+    private fun apkSignerSha256(path: String): String {
+        val packageManager = packageManager
+        val archiveInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageManager.getPackageArchiveInfo(
+                path,
+                PackageManager.GET_SIGNING_CERTIFICATES,
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageArchiveInfo(
+                path,
+                PackageManager.GET_SIGNATURES,
+            )
+        } ?: throw IllegalStateException("APK sa nepodarilo prečítať.")
+
+        val signatureBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            archiveInfo.signingInfo?.apkContentsSigners?.firstOrNull()?.toByteArray()
+        } else {
+            @Suppress("DEPRECATION")
+            archiveInfo.signatures?.firstOrNull()?.toByteArray()
+        } ?: throw IllegalStateException("APK nemá podpis.")
+
+        return MessageDigest.getInstance("SHA-256")
+            .digest(signatureBytes)
+            .joinToString("") { "%02x".format(it) }
     }
 
     private fun saveBackupToDownloads(
@@ -126,7 +175,7 @@ class MainActivity : FlutterActivity() {
         val selection =
             "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ? AND " +
                 "${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ?"
-        val args = arrayOf("$relativePath/%", "raritio-zaloha-%.json")
+        val args = arrayOf("$relativePath/%", "raritio-zaloha-%")
         val ids = mutableListOf<Long>()
 
         resolver.query(
@@ -159,7 +208,7 @@ class MainActivity : FlutterActivity() {
         val files = dir.listFiles { file ->
             file.isFile &&
                 file.name.startsWith("raritio-zaloha-") &&
-                file.name.endsWith(".json")
+                (file.name.endsWith(".raritio") || file.name.endsWith(".json"))
         }?.sortedBy { it.name }?.toMutableList() ?: return
 
         while (files.size > maxBackups) {

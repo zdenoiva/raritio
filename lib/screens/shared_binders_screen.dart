@@ -11,9 +11,14 @@ import 'package:raritio/screens/shared_binder_detail_screen.dart';
 import 'package:raritio/services/shared_binder_service.dart';
 
 class SharedBindersScreen extends StatefulWidget {
-  const SharedBindersScreen({super.key, required this.service});
+  const SharedBindersScreen({
+    super.key,
+    required this.service,
+    this.onAccountDeleted,
+  });
 
   final SharedBinderService service;
+  final VoidCallback? onAccountDeleted;
 
   @override
   State<SharedBindersScreen> createState() => _SharedBindersScreenState();
@@ -52,7 +57,8 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
       });
     }
     try {
-      final profile = await widget.service.getProfile() ??
+      final profile =
+          await widget.service.getProfile() ??
           await widget.service.ensureProfile();
       final results = await Future.wait([
         widget.service.getFriends(),
@@ -89,9 +95,9 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     if (code.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: code));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Friend kód je skopírovaný.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Friend kód je skopírovaný.')));
   }
 
   Future<void> _showFriendQr() async {
@@ -234,9 +240,9 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
 
   Future<void> _editProfile() async {
     final profile = _profile;
-    final nicknameController =
-        TextEditingController(text: profile?.nickname == 'Raritio hráč' ? '' : profile?.nickname);
-    final emailController = TextEditingController(text: profile?.email ?? '');
+    final nicknameController = TextEditingController(
+      text: profile?.nickname == 'Raritio hráč' ? '' : profile?.nickname,
+    );
     String? localError;
     var saving = false;
 
@@ -257,15 +263,6 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Prezývka',
                     hintText: 'Ako ťa majú vidieť kamoši',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email (voliteľný)',
-                    hintText: 'len pre tvoj kontakt',
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -291,6 +288,18 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
           ),
           actions: [
             TextButton(
+              onPressed: saving
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                      _deleteAccount();
+                    },
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFFCA5A5),
+              ),
+              child: const Text('Zmazať účet'),
+            ),
+            TextButton(
               onPressed: saving ? null : () => Navigator.pop(context),
               child: const Text('Zrušiť'),
             ),
@@ -312,7 +321,6 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                       try {
                         final saved = await widget.service.saveProfile(
                           nickname: nickname,
-                          email: emailController.text,
                         );
                         if (!context.mounted) return;
                         Navigator.pop(context, saved);
@@ -320,8 +328,10 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
                         if (!context.mounted) return;
                         setDialogState(() {
                           saving = false;
-                          localError =
-                              e.toString().replaceFirst('Exception: ', '');
+                          localError = e.toString().replaceFirst(
+                            'Exception: ',
+                            '',
+                          );
                         });
                       }
                     },
@@ -339,10 +349,54 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     );
 
     nicknameController.dispose();
-    emailController.dispose();
     if (result != null) {
       setState(() => _profile = result);
       await _load(quiet: true);
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Zmazať účet?'),
+        content: const Text(
+          'Vymažú sa tvoje zdieľané balíky, lajky, kamošské väzby a účet. '
+          'Lokálne balíky v tomto zariadení zostanú. Táto akcia sa nedá vrátiť.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Zrušiť'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+            child: const Text('Zmazať účet'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await widget.service.deleteAccount();
+      if (!mounted) return;
+      setState(() {
+        _profile = null;
+        _friends = const [];
+        _shared = const [];
+        _mine = const [];
+      });
+      widget.onAccountDeleted?.call();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Účet a zdieľané dáta boli vymazané.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showError(e);
     }
   }
 
@@ -505,10 +559,8 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SharedBinderDetailScreen(
-          service: widget.service,
-          summary: summary,
-        ),
+        builder: (context) =>
+            SharedBinderDetailScreen(service: widget.service, summary: summary),
       ),
     );
     if (mounted) await _load(quiet: true);
@@ -519,7 +571,9 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Odobrať ${friend.nickname}?'),
-        content: const Text('Kamoš nebude mať prístup k tvojim novým zdieľaniam.'),
+        content: const Text(
+          'Kamoš nebude mať prístup k tvojim novým zdieľaniam.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -580,28 +634,30 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
 
   void _showError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   List<_OwnerGroup> _ownerGroups() {
     final groups = <String, _OwnerGroup>{};
     for (final binder in _shared) {
       final key = '${binder.ownerId}\u0000${binder.ownerNickname}';
-      groups.putIfAbsent(
-        key,
-        () => _OwnerGroup(
-          ownerId: binder.ownerId,
-          nickname: binder.ownerNickname,
-          binders: [],
-        ),
-      ).binders.add(binder);
+      groups
+          .putIfAbsent(
+            key,
+            () => _OwnerGroup(
+              ownerId: binder.ownerId,
+              nickname: binder.ownerNickname,
+              binders: [],
+            ),
+          )
+          .binders
+          .add(binder);
     }
     final list = groups.values.toList();
-    list.sort((a, b) => a.nickname.toLowerCase().compareTo(
-          b.nickname.toLowerCase(),
-        ));
+    list.sort(
+      (a, b) => a.nickname.toLowerCase().compareTo(b.nickname.toLowerCase()),
+    );
     return list;
   }
 
@@ -646,14 +702,14 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
         body: _loading && _profile == null
             ? const Center(child: CircularProgressIndicator())
             : _error != null && _profile == null
-                ? _ErrorView(message: _error!, onRetry: () => _load())
-                : TabBarView(
-                    children: [
-                      _buildSharedTab(),
-                      _buildMineTab(),
-                      _buildFriendsTab(),
-                    ],
-                  ),
+            ? _ErrorView(message: _error!, onRetry: () => _load())
+            : TabBarView(
+                children: [
+                  _buildSharedTab(),
+                  _buildMineTab(),
+                  _buildFriendsTab(),
+                ],
+              ),
       ),
     );
   }
@@ -702,10 +758,7 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
             )
           else
             ...groups.map(
-              (group) => _OwnerTile(
-                group: group,
-                onOpen: _openSharedBinder,
-              ),
+              (group) => _OwnerTile(group: group, onOpen: _openSharedBinder),
             ),
         ],
       ),
@@ -739,7 +792,8 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
             const _EmptyState(
               icon: Icons.ios_share_rounded,
               title: 'Zatiaľ nezdieľaš žiadny balík',
-              text: 'Otvor balík v appke, zvoľ Spravovať balík → Zdieľať balík.',
+              text:
+                  'Otvor balík v appke, zvoľ Spravovať balík → Zdieľať balík.',
             )
           else
             ..._mine.map(
@@ -862,10 +916,7 @@ class _OwnerGroup {
 }
 
 class _OwnerTile extends StatelessWidget {
-  const _OwnerTile({
-    required this.group,
-    required this.onOpen,
-  });
+  const _OwnerTile({required this.group, required this.onOpen});
 
   final _OwnerGroup group;
   final Future<void> Function(SharedBinderSummary) onOpen;
@@ -1032,7 +1083,6 @@ class _ProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final nickname = profile?.nickname ?? 'Raritio hráč';
     final code = profile?.friendCode ?? '—';
-    final email = profile?.email ?? '';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1107,16 +1157,6 @@ class _ProfileCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (email.isNotEmpty)
-                  Text(
-                    email,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontSize: 11,
-                    ),
-                  ),
               ],
             ),
           ),
@@ -1193,8 +1233,11 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded,
-                size: 46, color: Color(0xFF94A3B8)),
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 46,
+              color: Color(0xFF94A3B8),
+            ),
             const SizedBox(height: 12),
             Text(
               message,

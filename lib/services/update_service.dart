@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'package:raritio/services/security_service.dart';
+
 class UpdateInfo {
   const UpdateInfo({
     required this.version,
@@ -69,13 +71,18 @@ class _DigestSink implements Sink<Digest> {
 class UpdateService {
   static const String latestJsonUrl =
       'https://raw.githubusercontent.com/zdenoiva/raritio/main/latest.json';
+  final SecurityService _securityService = SecurityService();
 
   Future<UpdateInfo?> check() async {
     try {
-      final response = await http.get(
-        Uri.parse('$latestJsonUrl?t=${DateTime.now().millisecondsSinceEpoch}'),
-        headers: const {'Cache-Control': 'no-cache'},
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse(
+              '$latestJsonUrl?t=${DateTime.now().millisecondsSinceEpoch}',
+            ),
+            headers: const {'Cache-Control': 'no-cache'},
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) return null;
       final decoded = jsonDecode(response.body);
@@ -137,6 +144,12 @@ class UpdateService {
       if (actual != info.sha256) {
         await file.delete();
         throw const FormatException('SHA256 sa nezhoduje.');
+      }
+      try {
+        await _securityService.verifyApkSignature(file.path);
+      } catch (_) {
+        await file.delete();
+        rethrow;
       }
       return file;
     } finally {

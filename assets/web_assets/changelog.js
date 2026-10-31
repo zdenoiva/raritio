@@ -1,6 +1,22 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.3.16",
+    "date": "2026-10-31",
+    "changes": [
+      "Účet už neobsahuje email; zostáva anonymný Supabase účet, prezývka a vygenerovaný friend kód.",
+      "Pribudla možnosť zmazať účet a všetky zdieľané dáta.",
+      "RLS: share token je dostupný len ownerovi, odobratý kamoš stratí prístup a opravené je hromadné nastavenie kamošov.",
+      "Externé odkazy (PriceCharting, eBay a ďalšie) sa otvárajú v oddelenom prehliadači s funkčným tlačidlom Späť.",
+      "WebView má CSP, obrázky a externé URL sú sanitizované.",
+      "Aktualizácie overujú nielen SHA256, ale aj podpis APK.",
+      "Zálohy sú šifrované heslom (manuálne) alebo kľúčom zariadenia (automatické) a obsahujú profil, prihlásenie, zdieľania aj nové polia kariet.",
+      "Opravené rozloženie hlavičky, širšie like srdce a nový full-screen skener s výberom typu, zoomom a galériou.",
+      "Aktualizované závislosti (camera, ML Kit, intl, mobile_scanner a ďalšie).",
+      "Pred použitím je potrebné spustiť SQL migráciu supabase/2026-10-31_account_privacy.sql."
+    ]
+  },
+  {
     "version": "0.3.15",
     "date": "2026-10-29",
     "changes": [

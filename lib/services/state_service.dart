@@ -12,8 +12,9 @@ import 'package:path_provider/path_provider.dart';
 /// be restored on another phone without any server.
 class StateService {
   static const String _fileName = 'raritio_state.json';
-  static const MethodChannel _backupChannel =
-      MethodChannel('sk.zdenoiva.raritio/backup');
+  static const MethodChannel _backupChannel = MethodChannel(
+    'sk.zdenoiva.raritio/backup',
+  );
   static const int maxBackups = 5;
 
   Future<File> _stateFile() async {
@@ -78,11 +79,7 @@ class StateService {
     try {
       final path = await _backupChannel.invokeMethod<String>(
         'saveBackupToDownloads',
-        {
-          'fileName': fileName,
-          'content': backup,
-          'maxBackups': maxBackups,
-        },
+        {'fileName': fileName, 'content': backup, 'maxBackups': maxBackups},
       );
       if (path != null && path.trim().isNotEmpty) return path;
     } catch (_) {
@@ -113,8 +110,11 @@ class StateService {
     try {
       final files = await dir
           .list()
-          .where((entity) => entity is File &&
-              p.basename(entity.path).startsWith('raritio-zaloha-'))
+          .where(
+            (entity) =>
+                entity is File &&
+                p.basename(entity.path).startsWith('raritio-zaloha-'),
+          )
           .cast<File>()
           .toList();
       files.sort((a, b) => a.path.compareTo(b.path));
@@ -128,45 +128,52 @@ class StateService {
   }
 
   /// Wraps the state in a versioned backup envelope.
-  String createBackup(String stateJson) {
+  String createBackup(String stateJson, {Map<String, dynamic>? account}) {
     final state = jsonDecode(stateJson);
     final envelope = <String, dynamic>{
       'app': 'raritio',
-      'version': 1,
+      'version': 2,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
       'state': state,
+      if (account != null) 'account': account,
     };
     return const JsonEncoder.withIndent('  ').convert(envelope);
   }
 
-  /// Accepts both the versioned envelope and a raw state object.
-  Map<String, dynamic>? extractState(String backupJson) {
+  /// Returns the full envelope (state plus optional account/session).
+  Map<String, dynamic>? extractEnvelope(String backupJson) {
     try {
       final decoded = jsonDecode(backupJson);
       if (decoded is! Map) return null;
-
       final map = Map<String, dynamic>.from(decoded);
-      Map<String, dynamic>? state;
       final appName = map['app'];
       if ((appName == 'raritio' || appName == 'holodex_tcg') &&
-          map['state'] is Map) {
-        state = Map<String, dynamic>.from(map['state'] as Map);
-      } else if (map['binders'] is List) {
-        state = map;
+          map['state'] is Map &&
+          (map['state'] as Map)['binders'] is List) {
+        return map;
       }
-
-      if (state == null || state['binders'] is! List) return null;
-      return state;
+      if (map['binders'] is List) {
+        return <String, dynamic>{'app': 'raritio', 'version': 1, 'state': map};
+      }
+      return null;
     } catch (_) {
       return null;
     }
+  }
+
+  /// Accepts both the versioned envelope and a raw state object.
+  Map<String, dynamic>? extractState(String backupJson) {
+    final envelope = extractEnvelope(backupJson);
+    if (envelope == null) return null;
+    final state = envelope['state'];
+    if (state is! Map || state['binders'] is! List) return null;
+    return Map<String, dynamic>.from(state);
   }
 
   String backupFileName() {
     final now = DateTime.now();
     String two(int value) => value.toString().padLeft(2, '0');
     return 'raritio-zaloha-${now.year}-${two(now.month)}-${two(now.day)}'
-        '-${two(now.hour)}${two(now.minute)}${two(now.second)}.json';
+        '-${two(now.hour)}${two(now.minute)}${two(now.second)}.raritio';
   }
 }
-

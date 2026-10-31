@@ -52,6 +52,7 @@ let cardModalReturnTo = null;
 let previewCardId = null;
 let isScanning = false;
 let searchFromScan = false;
+let scanGame = 'all';
 let stateHydrated = false;
 let saveTimer = null;
 let lastPriceRefresh = 0;
@@ -130,7 +131,23 @@ function detectLanguage(text) {
 
 function imageSource(uri) {
     const value = String(uri || '').trim();
-    return value.length > 0 ? escapeHtml(value) : FALLBACK_IMAGE;
+    if (value.startsWith('http://') ||
+        value.startsWith('https://') ||
+        value.startsWith('data:image/')) {
+        return escapeHtml(value);
+    }
+    return FALLBACK_IMAGE;
+}
+
+function safeExternalUrl(value) {
+    try {
+        const url = new URL(String(value || ''), window.location.href);
+        return url.protocol === 'http:' || url.protocol === 'https:'
+            ? url.href
+            : '';
+    } catch (_) {
+        return '';
+    }
 }
 
 function normalizeRarity(value) {
@@ -680,7 +697,7 @@ function normalizeCard(card) {
         source: String(card.source || 'tcgdex'),
         priceSource: String(card.priceSource || card.source || ''),
         priceCurrency: String(card.priceCurrency || 'USD'),
-        priceChartingUrl: String(card.priceChartingUrl || ''),
+        priceChartingUrl: safeExternalUrl(card.priceChartingUrl),
         priceChartingUpdated: String(card.priceChartingUpdated || ''),
         priceChartingFull: card.priceChartingFull === true,
         gradePrices: Array.isArray(card.gradePrices)
@@ -2227,8 +2244,9 @@ function renderGradePrices(card) {
 
     const grades = Array.isArray(card.gradePrices) ? card.gradePrices : [];
     const loading = priceChartingRequests.has(card.id);
-    const sourceLink = card.priceChartingUrl
-        ? `<a class="grade-link" href="${escapeHtml(card.priceChartingUrl)}" target="_blank" rel="noopener">PriceCharting ↗</a>`
+    const chartingUrl = safeExternalUrl(card.priceChartingUrl);
+    const sourceLink = chartingUrl
+        ? `<a class="grade-link" href="${escapeHtml(chartingUrl)}" target="_blank" rel="noopener">PriceCharting ↗</a>`
         : '';
 
     if (grades.length === 0) {
@@ -2673,7 +2691,7 @@ function showSearch({ focus = true } = {}) {
     updateNav('nav-search');
 }
 
-function performSearch(fromScan = false, language = null) {
+function performSearch(fromScan = false, language = null, game = null) {
     const query = document.getElementById('search-input').value.trim();
     if (!query) return;
 
@@ -2693,7 +2711,8 @@ function performSearch(fromScan = false, language = null) {
             query,
             ocr: fromScan === true,
             requestId: searchRequestId,
-            language: resolvedLanguage
+            language: resolvedLanguage,
+            game: game || (fromScan ? scanGame : 'all')
         }));
     } else {
         resultsContainer.innerHTML = '<p style="color:var(--danger); text-align:center;">Bridge neaktívny.</p>';
@@ -3012,6 +3031,9 @@ function handleScanResult(result) {
     } else if (result && typeof result === 'object') {
         text = String(result.text || '');
         language = normalizeLanguage(result.language || detectLanguage(text));
+        if (result.game === 'pokemon' || result.game === 'mtg') {
+            scanGame = result.game;
+        }
     }
 
     const query = text.split('\n')[0].trim();
@@ -3646,6 +3668,18 @@ function closeModal(event) {
     updateNav('nav-binder');
 }
 
+function handleAccountDeleted() {
+    state.binders.forEach(binder => {
+        binder.sharedId = '';
+        binder.sharedToken = '';
+    });
+    state.sharedBinders = [];
+    state.binderLikes = {};
+    saveState();
+    renderBinderSelector();
+    renderBinder();
+}
+
 function handleAndroidBack() {
     const closeIfOpen = (id, close) => {
         const modal = document.getElementById(id);
@@ -3716,12 +3750,44 @@ function arrangeHeader() {
     const actions = metaRow.querySelector('.header-actions');
     if (!heading || !total || !actions) return;
     brandRow.appendChild(actions);
+    const more = heading.querySelector('.binder-more-btn');
+    if (more) {
+        const settings = actions.querySelector('button[aria-label="Nastavenia"]');
+        actions.insertBefore(more, settings);
+    }
     metaRow.appendChild(heading);
     metaRow.appendChild(total);
 }
 
 // --- Initialization ---
 function init() {
+    document.addEventListener('click', event => {
+        const link = event.target.closest && event.target.closest('a[href]');
+        if (!link) return;
+        const href = link.getAttribute('href') || '';
+        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+        let url;
+        try {
+            url = new URL(href, window.location.href);
+        } catch (_) {
+            return;
+        }
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        if (window.flutterBridge) {
+            window.flutterBridge.postMessage('openExternal:' + JSON.stringify({
+                url: url.href
+            }));
+        } else {
+            window.open(url.href, '_blank', 'noopener');
+        }
+    }, true);
+
     arrangeHeader();
     renderBinderSelector();
     renderBinder();

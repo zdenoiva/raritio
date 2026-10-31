@@ -8,10 +8,11 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   nickname text not null default 'Raritio hráč',
   friend_code text not null unique,
-  email text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles drop column if exists email;
 
 alter table public.profiles enable row level security;
 
@@ -105,6 +106,27 @@ security definer
 set search_path = public
 as $$
 begin
+  -- Revoke direct friend access in both directions before removing the
+  -- friendship, otherwise an ex-friend keeps access to shared binders.
+  delete from public.shared_binder_access a
+  where a.source = 'friend'
+    and (
+      (
+        a.viewer_id = p_friend_id
+        and exists (
+          select 1 from public.shared_binders b
+          where b.id = a.shared_binder_id and b.owner_id = auth.uid()
+        )
+      )
+      or (
+        a.viewer_id = auth.uid()
+        and exists (
+          select 1 from public.shared_binders b
+          where b.id = a.shared_binder_id and b.owner_id = p_friend_id
+        )
+      )
+    );
+
   delete from public.friendships
   where (user_id = auth.uid() and friend_id = p_friend_id)
      or (user_id = p_friend_id and friend_id = auth.uid());
@@ -160,6 +182,37 @@ create policy "shared_binders_viewer_select" on public.shared_binders
 drop policy if exists "shared_access_viewer_select" on public.shared_binder_access;
 create policy "shared_access_viewer_select" on public.shared_binder_access
   for select using (auth.uid() = viewer_id);
+
+-- Owners need their share token, but viewers must never receive it. The
+-- share_token column is not granted to authenticated; only these owner-checked
+-- security-definer functions expose it.
+create or replace function public.get_my_shared_binders()
+returns setof public.shared_binders
+language sql
+security definer
+set search_path = public
+as $$
+  select *
+  from public.shared_binders
+  where owner_id = auth.uid()
+  order by updated_at desc;
+$$;
+
+create or replace function public.get_my_shared_binder_token(p_binder_id uuid)
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select share_token
+  from public.shared_binders
+  where id = p_binder_id and owner_id = auth.uid();
+$$;
+
+revoke all on function public.get_my_shared_binders() from public;
+revoke all on function public.get_my_shared_binder_token(uuid) from public;
+grant execute on function public.get_my_shared_binders() to authenticated;
+grant execute on function public.get_my_shared_binder_token(uuid) to authenticated;
 
 -- The owner policy deliberately does not query shared_binders here: that caused
 -- infinite RLS recursion with the viewer policy above. Owners manage sharing
@@ -225,9 +278,7 @@ begin
   delete from public.shared_binder_access a
   where a.shared_binder_id = p_binder_id
     and a.source = 'friend'
-    and a.viewer_id in (
-      select f.friend_id from public.friendships f where f.user_id = auth.uid()
-    );
+    and not (a.viewer_id = any(coalesce(p_friend_ids, '{}'::uuid[])));
 
   insert into public.shared_binder_access(shared_binder_id, viewer_id, source)
   select p_binder_id, f.friend_id, 'friend'
@@ -384,6 +435,29 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Account deletion
+-- ---------------------------------------------------------------------------
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'AUTH_REQUIRED';
+  end if;
+
+  -- Cascades remove profile, friendships, shared binders, access rows,
+  -- likes and other auth-owned data.
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+
+revoke all on function public.delete_my_account() from public;
+grant execute on function public.delete_my_account() to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Keepalive row for the GitHub Actions cron ping
 -- ---------------------------------------------------------------------------
 create table if not exists public.keepalive (
@@ -430,7 +504,12 @@ create trigger shared_binders_touch
 -- ---------------------------------------------------------------------------
 grant usage on schema public to anon, authenticated;
 grant select, insert, update on public.profiles to authenticated;
-grant select, insert, update, delete on public.shared_binders to authenticated;
+revoke select on public.shared_binders from authenticated;
+grant select (
+  id, owner_id, owner_nickname, name, snapshot, card_count, total_value,
+  is_active, created_at, updated_at
+) on public.shared_binders to authenticated;
+grant insert, update, delete on public.shared_binders to authenticated;
 grant select on public.shared_binder_access to authenticated;
 grant select on public.keepalive to anon, authenticated;
 
@@ -446,5 +525,6 @@ grant execute on function public.get_shared_binder_friend_ids(uuid) to authentic
 grant execute on function public.get_shared_binder_likes(uuid) to authenticated;
 grant execute on function public.toggle_card_like(uuid, text) to authenticated;
 grant execute on function public.prune_shared_card_likes(uuid, text[]) to authenticated;
+grant execute on function public.delete_my_account() to authenticated;
 
 revoke all on public.shared_card_likes from anon, authenticated;
