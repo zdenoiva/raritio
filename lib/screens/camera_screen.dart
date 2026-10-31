@@ -865,24 +865,15 @@ class _CameraScreenState extends State<CameraScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    (selected['name'] ?? '').toString(),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                                if (styles.length > 1)
-                                  _styleMenu(selected, styles),
-                              ],
+                            Text(
+                              (selected['name'] ?? '').toString(),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -894,38 +885,46 @@ class _CameraScreenState extends State<CameraScreen> {
                                 fontSize: 12,
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E2A16),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: _neon.withValues(alpha: 0.45),
+                            const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E2A16),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: _neon.withValues(alpha: 0.45),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _cardTypeLabel(selected),
+                                    style: const TextStyle(
+                                      color: _neon,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                _cardTypeLabel(selected),
-                                style: const TextStyle(
-                                  color: _neon,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
+                                const SizedBox(width: 8),
+                                Text(
+                                  _resolvingDetails
+                                      ? 'Načítavam…'
+                                      : _priceLabel(selected),
+                                  style: const TextStyle(
+                                    color: _neon,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _resolvingDetails
-                                  ? 'Načítavam cenu…'
-                                  : _priceLabel(selected),
-                              style: const TextStyle(
-                                color: _neon,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                              ),
+                                const Spacer(),
+                                if (styles.length > 1)
+                                  _styleMenu(selected, styles),
+                              ],
                             ),
                           ],
                         ),
@@ -1150,24 +1149,26 @@ class _CameraScreenState extends State<CameraScreen> {
           .toList(),
       child: Container(
         margin: const EdgeInsets.only(left: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
         decoration: BoxDecoration(
           color: const Color(0xFF1E2A16),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _neon.withValues(alpha: 0.35)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _neon.withValues(alpha: 0.45)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const Icon(Icons.palette_outlined, color: _neon, size: 15),
+            const SizedBox(width: 5),
             Text(
               current.label,
               style: const TextStyle(
                 color: _neon,
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const Icon(Icons.arrow_drop_down_rounded, color: _neon, size: 16),
+            const Icon(Icons.arrow_drop_down_rounded, color: _neon, size: 19),
           ],
         ),
       ),

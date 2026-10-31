@@ -170,13 +170,14 @@
             min-width: 0;
             flex: 1 1 auto;
             max-width: none;
+            min-height: 43px;
             background: var(--surface);
             color: var(--text);
             border: 1px solid var(--border);
-            padding: 9px 11px;
-            border-radius: 10px;
-            font-size: 0.82rem;
-            font-weight: 600;
+            padding: 10px 12px;
+            border-radius: 11px;
+            font-size: 0.98rem;
+            font-weight: 750;
             cursor: pointer;
             transition: border-color 0.2s, background 0.2s;
         }
@@ -195,8 +196,8 @@
         }
 
         .binder-picker-icon svg {
-            width: 19px;
-            height: 19px;
+            width: 21px;
+            height: 21px;
             display: block;
         }
 
@@ -241,13 +242,14 @@
         .sort-button {
             display: flex;
             align-items: center;
-            gap: 9px;
+            gap: 6px;
             min-width: 0;
-            flex: 1 1 auto;
+            width: 156px;
+            flex: 0 0 156px;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 6px 9px;
+            padding: 7px 9px;
             color: var(--text);
             cursor: pointer;
             text-align: left;
@@ -259,59 +261,51 @@
             background: var(--surface-light);
         }
 
-        .sort-button-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 9px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            color: #93c5fd;
-            background: rgba(59, 130, 246, 0.14);
-            font-size: 0.9rem;
-            font-weight: 800;
-        }
-
         .sort-button-copy {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            align-items: baseline;
+            gap: 5px;
             min-width: 0;
             line-height: 1.15;
+            overflow: hidden;
         }
 
         .sort-button-copy small {
             color: var(--text-muted);
-            font-size: 0.56rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
+            font-size: 0.57rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
             text-transform: uppercase;
+            flex-shrink: 0;
         }
 
         .sort-button-copy span {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            font-size: 0.8rem;
-            font-weight: 700;
+            font-size: 0.78rem;
+            font-weight: 750;
         }
 
         .sort-button-chevron {
             margin-left: auto;
             color: var(--text-muted);
-            font-size: 0.65rem;
+            font-size: 0.62rem;
             flex-shrink: 0;
         }
 
         .reorder-toggle {
             flex-shrink: 0;
+            width: 156px;
             background: var(--surface);
             border: 1px solid var(--border);
             color: var(--text-muted);
             border-radius: 10px;
             padding: 8px 10px;
-            font-size: 0.68rem;
+            font-size: 0.72rem;
             font-weight: 800;
+            text-align: center;
             cursor: pointer;
             transition: color 0.2s, border-color 0.2s, background 0.2s;
         }
@@ -2097,10 +2091,10 @@
         }
 
         .binder-actions-edit {
-            width: 28px;
-            height: 28px;
+            width: 36px;
+            height: 36px;
             flex-shrink: 0;
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid var(--border);
             background: var(--surface);
             color: var(--text-muted);
@@ -2116,8 +2110,8 @@
         }
 
         .binder-actions-edit svg {
-            width: 15px;
-            height: 15px;
+            width: 20px;
+            height: 20px;
         }
 
         .binder-actions-meta {
@@ -2783,7 +2777,6 @@
     <main>
         <div class="binder-toolbar">
             <button id="binder-sort-button" class="sort-button" onclick="showSortPicker()" aria-haspopup="dialog">
-                <span class="sort-button-icon" aria-hidden="true">↕</span>
                 <span class="sort-button-copy">
                     <small>Zoradiť</small>
                     <span id="binder-sort-label">Vlastné</span>
@@ -3002,7 +2995,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.3.21</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.3.22</span></p>
         </div>
     </div>
 

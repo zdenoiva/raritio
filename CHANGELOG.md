@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.22] - 2026-10-31
+
+- Výber vizuálu karty je väčší a presunutý dole vedľa typu a ceny.
+- Názov balíka v hlavičke je väčší a výraznejší.
+- Zoradenie má „ZORADIŤ“ a „Vlastné“ v jednom riadku a rovnakú šírku ako „Presúvať“.
+- Tlačidlo „...“ je pred obnovou cien.
+- Väčšia ikonka ceruzky v „Spravovať balík“.
+- Prehľad má nové štatistiky: priemerná cena, duplikáty, prírastky za 30 dní, holo/reverse a naj balíky.
+
 ## [0.3.21] - 2026-10-31
 
 - Skener je opäť jednoduchý pevný rámik 63 : 88 s manuálnou spúšťou.

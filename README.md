@@ -8,7 +8,7 @@ Raritio je osobná Android aplikácia na správu zbierky Pokémon a MTG kariet. 
 
 ## Aktuálna verzia
 
-- **0.3.21** (beta)
+- **0.3.22** (beta)
 - Android package: `sk.zdenoiva.raritio`
 
 ## Funkcie

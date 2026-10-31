@@ -1047,11 +1047,6 @@ function renderBinder(preserveScroll = false) {
     const sortMode = binder.sortMode || 'custom';
     const sortLabel = document.getElementById('binder-sort-label');
     if (sortLabel) sortLabel.innerText = binderSortLabel(sortMode);
-    const sortIcon = document.querySelector('#binder-sort-button .sort-button-icon');
-    if (sortIcon) {
-        const option = BINDER_SORT_OPTIONS.find(item => item.value === sortMode);
-        sortIcon.innerText = option ? option.icon : '↕';
-    }
 
     const reorderButton = document.getElementById('reorder-toggle');
     if (reorderButton) {
@@ -3438,6 +3433,81 @@ function renderOverview() {
             `;
         }).join('');
 
+    const averageValue = totalCards > 0 ? totalValue / totalCards : 0;
+    const duplicateCount = Math.max(0, totalCards - uniqueCards);
+    const recentCount = entries.filter(({ card }) => {
+        const timestamp = Date.parse(card.addedAt || '');
+        return Number.isFinite(timestamp) &&
+            Date.now() - timestamp <= 30 * 24 * 60 * 60 * 1000;
+    }).length;
+    let holoCount = 0;
+    let reverseCount = 0;
+    entries.forEach(({ card }) => {
+        const finishes = Array.isArray(card.finishes) ? card.finishes.join(' ') : '';
+        const finishText = `${card.finish || ''} ${finishes}`.toLowerCase();
+        if (finishText.includes('reverse')) reverseCount++;
+        if (finishText.includes('holo') || card.foil === true) holoCount++;
+    });
+
+    let largestBinder = null;
+    let mostValuableBinder = null;
+    if (!selectedBinder) {
+        state.binders.forEach(binder => {
+            const count = binder.cards.length;
+            const value = binder.cards.reduce(
+                (sum, card) => sum + (Number(card.currentPrice) || 0),
+                0
+            );
+            if (!largestBinder || count > largestBinder.count) {
+                largestBinder = { binder, count };
+            }
+            if (!mostValuableBinder || value > mostValuableBinder.value) {
+                mostValuableBinder = { binder, value };
+            }
+        });
+    }
+
+    const factRows = [
+        {
+            label: 'Priemerná cena karty',
+            sub: `${totalCards} ${cardCountLabel(totalCards)}`,
+            value: `$${averageValue.toFixed(2)}`
+        },
+        {
+            label: 'Duplikáty',
+            sub: duplicateCount === 1 ? 'karta navyše' : 'kariet navyše',
+            value: String(duplicateCount)
+        },
+        {
+            label: 'Pridané za 30 dní',
+            sub: 'nové prírastky',
+            value: String(recentCount)
+        },
+        {
+            label: 'Holo / Reverse',
+            sub: 'lesklé varianty',
+            value: `${holoCount} / ${reverseCount}`
+        },
+        ...(!selectedBinder && largestBinder ? [{
+            label: 'Najväčší balík',
+            sub: escapeHtml(largestBinder.binder.name),
+            value: `${largestBinder.count} kariet`
+        }] : []),
+        ...(!selectedBinder && mostValuableBinder && mostValuableBinder.value > 0 ? [{
+            label: 'Najhodnotnejší balík',
+            sub: escapeHtml(mostValuableBinder.binder.name),
+            value: `$${mostValuableBinder.value.toFixed(2)}`
+        }] : [])
+    ].map(row => `
+        <div class="overview-row">
+            <div class="overview-row-main">
+                <div class="overview-row-name">${row.label}</div>
+                <div class="overview-row-sub">${row.sub}</div>
+            </div>
+            <div class="overview-row-value" style="color:var(--text)">${row.value}</div>
+        </div>
+    `).join('');
+
     const chartPoints = selectedBinder
         ? selectedBinder.priceHistory
         : state.collectionHistory;
@@ -3476,6 +3546,12 @@ function renderOverview() {
             </div>
         </div>
         ${chart}
+        ${factRows && totalCards > 0 ? `
+            <div class="overview-section">
+                <div class="overview-section-title">Zaujímavosti</div>
+                ${factRows}
+            </div>
+        ` : ''}
         ${emptyBinderHtml}
         ${binderRows ? `
             <div class="overview-section">
@@ -3782,8 +3858,8 @@ function arrangeHeader() {
     brandRow.appendChild(actions);
     const more = heading.querySelector('.binder-more-btn');
     if (more) {
-        const settings = actions.querySelector('button[aria-label="Nastavenia"]');
-        actions.insertBefore(more, settings);
+        const refresh = actions.querySelector('#refresh-prices-btn');
+        actions.insertBefore(more, refresh);
     }
     metaRow.appendChild(heading);
     metaRow.appendChild(total);
