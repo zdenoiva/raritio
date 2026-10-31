@@ -1,15 +1,17 @@
 {
-  "version": "0.4.4",
-  "versionCode": 404,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.4/raritio-0.4.4.apk",
-  "sha256": "c19daff15c7b4d7b87de5c7ef5fd39d5b9590a424d3650bbe0cfcca02cc16731",
-  "size": 118301612,
-  "publishedAt": "2026-10-31T19:17:39Z",
+  "version": "0.4.5",
+  "versionCode": 405,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.5/raritio-0.4.5.apk",
+  "sha256": "592fe89677b2ff0b66435d766af37bccbe93c2a9aa6afcca9523cf1f19719e92",
+  "size": 118301768,
+  "publishedAt": "2026-10-31T20:45:54Z",
   "changelog": [
-    "Pribudla téma Glass inšpirovaná priehľadným iPhone sklom.",
-    "Glass má vlastné rarity rámiky, priehľadné karty a prismatický glow efekt.",
-    "Stone dostal výraznejší pohyblivý ember efekt pri drahých kartách.",
-    "Poke má názvy kariet zarovnané doľava a širšie nameplate bez zbytočných okrajov.",
-    "Všetky témy naďalej používajú vlastné efekty drahých kariet."
+    "Výrazné zrýchlenie Glass témy: karty už nepoužívajú drahý per-card blur.",
+    "Glass glow je v zozname statický; animácia zostáva len pri detaile karty.",
+    "Odstránené blur vrstvy z headeru, navigácie, modálov a tlačidiel.",
+    "Glow efekty ostatných tém používajú ľahšie transform/opacity animácie.",
+    "Odstránené fixné pozadie a zbytočné box-shadow prechody.",
+    "Vylepšené načítavanie: žiadne zbytočné prekreslenie lajkov a pauza pollingu na pozadí.",
+    "Respektovanie systémového zníženia animácií."
   ]
 }
