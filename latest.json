@@ -1,16 +1,15 @@
 {
-  "version": "0.4.3",
-  "versionCode": 403,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.3/raritio-0.4.3.apk",
-  "sha256": "46a80deeb585bf8f70b38d55d08aafee3a3fcaeff4a3fcb040731bb6e74c15cb",
-  "size": 118299652,
-  "publishedAt": "2026-10-31T18:46:28Z",
+  "version": "0.4.4",
+  "versionCode": 404,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.4/raritio-0.4.4.apk",
+  "sha256": "c19daff15c7b4d7b87de5c7ef5fd39d5b9590a424d3650bbe0cfcca02cc16731",
+  "size": 118301612,
+  "publishedAt": "2026-10-31T19:17:39Z",
   "changelog": [
-    "Zdieľané, detaily zdieľaných balíkov a detail karty používajú zvolenú tému.",
-    "Poke má energický červeno-žltý efekt drahých kariet.",
-    "Magic má arkanálny zlato-tealový efekt.",
-    "Stone má jemný kamenný ember efekt.",
-    "Klasika si zachováva pôvodnú zlatú žiaru.",
-    "Efekt sa dá vypnúť v Nastaveniach."
+    "Pribudla téma Glass inšpirovaná priehľadným iPhone sklom.",
+    "Glass má vlastné rarity rámiky, priehľadné karty a prismatický glow efekt.",
+    "Stone dostal výraznejší pohyblivý ember efekt pri drahých kartách.",
+    "Poke má názvy kariet zarovnané doľava a širšie nameplate bez zbytočných okrajov.",
+    "Všetky témy naďalej používajú vlastné efekty drahých kariet."
   ]
 }
