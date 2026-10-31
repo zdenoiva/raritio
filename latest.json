@@ -1,17 +1,20 @@
 {
-  "version": "0.4.5",
-  "versionCode": 405,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.5/raritio-0.4.5.apk",
-  "sha256": "592fe89677b2ff0b66435d766af37bccbe93c2a9aa6afcca9523cf1f19719e92",
-  "size": 118301768,
-  "publishedAt": "2026-10-31T20:45:54Z",
+  "version": "0.4.6",
+  "versionCode": 406,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.6/raritio-0.4.6.apk",
+  "sha256": "532a98e5eb1775e647e91d6a180c1af8fae51ade2fe3cdb26af3bf4956e5b377",
+  "size": 118385568,
+  "publishedAt": "2026-10-31T21:43:48Z",
   "changelog": [
-    "Výrazné zrýchlenie Glass témy: karty už nepoužívajú drahý per-card blur.",
-    "Glass glow je v zozname statický; animácia zostáva len pri detaile karty.",
-    "Odstránené blur vrstvy z headeru, navigácie, modálov a tlačidiel.",
-    "Glow efekty ostatných tém používajú ľahšie transform/opacity animácie.",
-    "Odstránené fixné pozadie a zbytočné box-shadow prechody.",
-    "Vylepšené načítavanie: žiadne zbytočné prekreslenie lajkov a pauza pollingu na pozadí.",
-    "Respektovanie systémového zníženia animácií."
+    "Všetky ceny a súčty sú v eurách, symbol € je za číslom.",
+    "Ceny v USD sa prepočítavajú aktuálnym kurzom pri aktualizácii cien.",
+    "Drahé karty v Klasike a Stone dostali výraznejší glow rám.",
+    "Glass už nezafarbuje celé lacné illustration karty; pastelový efekt má len glow.",
+    "Poke nameplate je celý vnútri karty a viac textu sa vmestí.",
+    "Vypnuté označovanie textu dlhým podržaním a jemnejší efekt stlačenia tlačidiel.",
+    "Zvýšená citlivosť nakláňania kariet.",
+    "Tlačidlá Zoradiť a Presúvať sú nižšie.",
+    "Skryté štatistiky zobrazujú používanie tém a najpopulárnejšiu tému.",
+    "SQL migrácia pre témy je v `2026-10-31_public_stats.sql`."
   ]
 }
