@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.18] - 2026-10-31
+
+- Skener je celý na šírku aj výšku obrazovky, bez čiernych pásov.
+- Výraznejší neonový rámik s rohovými akcentmi a stmavením okolia.
+- Automatické zachytenie je citlivejšie na menšie karty.
+- Rozpoznávanie skúsi aj záložný výrez, keď sa karta nedetekuje celá.
+- Vyššie rozlíšenie spracovania pre lepšie OCR.
+
 ## [0.3.17] - 2026-10-31
 
 - Skener má dynamický rámik, ktorý sleduje obrys karty.

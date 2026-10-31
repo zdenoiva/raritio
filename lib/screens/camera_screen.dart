@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -52,7 +53,12 @@ class CameraScreen extends StatefulWidget {
   /// Used by the custom-card-photo flow. It only takes a photo and returns it
   /// without running recognition or showing the card suggestion sheet.
   final bool captureOnly;
-  final Future<ScanRecognition> Function(String path, String game)? onRecognize;
+  final Future<ScanRecognition> Function(
+    String path,
+    String game, {
+    bool detectedDocument,
+  })?
+  onRecognize;
   final Future<bool> Function(Map<String, dynamic> card)? onAdd;
 
   @override
@@ -105,11 +111,11 @@ class _CameraScreenState extends State<CameraScreen> {
       allowGalleryImport: false,
       allowZoom: true,
       afterCapture: AfterCapture.returnPaths,
-      workingResolution: 2200,
+      workingResolution: 2600,
       autoCaptureTuning: AutoCaptureTuning(
-        holdDuration: Duration(milliseconds: 700),
+        holdDuration: Duration(milliseconds: 650),
         cooldown: Duration(milliseconds: 900),
-        minAreaFraction: 0.2,
+        minAreaFraction: 0.14,
         minFocus: 7,
       ),
       theme: ScannerTheme(
@@ -195,7 +201,11 @@ class _CameraScreenState extends State<CameraScreen> {
     });
 
     try {
-      final result = await recognize(path, _game);
+      final result = await recognize(
+        path,
+        _game,
+        detectedDocument: page?.detectedDocument ?? false,
+      );
       if (!mounted) return;
       setState(() {
         _processing = false;
@@ -498,14 +508,7 @@ class _CameraScreenState extends State<CameraScreen> {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            ScannerPreview(
-              controller: controller,
-              showOutline: true,
-              showGuide: false,
-              showGrid: false,
-              enableTapToFocus: true,
-              enableZoomGesture: true,
-            ),
+            _buildPreview(controller),
             _buildTopBar(),
             if (!_resultVisible) ...[
               _buildZoomBar(controller),
@@ -559,6 +562,60 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPreview(ScannerController controller) {
+    final camera = controller.cameraController;
+    final ready =
+        controller.isReady && camera != null && camera.value.isInitialized;
+    if (!ready) {
+      return ScannerPreview(
+        controller: controller,
+        showOutline: false,
+        showGuide: false,
+        showGrid: false,
+        enableTapToFocus: true,
+        enableZoomGesture: true,
+      );
+    }
+
+    final ratio = controller.previewAspectRatio;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRect(
+          child: FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: 1000 * ratio,
+              height: 1000,
+              child: ScannerPreview(
+                controller: controller,
+                showOutline: false,
+                showGuide: false,
+                showGrid: false,
+                enableTapToFocus: true,
+                enableZoomGesture: true,
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: ValueListenableBuilder<DetectionState>(
+              valueListenable: controller.detection,
+              builder: (context, state, _) => CustomPaint(
+                painter: _CardFramePainter(
+                  state: state,
+                  previewAspectRatio: ratio,
+                ),
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1008,6 +1065,176 @@ class _CameraScreenState extends State<CameraScreen> {
       ScanHint.ready => 'Pripravené',
       ScanHint.cooldown => 'Spracúvam…',
     };
+  }
+}
+
+class _CardFramePainter extends CustomPainter {
+  _CardFramePainter({required this.state, required this.previewAspectRatio});
+
+  final DetectionState state;
+  final double previewAspectRatio;
+
+  static const Color _green = Color(0xFFB6FF3B);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final quad = state.quad;
+    if (quad != null) {
+      final points = _mapQuad(quad, size);
+      final path = Path()..moveTo(points.first.dx, points.first.dy);
+      for (final point in points.skip(1)) {
+        path.lineTo(point.dx, point.dy);
+      }
+      path.close();
+
+      final outer = Path()..addRect(Offset.zero & size);
+      final outside = Path.combine(PathOperation.difference, outer, path);
+      canvas.drawPath(
+        outside,
+        Paint()..color = Colors.black.withValues(alpha: 0.28),
+      );
+
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 12
+          ..color = _green.withValues(alpha: 0.2)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.5
+          ..color = _green,
+      );
+
+      final cornerPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round
+        ..color = _green;
+      for (var i = 0; i < points.length; i++) {
+        final current = points[i];
+        final previous = points[(i - 1 + points.length) % points.length];
+        final next = points[(i + 1) % points.length];
+        _drawCorner(canvas, current, previous, next, cornerPaint);
+      }
+
+      if (state.progress > 0) {
+        final bounds = path.getBounds();
+        final y = bounds.bottom + 10;
+        canvas.drawLine(
+          Offset(bounds.left, y),
+          Offset(bounds.right, y),
+          Paint()
+            ..strokeWidth = 3
+            ..color = Colors.white.withValues(alpha: 0.22),
+        );
+        canvas.drawLine(
+          Offset(bounds.left, y),
+          Offset(
+            bounds.left + bounds.width * state.progress.clamp(0.0, 1.0),
+            y,
+          ),
+          Paint()
+            ..strokeWidth = 3
+            ..strokeCap = StrokeCap.round
+            ..color = _green,
+        );
+      }
+      return;
+    }
+
+    // Soft card-aspect guide while no card is detected.
+    final guideWidth = math.min(
+      size.width * 0.78,
+      size.height * 0.58 * 2.5 / 3.5,
+    );
+    final guideHeight = guideWidth * 3.5 / 2.5;
+    final rect = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height * 0.48),
+      width: guideWidth,
+      height: guideHeight,
+    );
+    final guide = RRect.fromRectAndRadius(rect, const Radius.circular(22));
+    canvas.drawRRect(
+      guide,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = Colors.white.withValues(alpha: 0.28),
+    );
+
+    final cornerPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..color = _green.withValues(alpha: 0.65);
+    final corners = <Offset>[
+      rect.topLeft,
+      rect.topRight,
+      rect.bottomRight,
+      rect.bottomLeft,
+    ];
+    for (var i = 0; i < corners.length; i++) {
+      final current = corners[i];
+      final previous = corners[(i - 1 + corners.length) % corners.length];
+      final next = corners[(i + 1) % corners.length];
+      _drawCorner(canvas, current, previous, next, cornerPaint);
+    }
+  }
+
+  List<Offset> _mapQuad(Quad quad, Size size) {
+    final ratio = previewAspectRatio <= 0 ? 3 / 4 : previewAspectRatio;
+    final screenAspect = size.width / size.height;
+    final displayWidth = ratio > screenAspect
+        ? size.height * ratio
+        : size.width;
+    final displayHeight = ratio > screenAspect
+        ? size.height
+        : size.width / ratio;
+    final dx = (size.width - displayWidth) / 2;
+    final dy = (size.height - displayHeight) / 2;
+    return quad.corners
+        .map(
+          (point) => Offset(
+            dx + point.dx * displayWidth,
+            dy + point.dy * displayHeight,
+          ),
+        )
+        .toList();
+  }
+
+  void _drawCorner(
+    Canvas canvas,
+    Offset corner,
+    Offset previous,
+    Offset next,
+    Paint paint,
+  ) {
+    const length = 26.0;
+    final a = corner + _towards(corner, previous, length);
+    final b = corner + _towards(corner, next, length);
+    final path = Path()
+      ..moveTo(a.dx, a.dy)
+      ..lineTo(corner.dx, corner.dy)
+      ..lineTo(b.dx, b.dy);
+    canvas.drawPath(path, paint);
+  }
+
+  Offset _towards(Offset from, Offset to, double length) {
+    final delta = to - from;
+    final distance = delta.distance;
+    if (distance == 0) return Offset.zero;
+    return delta / distance * length;
+  }
+
+  @override
+  bool shouldRepaint(covariant _CardFramePainter oldDelegate) {
+    return oldDelegate.state != state ||
+        oldDelegate.previewAspectRatio != previewAspectRatio;
   }
 }
 

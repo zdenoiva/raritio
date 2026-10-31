@@ -1,6 +1,6 @@
 /// Keep these in sync with the `version` field in pubspec.yaml.
-const String appVersion = '0.3.17';
-const int appBuildNumber = 317;
+const String appVersion = '0.3.18';
+const int appBuildNumber = 318;
 
 
 

@@ -525,10 +525,30 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
   Future<ScanRecognition> _recognizeScanCandidates(
     String path,
-    String game,
-  ) async {
+    String game, {
+    bool detectedDocument = true,
+  }) async {
     try {
-      final ocr = await _bridge.scanImagePath(path, cropToFrame: false);
+      var triedAlternateCrop = false;
+      Map<String, dynamic>? ocr;
+      var text = '';
+      var language = 'en';
+      var outcome = (results: <Map<String, dynamic>>[], usedQuery: '');
+
+      Future<Map<String, dynamic>?> read({required bool crop}) async {
+        final value = await _bridge.scanImagePath(path, cropToFrame: crop);
+        if (value == null) return null;
+        final error = value['error'];
+        if (error is String && error.isNotEmpty) return null;
+        return value;
+      }
+
+      ocr = await read(crop: !detectedDocument);
+      if (ocr == null) {
+        triedAlternateCrop = true;
+        ocr = await read(crop: detectedDocument);
+      }
+
       if (ocr == null) {
         return const ScanRecognition(
           query: '',
@@ -537,18 +557,40 @@ class _RaritioTCGState extends State<RaritioTCG> {
           error: 'Nepodarilo sa prečítať text z karty.',
         );
       }
-      final ocrError = ocr['error'];
-      if (ocrError is String && ocrError.isNotEmpty) {
-        return ScanRecognition(
-          query: '',
-          language: 'en',
-          candidates: const [],
-          error: ocrError,
+
+      text = (ocr['text'] ?? '').toString().trim();
+      language = (ocr['language'] ?? 'en').toString();
+
+      if (text.isNotEmpty) {
+        outcome = await _findCards(
+          query: text,
+          requestedLanguage: language,
+          requestedGame: game,
+          fromOcr: true,
         );
       }
 
-      final text = (ocr['text'] ?? '').toString().trim();
-      final language = (ocr['language'] ?? 'en').toString();
+      // A card that was not detected as a document can still fill the frame;
+      // try the alternate crop before giving up.
+      if (outcome.results.isEmpty && !triedAlternateCrop) {
+        triedAlternateCrop = true;
+        final alternate = await read(crop: detectedDocument);
+        final alternateText = (alternate?['text'] ?? '').toString().trim();
+        if (alternateText.isNotEmpty && alternateText != text) {
+          final alternateOutcome = await _findCards(
+            query: alternateText,
+            requestedLanguage: (alternate?['language'] ?? language).toString(),
+            requestedGame: game,
+            fromOcr: true,
+          );
+          if (alternateOutcome.results.isNotEmpty) {
+            text = alternateText;
+            language = (alternate?['language'] ?? language).toString();
+            outcome = alternateOutcome;
+          }
+        }
+      }
+
       if (text.isEmpty) {
         return const ScanRecognition(
           query: '',
@@ -557,13 +599,6 @@ class _RaritioTCGState extends State<RaritioTCG> {
           error: 'Na karte sa nenašiel čitateľný názov.',
         );
       }
-
-      final outcome = await _findCards(
-        query: text,
-        requestedLanguage: language,
-        requestedGame: game,
-        fromOcr: true,
-      );
 
       final candidates = await Future.wait(
         outcome.results.take(3).map((card) async {

@@ -1,17 +1,16 @@
 {
-  "version": "0.3.17",
-  "versionCode": 317,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.17/raritio-0.3.17.apk",
-  "sha256": "b93206fbfef8c29d2c8310e1bc0d0a7f64c0c61fd82a317eea0fe7efcf4b8a81",
-  "size": 119817670,
-  "publishedAt": "2026-10-31T12:30:00Z",
+  "version": "0.3.18",
+  "versionCode": 318,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.18/raritio-0.3.18.apk",
+  "sha256": "49a0917c9b1ba20af6394b6b0b03d355edd0f92df231867d802b41696757c4c1",
+  "size": 119817834,
+  "publishedAt": "2026-10-31T13:00:00Z",
   "changelog": [
-    "Dynamický rámik sleduje obrys karty.",
-    "Automatické zachytenie po zaostrení a stabilizovaní.",
-    "2–3 návrhy karty priamo v skeneri.",
-    "Pridanie karty jedným tlačidlom do aktuálneho balíka.",
-    "Pri zlyhaní sa otvorí staré ručné hľadanie.",
-    "Ponechaný zoom, blesk a galéria.",
-    "Raritio beta 0.3.17."
+    "Skener je celý na obrazovku, bez čiernych pásov.",
+    "Výraznejší neonový rámik so stmavením okolia.",
+    "Citlivejšie automatické zachytenie menších kariet.",
+    "Záložný výrez pri rozpoznávaní karty.",
+    "Vyššie rozlíšenie spracovania pre lepšie OCR.",
+    "Raritio beta 0.3.18."
   ]
 }
