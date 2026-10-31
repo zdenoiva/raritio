@@ -158,6 +158,26 @@ class SharedBinderService {
     return id;
   }
 
+  /// Anonymous, non-blocking theme telemetry for the hidden statistics.
+  /// It never creates a profile; it only updates an existing one.
+  Future<void> updateTheme(String theme) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+    final allowed = {'classic', 'poke', 'magic', 'stone', 'glass'};
+    final value = allowed.contains(theme) ? theme : 'classic';
+    try {
+      await _client
+          .from('profiles')
+          .update({
+            'theme': value,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', user.id);
+    } catch (_) {
+      // Theme stats are best-effort and must never affect the UI.
+    }
+  }
+
   Future<RaritioProfile?> getProfile() async {
     await _ensureAuth();
     final row = await _client

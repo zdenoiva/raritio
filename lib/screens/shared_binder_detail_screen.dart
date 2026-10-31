@@ -329,7 +329,11 @@ class _SharedCard extends StatelessWidget {
     final name = card['name']?.toString() ?? 'Karta';
     final set = card['set']?.toString() ?? '';
     final rarity = card['rarity']?.toString() ?? '';
-    final price = double.tryParse(card['currentPrice']?.toString() ?? '') ?? 0;
+    final price =
+        double.tryParse(
+          (card['priceEur'] ?? card['currentPrice'])?.toString() ?? '',
+        ) ??
+        0;
     final image = card['imageUri']?.toString() ?? '';
     final finish = primaryCardFinish(card);
     final color = _rarityColor(rarity);
@@ -409,7 +413,7 @@ class _SharedCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '\$${price.toStringAsFixed(2)}',
+                    '${price.toStringAsFixed(2).replaceAll('.', ',')} \u20ac',
                     style: TextStyle(
                       color: palette.success,
                       fontWeight: FontWeight.w800,

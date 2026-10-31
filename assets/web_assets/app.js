@@ -377,7 +377,7 @@ function showFinishOptions(cardId) {
                 ? variant.id === activeId
                 : variant.finish === activeFinish;
             const price = Number(variant.price) > 0
-                ? `${variant.priceCurrency === 'EUR' ? '€' : '$'}${Number(variant.price).toFixed(2)}`
+                ? formatEur(toEur(variant.price, variant.priceCurrency))
                 : 'Cena nie je dostupná';
             const source = variant.priceSource
                 ? ` · ${variant.priceSource === 'cardmarket' ? 'Cardmarket' : 'TCGPlayer'}`
@@ -450,14 +450,68 @@ function selectCardVariant(cardId, variantId, fallbackFinish = '') {
     showToast(`Prevedenie zmenené na ${sourceVariant?.label || finishLabelValue(fallbackFinish)}.`);
 }
 
-function currencySymbol(currency) {
-    return String(currency || '').toUpperCase() === 'EUR' ? '€' : '$';
+let usdEurRate = (() => {
+    try {
+        const saved = Number(localStorage.getItem('raritio_usd_eur_rate'));
+        if (Number.isFinite(saved) && saved > 0.5 && saved < 2) return saved;
+    } catch (_) {}
+    return 0.92;
+})();
+
+const EUR_FORMATTER = new Intl.NumberFormat('sk-SK', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+});
+
+function formatEur(value) {
+    return `${EUR_FORMATTER.format(Number(value) || 0)} \u20ac`;
+}
+
+function cardCurrency(card) {
+    const declared = String((card && card.priceCurrency) || '').toUpperCase();
+    if (declared === 'EUR' || declared === 'USD') return declared;
+    const source = String((card && (card.priceSource || card.source)) || '').toLowerCase();
+    if (source === 'scryfall' || source === 'tcgplayer' || source === 'pricecharting') {
+        return 'USD';
+    }
+    return 'EUR';
+}
+
+function toEur(value, currency) {
+    const amount = Number(value) || 0;
+    if (String(currency || '').toUpperCase() !== 'USD') return amount;
+    return amount * (usdEurRate > 0 ? usdEurRate : 0.92);
+}
+
+function cardEurValue(card, value = card ? card.currentPrice : 0) {
+    return toEur(value, cardCurrency(card));
+}
+
+function setUsdEurRate(rate) {
+    const parsed = Number(rate);
+    if (!Number.isFinite(parsed) || parsed <= 0.5 || parsed >= 2) return;
+    const changed = Math.abs(parsed - usdEurRate) > 0.0001;
+    usdEurRate = parsed;
+    try {
+        localStorage.setItem('raritio_usd_eur_rate', String(parsed));
+    } catch (_) {}
+    if (changed && stateHydrated) {
+        renderBinder(true);
+        updateBinderTotal();
+        renderBinderPicker();
+    }
+}
+
+function requestExchangeRate() {
+    if (!window.flutterBridge) return;
+    try {
+        window.flutterBridge.postMessage('requestExchangeRate:');
+    } catch (_) {}
 }
 
 function formatCardPrice(card, value = card ? card.currentPrice : 0) {
-    return `${currencySymbol(card && card.priceCurrency)}${(Number(value) || 0).toFixed(2)}`;
+    return formatEur(cardEurValue(card, value));
 }
-
 function finishClass(finish) {
     return String(finish || '')
         .toLowerCase()
@@ -466,7 +520,7 @@ function finishClass(finish) {
 }
 
 function isHighValue(card) {
-    return (Number(card.currentPrice) || 0) >= Number(state.settings.glowThreshold || 20);
+    return cardEurValue(card) >= Number(state.settings.glowThreshold || 20);
 }
 
 function cardHasHolo(card) {
@@ -514,6 +568,8 @@ function sharedBinderSnapshot(binder) {
                 game: String(card.game || 'pokemon'),
                 language: normalizeLanguage(card.language),
                 currentPrice: Number(card.currentPrice) || 0,
+                priceEur: cardEurValue(card),
+                priceCurrency: cardCurrency(card),
                 rarity: String(card.rarity || ''),
                 imageUri: imageUri.startsWith('data:') ? '' : imageUri,
                 finish: String(card.finish || ''),
@@ -543,7 +599,7 @@ function syncSharedBinders() {
             name: binder.name,
             snapshot: sharedBinderSnapshot(binder),
             cardCount: binder.cards.length,
-            totalValue: binder.cards.reduce((sum, card) => sum + (Number(card.currentPrice) || 0), 0)
+            totalValue: binder.cards.reduce((sum, card) => sum + cardEurValue(card), 0)
         }));
     if (binders.length === 0) return;
     try {
@@ -577,7 +633,7 @@ function shareBinderFromActions() {
         name: binder.name,
         snapshot,
         cardCount: binder.cards.length,
-        totalValue: binder.cards.reduce((sum, card) => sum + (Number(card.currentPrice) || 0), 0)
+        totalValue: binder.cards.reduce((sum, card) => sum + cardEurValue(card), 0)
     }));
 }
 
@@ -860,6 +916,7 @@ function applyTheme(theme) {
     if (window.flutterBridge) {
         try {
             window.flutterBridge.postMessage('setAppTheme:' + JSON.stringify({ theme: value }));
+            window.flutterBridge.postMessage('trackTheme:' + JSON.stringify({ theme: value }));
         } catch (_) {}
     }
 }
@@ -953,10 +1010,10 @@ function cardTileHtml(card, options = {}) {
 function updateBinderTotal() {
     const binder = getCurrentBinder();
     const total = binder
-        ? binder.cards.reduce((sum, card) => sum + (Number(card.currentPrice) || 0), 0)
+        ? binder.cards.reduce((sum, card) => sum + cardEurValue(card), 0)
         : 0;
     const totalElement = document.getElementById('total-value');
-    if (totalElement) totalElement.innerText = `$${total.toFixed(2)}`;
+    if (totalElement) totalElement.innerText = formatEur(total);
 }
 
 function indexCardNodes() {
@@ -1013,9 +1070,9 @@ function sortedBinderCards(cards, mode) {
             result = raritySortRank(cardB.rarity) - raritySortRank(cardA.rarity) ||
                 compareCardNames(cardA, cardB);
         } else if (mode === 'price_desc') {
-            result = (Number(cardB.currentPrice) || 0) - (Number(cardA.currentPrice) || 0);
+            result = cardEurValue(cardB) - cardEurValue(cardA);
         } else if (mode === 'price_asc') {
-            result = (Number(cardA.currentPrice) || 0) - (Number(cardB.currentPrice) || 0);
+            result = cardEurValue(cardA) - cardEurValue(cardB);
         } else if (mode === 'recent') {
             result = cardAddedTime(cardB) - cardAddedTime(cardA) || b.index - a.index;
         } else if (mode === 'set') {
@@ -1203,7 +1260,7 @@ function renderBinderPicker() {
     container.innerHTML = state.binders.map(binder => {
         const isCurrent = binder.id === state.currentBinderId;
         const count = binder.cards.length;
-        const total = binder.cards.reduce((sum, card) => sum + (Number(card.currentPrice) || 0), 0);
+        const total = binder.cards.reduce((sum, card) => sum + cardEurValue(card), 0);
         const binderId = escapeHtml(binder.id);
 
         return `
@@ -1224,7 +1281,7 @@ function renderBinderPicker() {
                     ${isCurrent ? '<span class="binder-current-badge">Aktuálny</span>' : ''}
                 </div>
                 <div class="binder-card-stack">${renderBinderStack(binder)}</div>
-                <div class="binder-card-total">$${total.toFixed(2)}</div>
+                <div class="binder-card-total">${formatEur(total)}</div>
             </div>
         `;
     }).join('');
@@ -1269,7 +1326,7 @@ function renderSharedBinderPicker() {
                     <span>${count} ${cardCountLabel(count)}</span>
                 </div>
                 <div class="binder-card-stack">${stack}</div>
-                <div class="binder-card-total">$${total.toFixed(2)}</div>
+                <div class="binder-card-total">${formatEur(total)}</div>
             </div>
         `;
     }).join('');
@@ -1659,7 +1716,7 @@ function cleanupOrphanData() {
 
 // --- Price history ---
 function formatChartMoney(value) {
-    return '$' + Number(value).toFixed(2);
+    return formatEur(value);
 }
 
 function formatChartDate(timestamp) {
@@ -1716,12 +1773,12 @@ function renderPriceHistory(card) {
         `;
     }
 
-    const currentPrice = Number(card.currentPrice ?? card.price ?? 0);
+    const currentPrice = cardEurValue(card, card.currentPrice ?? card.price ?? 0);
     let points = Array.isArray(card.priceHistory)
         ? card.priceHistory
             .map(point => ({
                 t: Date.parse(String(point.date) + 'T00:00:00'),
-                p: Number(point.price),
+                p: cardEurValue(card, point.price),
                 source: point.source === 'cardmarket' ? 'cardmarket' : 'local'
             }))
             .filter(point => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
@@ -1885,7 +1942,7 @@ function historyFromEntries(entries) {
             }
             if (price <= 0 && history.length > 0) price = history[0].price;
             if (price <= 0) price = Number(card.currentPrice) || 0;
-            total += price;
+            total += cardEurValue(card, price);
         });
         if (total > 0) points.push({ date, price: total, source: 'local' });
     });
@@ -1939,7 +1996,7 @@ function recordValueSnapshots() {
     let collectionTotal = 0;
     state.binders.forEach(binder => {
         const total = binder.cards.reduce(
-            (sum, card) => sum + (Number(card.currentPrice) || 0),
+            (sum, card) => sum + cardEurValue(card),
             0
         );
         recordValueSnapshot(binder.priceHistory, total);
@@ -2366,11 +2423,11 @@ function renderGradePrices(card) {
                 ${grades.map(grade => `
                     <div class="grade-row">
                         <span class="grade-label">${escapeHtml(grade.label)}</span>
-                        <span class="grade-value">${formatChartMoney(grade.price)}</span>
+                        <span class="grade-value">${formatChartMoney(cardEurValue(card, grade.price))}</span>
                     </div>
                 `).join('')}
             </div>
-            <div class="grade-note">Zdroj: PriceCharting. Zobrazené sú všetky dostupné grade. Ceny sú v USD a môžu sa líšiť podľa stavu karty.</div>
+            <div class="grade-note">Zdroj: PriceCharting. Zobrazené sú všetky dostupné grade. Ceny sú prepočítané na EUR a môžu sa líšiť podľa stavu karty.</div>
         </div>
     `;
 }
@@ -2442,7 +2499,7 @@ function handlePriceCharting(cardId, data, language = null, game = null) {
         card.priceChartingError = !isMtg && grades.length === 0 && fallbackPrice <= 0;
 
 
-        const currentPrice = Number(card.currentPrice) || 0;
+        const currentPrice = cardEurValue(card);
         const source = String(card.priceSource || '').toLowerCase();
         // Cardmarket/TCGdex is the base price. PriceCharting is only a fallback
         // when no base price exists, so never replace it here.
@@ -2567,10 +2624,10 @@ function attachHoloTilt() {
             const relativeGamma = gamma - holoTiltBase.gamma;
             // The card follows the phone in the opposite direction to the
             // previous version. The highlight keeps its original response.
-            const rotateX = Math.max(-18, Math.min(18, relativeBeta / 4.5));
-            const rotateY = Math.max(-20, Math.min(20, -relativeGamma / 4.2));
-            const shineX = Math.max(0, Math.min(100, 50 + relativeGamma * 2.2));
-            const shineY = Math.max(0, Math.min(100, 50 + relativeBeta * 1.8));
+            const rotateX = Math.max(-26, Math.min(26, relativeBeta / 3.1));
+            const rotateY = Math.max(-30, Math.min(30, -relativeGamma / 2.9));
+            const shineX = Math.max(0, Math.min(100, 50 + relativeGamma * 2.8));
+            const shineY = Math.max(0, Math.min(100, 50 + relativeBeta * 2.4));
             if (holoTiltFrame) cancelAnimationFrame(holoTiltFrame);
             holoTiltFrame = requestAnimationFrame(() => applyHoloTilt(rotateX, rotateY, shineX, shineY));
         }, true);
@@ -2585,8 +2642,8 @@ function attachHoloTilt() {
         if (rect.width === 0 || rect.height === 0) return;
         const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
         const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-        const rotateY = (x - 0.5) * 30;
-        const rotateX = (0.5 - y) * 26;
+        const rotateY = (x - 0.5) * 42;
+        const rotateX = (0.5 - y) * 36;
         applyHoloTilt(rotateX, rotateY, x * 100, y * 100);
     }, { passive: true });
     card.addEventListener('pointerleave', resetHoloTilt);
@@ -3160,6 +3217,7 @@ function handleScanResult(result) {
 // --- Price Verification ---
 function refreshAllPrices({ silent = false, force = false } = {}) {
     if (!window.flutterBridge) return false;
+    requestExchangeRate();
 
     const now = Date.now();
     if (!force && now - lastPriceRefresh < 30000) return false;
@@ -3378,10 +3436,8 @@ function renderOverviewTabs() {
 
 function renderTopCards(entries) {
     const top = entries
-        .filter(entry => (Number(entry.card.currentPrice) || 0) > 0)
-        .sort((a, b) =>
-            (Number(b.card.currentPrice) || 0) - (Number(a.card.currentPrice) || 0)
-        )
+        .filter(entry => cardEurValue(entry.card) > 0)
+        .sort((a, b) => cardEurValue(b.card) - cardEurValue(a.card))
         .slice(0, 3);
 
     if (top.length === 0) {
@@ -3391,7 +3447,7 @@ function renderTopCards(entries) {
     return `
         <div class="overview-top-list">
             ${top.map((entry, index) => {
-                const price = Number(entry.card.currentPrice) || 0;
+                const price = cardEurValue(entry.card);
                 const finish = finishLabel(entry.card);
                 return `
                     <button class="overview-top-row"
@@ -3404,7 +3460,7 @@ function renderTopCards(entries) {
                             <span class="overview-top-name">${escapeHtml(entry.card.name)}</span>
                             <span class="overview-top-sub">${escapeHtml(entry.card.set || '')} ${languageFlag(entry.card.language)}${finish ? ' · ' + escapeHtml(finish) : ''}</span>
                         </span>
-                        <span class="overview-top-price">$${price.toFixed(2)}</span>
+                        <span class="overview-top-price">${formatEur(price)}</span>
                     </button>
                 `;
             }).join('')}
@@ -3439,7 +3495,7 @@ function renderOverview() {
         : allEntries;
 
     const collectionValue = allEntries.reduce(
-        (sum, { card }) => sum + (Number(card.currentPrice) || 0),
+        (sum, { card }) => sum + cardEurValue(card),
         0
     );
 
@@ -3457,7 +3513,7 @@ function renderOverview() {
     const totalCards = entries.length;
     const uniqueCards = new Set(entries.map(({ card }) => cardKey(card))).size;
     const totalValue = entries.reduce(
-        (sum, { card }) => sum + (Number(card.currentPrice) || 0),
+        (sum, { card }) => sum + cardEurValue(card),
         0
     );
     const share = collectionValue > 0 ? (totalValue / collectionValue) * 100 : 0;
@@ -3465,7 +3521,7 @@ function renderOverview() {
     const binderRows = selectedBinder ? '' : state.binders.map(binder => {
         const count = binder.cards.length;
         const value = binder.cards.reduce(
-            (sum, card) => sum + (Number(card.currentPrice) || 0),
+            (sum, card) => sum + cardEurValue(card),
             0
         );
         const binderShare = collectionValue > 0 ? (value / collectionValue) * 100 : 0;
@@ -3478,7 +3534,7 @@ function renderOverview() {
                     <div class="overview-bar"><div class="overview-bar-fill" style="width:${binderShare.toFixed(1)}%"></div></div>
                 </div>
                 <div class="overview-row-value">
-                    $${value.toFixed(2)}
+                    ${formatEur(value)}
                     <span class="overview-chevron">›</span>
                 </div>
             </button>
@@ -3529,7 +3585,7 @@ function renderOverview() {
         state.binders.forEach(binder => {
             const count = binder.cards.length;
             const value = binder.cards.reduce(
-                (sum, card) => sum + (Number(card.currentPrice) || 0),
+                (sum, card) => sum + cardEurValue(card),
                 0
             );
             if (!largestBinder || count > largestBinder.count) {
@@ -3545,7 +3601,7 @@ function renderOverview() {
         {
             label: 'Priemerná cena karty',
             sub: `${totalCards} ${cardCountLabel(totalCards)}`,
-            value: `$${averageValue.toFixed(2)}`
+            value: formatEur(averageValue)
         },
         {
             label: 'Duplikáty',
@@ -3570,7 +3626,7 @@ function renderOverview() {
         ...(!selectedBinder && mostValuableBinder && mostValuableBinder.value > 0 ? [{
             label: 'Najhodnotnejší balík',
             sub: escapeHtml(mostValuableBinder.binder.name),
-            value: `$${mostValuableBinder.value.toFixed(2)}`
+            value: formatEur(mostValuableBinder.value)
         }] : [])
     ].map(row => `
         <div class="overview-row">
@@ -3610,7 +3666,7 @@ function renderOverview() {
             </div>
             <div class="overview-stat">
                 <div class="overview-stat-label">Hodnota</div>
-                <div class="overview-stat-value success">$${totalValue.toFixed(2)}</div>
+                <div class="overview-stat-value success">${formatEur(totalValue)}</div>
                 <div class="overview-stat-sub">${selectedBinder ? `${share.toFixed(1)} % zbierky` : 'celá zbierka'}</div>
             </div>
             <div class="overview-stat">
@@ -3872,6 +3928,49 @@ function handlePublicStats(data) {
             <div class="hidden-stat-sub">${sub}</div>
         </div>
     `).join('');
+
+    const themeHost = document.getElementById('hidden-theme-stats');
+    if (themeHost) {
+        const labels = {
+            classic: 'Klasika',
+            poke: 'Poke',
+            magic: 'Magic',
+            stone: 'Stone',
+            glass: 'Glass'
+        };
+        const themes = stats.themes && typeof stats.themes === 'object' ? stats.themes : {};
+        const entries = Object.entries(themes)
+            .map(([id, count]) => [id, Number(count) || 0])
+            .filter(([, count]) => count > 0)
+            .sort((a, b) => b[1] - a[1]);
+        if (entries.length === 0) {
+            themeHost.innerHTML = `
+                <div class="hidden-theme-head">
+                    <span class="hidden-theme-title">Témy aktívnych používateľov</span>
+                </div>
+                <div class="hidden-theme-empty">Témy sa zobrazia po aktualizácii SQL migrácie a použití tém.</div>
+            `;
+        } else {
+            const total = entries.reduce((sum, [, count]) => sum + count, 0);
+            const top = entries[0];
+            themeHost.innerHTML = `
+                <div class="hidden-theme-head">
+                    <span class="hidden-theme-title">Témy aktívnych používateľov</span>
+                    <span class="hidden-theme-top">Najviac: ${escapeHtml(labels[top[0]] || top[0])}</span>
+                </div>
+                ${entries.map(([id, count]) => {
+                    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                    return `
+                        <div class="hidden-theme-row">
+                            <span class="hidden-theme-label">${escapeHtml(labels[id] || id)} · ${count}</span>
+                            <span class="hidden-theme-track"><span class="hidden-theme-fill" style="width:${pct}%"></span></span>
+                            <span class="hidden-theme-count">${count}</span>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+        }
+    }
 }
 
 function showVersionHistory() {

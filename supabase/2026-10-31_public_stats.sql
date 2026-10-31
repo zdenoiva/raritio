@@ -1,6 +1,16 @@
--- Raritio 0.4.2 - aggregate public statistics for the hidden stats panel.
+-- Raritio 0.4.6 - aggregate public statistics for the hidden stats panel.
 -- Only counts are exposed; no user identifiers or personal data.
 -- "users" counts active profiles, not empty anonymous/test profiles.
+
+alter table public.profiles
+  add column if not exists theme text not null default 'classic';
+
+alter table public.profiles
+  drop constraint if exists profiles_theme_check;
+
+alter table public.profiles
+  add constraint profiles_theme_check
+  check (theme in ('classic', 'poke', 'magic', 'stone', 'glass'));
 
 create or replace function public.get_public_stats()
 returns jsonb
@@ -8,18 +18,27 @@ language sql
 security definer
 set search_path = public
 as $$
+  with active_profiles as (
+    select p.id, p.theme
+    from public.profiles p
+    where exists (
+      select 1 from public.shared_binders b
+      where b.owner_id = p.id and b.is_active = true
+    )
+    or exists (
+      select 1 from public.shared_card_likes l
+      where l.user_id = p.id
+    )
+  )
   select jsonb_build_object(
-    'users', (
-      select count(*)
-      from public.profiles p
-      where exists (
-        select 1 from public.shared_binders b
-        where b.owner_id = p.id and b.is_active = true
-      )
-      or exists (
-        select 1 from public.shared_card_likes l
-        where l.user_id = p.id
-      )
+    'users', (select count(*) from active_profiles),
+    'themes', (
+      select coalesce(jsonb_object_agg(theme, total), '{}'::jsonb)
+      from (
+        select theme, count(*) as total
+        from active_profiles
+        group by theme
+      ) grouped
     ),
     'sharedBinders', (
       select count(*) from public.shared_binders where is_active = true

@@ -1,6 +1,22 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.4.6",
+    "date": "2026-10-31",
+    "changes": [
+      "Všetky ceny a súčty sú v eurách, symbol € je za číslom.",
+      "Ceny v USD sa prepočítavajú aktuálnym kurzom pri aktualizácii cien.",
+      "Drahé karty v Klasike a Stone dostali výraznejší glow rám.",
+      "Glass už nezafarbuje celé lacné illustration karty; pastelový efekt má len glow.",
+      "Poke nameplate je celý vnútri karty a viac textu sa vmestí.",
+      "Vypnuté označovanie textu dlhým podržaním a jemnejší efekt stlačenia tlačidiel.",
+      "Zvýšená citlivosť nakláňania kariet.",
+      "Tlačidlá Zoradiť a Presúvať sú nižšie.",
+      "Skryté štatistiky zobrazujú používanie tém a najpopulárnejšiu tému.",
+      "SQL migrácia pre témy je v 2026-10-31_public_stats.sql."
+    ]
+  },
+  {
     "version": "0.4.5",
     "date": "2026-10-31",
     "changes": [

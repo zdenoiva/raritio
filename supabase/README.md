@@ -28,9 +28,9 @@ Workflow potrebuje repository secrets:
 
 Anon key je verejný, ale držíme ho v secrets, aby nebol v kóde.
 
-## 4. Migracia 0.4.2
+## 4. Migracia 0.4.6
 
-Pre skryte statistiky spusti v SQL Editore aj:
+Pre skryte statistiky a počítanie tém spusti v SQL Editore aj (rovnaký súbor aktualizuje aj stĺpec `profiles.theme`):
 
 ```text
 supabase/2026-10-31_public_stats.sql

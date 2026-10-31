@@ -37,6 +37,7 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
   bool _loading = true;
   String? _error;
   bool _profilePromptShown = false;
+  bool _themeTracked = false;
   Timer? _refreshTimer;
 
   @override
@@ -67,6 +68,10 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
       final profile =
           await widget.service.getProfile() ??
           await widget.service.ensureProfile();
+      if (!_themeTracked) {
+        _themeTracked = true;
+        await widget.service.updateTheme(widget.theme);
+      }
       final results = await Future.wait([
         widget.service.getFriends(),
         widget.service.getSharedWithMe(),
@@ -1103,7 +1108,7 @@ class _BinderTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${summary.cardCount} kariet · \$${summary.totalValue.toStringAsFixed(2)}$updatedText',
+                        '${summary.cardCount} kariet  ·  ${summary.totalValue.toStringAsFixed(2).replaceAll('.', ',')} \u20ac$updatedText',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: palette.muted, fontSize: 11),

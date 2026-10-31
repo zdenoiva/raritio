@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.6] - 2026-10-31
+
+- Všetky ceny a súčty sú v eurách, symbol € je za číslom.
+- Ceny v USD sa prepočítavajú aktuálnym kurzom pri aktualizácii cien.
+- Drahé karty v Klasike a Stone dostali výraznejší glow rám.
+- Glass už nezafarbuje celé lacné illustration karty; pastelový efekt má len glow.
+- Poke nameplate je celý vnútri karty a viac textu sa vmestí.
+- Vypnuté označovanie textu dlhým podržaním a jemnejší efekt stlačenia tlačidiel.
+- Zvýšená citlivosť nakláňania kariet.
+- Tlačidlá Zoradiť a Presúvať sú nižšie.
+- Skryté štatistiky zobrazujú používanie tém a najpopulárnejšiu tému.
+- SQL migrácia pre témy je v `2026-10-31_public_stats.sql`.
+
 ## [0.4.5] - 2026-10-31
 
 - Výrazné zrýchlenie Glass témy: karty už nepoužívajú drahý per-card blur.

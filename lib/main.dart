@@ -21,6 +21,7 @@ import 'package:raritio/services/backup_crypto_service.dart';
 import 'package:raritio/services/bridge_service.dart';
 import 'package:raritio/services/card_service.dart';
 import 'package:raritio/services/custom_card_image_service.dart';
+import 'package:raritio/services/exchange_rate_service.dart';
 import 'package:raritio/services/price_charting_service.dart';
 import 'package:raritio/services/price_service.dart';
 import 'package:raritio/services/search_query_expander.dart';
@@ -80,6 +81,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
   final PriceService _priceService = PriceService();
   final CardService _cardService = CardService();
   final PriceChartingService _priceChartingService = PriceChartingService();
+  final ExchangeRateService _exchangeRateService = ExchangeRateService();
   final StateService _stateService = StateService();
   final BackupCryptoService _backupCrypto = BackupCryptoService();
   final CustomCardImageService _customCardImageService =
@@ -164,6 +166,8 @@ class _RaritioTCGState extends State<RaritioTCG> {
       unawaited(_handleSharedSync(message));
     } else if (message.startsWith('stopShared:')) {
       unawaited(_handleStopShared(message));
+    } else if (message.startsWith('requestExchangeRate:')) {
+      unawaited(_sendExchangeRate());
     } else if (message.startsWith('fetchPublicStats:')) {
       unawaited(_handlePublicStats());
     } else if (message.startsWith('setAppTheme:')) {
@@ -171,6 +175,17 @@ class _RaritioTCGState extends State<RaritioTCG> {
         final data = jsonDecode(message.substring('setAppTheme:'.length));
         if (data is Map) {
           _appTheme = (data['theme'] ?? 'classic').toString();
+        }
+      } catch (_) {}
+    } else if (message.startsWith('trackTheme:')) {
+      try {
+        final data = jsonDecode(message.substring('trackTheme:'.length));
+        if (data is Map) {
+          unawaited(
+            _sharedBinderService.updateTheme(
+              (data['theme'] ?? 'classic').toString(),
+            ),
+          );
         }
       } catch (_) {}
     } else if (message.startsWith('checkUpdates:')) {
@@ -666,6 +681,16 @@ class _RaritioTCGState extends State<RaritioTCG> {
       }
     }
     return card;
+  }
+
+  Future<void> _sendExchangeRate() async {
+    try {
+      final rate = await _exchangeRateService.getUsdEur(force: true);
+      if (!mounted) return;
+      _controller.runJavaScript('setUsdEurRate(${rate.toStringAsFixed(6)})');
+    } catch (_) {
+      // Keep the cached rate in the WebView.
+    }
   }
 
   Future<void> _handlePublicStats() async {

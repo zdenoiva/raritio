@@ -74,7 +74,8 @@ class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
     final finish = primaryCardFinish(card);
     final price =
         double.tryParse(
-          (card['currentPrice'] ?? card['price'] ?? '').toString(),
+          (card['priceEur'] ?? card['currentPrice'] ?? card['price'] ?? '')
+              .toString(),
         ) ??
         0;
     final image = card['imageUri']?.toString() ?? '';
@@ -156,7 +157,7 @@ class _SharedCardDetailScreenState extends State<SharedCardDetailScreen> {
             _infoRow(
               _infoCard(
                 'Cena',
-                '\$${price.toStringAsFixed(2)}',
+                '${price.toStringAsFixed(2).replaceAll('.', ',')} \u20ac',
                 valueColor: palette.success,
               ),
               _infoCard('Zdroj ceny', _priceSourceLabel(card)),
