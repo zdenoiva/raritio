@@ -1,6 +1,18 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.3.21",
+    "date": "2026-10-31",
+    "changes": [
+      "Skener je opäť jednoduchý pevný rámik 63 : 88 s manuálnou spúšťou.",
+      "Odstránená dynamická detekcia hrán a balík flutter_better_scanner.",
+      "OCR ide raz na výrez z rámika; latin model má prednosť.",
+      "Detaily a cena sa načítajú len pre vybranú kartu, nie pre všetkých 6.",
+      "Hľadanie je rýchlejšie a stále zobrazí až 6 návrhov.",
+      "Výber Normal / Holo / Reverse Holo zostáva."
+    ]
+  },
+  {
     "version": "0.3.20",
     "date": "2026-10-31",
     "changes": [

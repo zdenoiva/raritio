@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.21] - 2026-10-31
+
+- Skener je opäť jednoduchý pevný rámik 63 : 88 s manuálnou spúšťou.
+- Odstránená dynamická detekcia hrán a balík `flutter_better_scanner`.
+- OCR ide raz na výrez z rámika; latin model má prednosť.
+- Detaily a cena sa načítajú len pre vybranú kartu, nie pre všetkých 6.
+- Hľadanie je rýchlejšie a stále zobrazí až 6 návrhov.
+- Výber Normal / Holo / Reverse Holo zostáva.
+
 ## [0.3.20] - 2026-10-31
 
 - V spodnom náhľade pribudol výber vizuálu karty, ak má karta viac variantov.

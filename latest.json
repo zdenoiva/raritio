@@ -1,14 +1,17 @@
 {
-  "version": "0.3.20",
-  "versionCode": 320,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.20/raritio-0.3.20.apk",
-  "sha256": "5aa9e6d32db5aa236481d645c5606a0792bfad1ae6d0e1671b38f85fded9f9da",
-  "size": 119916474,
-  "publishedAt": "2026-10-31T14:00:00Z",
+  "version": "0.3.21",
+  "versionCode": 321,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.21/raritio-0.3.21.apk",
+  "sha256": "41ce441802af3010d5cd6e4b8f7b9ba8db0272f9daa4407f0669a391fa9c1064",
+  "size": 118194124,
+  "publishedAt": "2026-10-31T14:30:00Z",
   "changelog": [
-    "V spodnom náhľade je výber vizuálu karty (Normal / Holo / Reverse Holo), ak ich karta má viac.",
-    "Výber mení obrázok, cenu a variant karty.",
-    "Vybraný variant sa uloží spolu s kartou.",
-    "Raritio beta 0.3.20."
+    "Skener je opäť jednoduchý pevný rámik 63 : 88 s manuálnou spúšťou.",
+    "Odstránená dynamická detekcia hrán a balík flutter_better_scanner.",
+    "OCR ide raz na výrez z rámika; latin model má prednosť.",
+    "Detaily a cena sa načítajú len pre vybranú kartu.",
+    "Rýchlejšie hľadanie a až 6 návrhov.",
+    "Výber Normal / Holo / Reverse Holo zostáva.",
+    "Raritio beta 0.3.21."
   ]
 }

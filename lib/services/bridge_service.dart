@@ -12,7 +12,7 @@ class BridgeService {
   Future<Map<String, dynamic>?> scanImagePath(
     String path, {
     bool cropToFrame = true,
-    double widthFraction = 0.96,
+    double widthFraction = 0.88,
   }) async {
     File? cropped;
     try {

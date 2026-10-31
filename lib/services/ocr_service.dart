@@ -50,16 +50,31 @@ class OCRService {
   Future<OcrScanResult?> scanImage(File imageFile) async {
     final size = await _readImageSize(imageFile);
 
-    // Run all scripts on the same photo. A Japanese card can contain Latin
-    // HP/attack text, and an English card may contain no CJK at all, so the
-    // best parsed candidate is chosen by script-aware scoring.
+    // Most cards are Latin. Try that model first; only pay for the CJK models
+    // when the Latin result is weak or empty.
+    final latin = await _recognize(
+      imageFile,
+      TextRecognitionScript.latin,
+      'en',
+      size,
+    );
+    if (latin != null && latin.score >= 8) {
+      return OcrScanResult(
+        text: latin.text,
+        rawText: latin.rawText,
+        language: latin.language,
+      );
+    }
+
     final candidates = await Future.wait([
-      _recognize(imageFile, TextRecognitionScript.latin, 'en', size),
       _recognize(imageFile, TextRecognitionScript.japanese, 'ja', size),
       _recognize(imageFile, TextRecognitionScript.chinese, 'zh-cn', size),
     ]);
 
-    final valid = candidates.whereType<_OcrCandidate>().toList();
+    final valid = <_OcrCandidate>[
+      if (latin != null) latin,
+      ...candidates.whereType<_OcrCandidate>(),
+    ];
     if (valid.isEmpty) return null;
 
     var best = valid.first;

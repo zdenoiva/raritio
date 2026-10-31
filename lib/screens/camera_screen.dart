@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 
+import 'package:camera/camera.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_better_scanner/flutter_better_scanner.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -45,6 +44,7 @@ class CameraScreen extends StatefulWidget {
     this.initialGame = 'pokemon',
     this.captureOnly = false,
     this.onRecognize,
+    this.onResolveDetails,
     this.onAdd,
   });
 
@@ -53,12 +53,9 @@ class CameraScreen extends StatefulWidget {
   /// Used by the custom-card-photo flow. It only takes a photo and returns it
   /// without running recognition or showing the card suggestion sheet.
   final bool captureOnly;
-  final Future<ScanRecognition> Function(
-    String path,
-    String game, {
-    bool fromCamera,
-  })?
-  onRecognize;
+  final Future<ScanRecognition> Function(String path, String game)? onRecognize;
+  final Future<Map<String, dynamic>?> Function(Map<String, dynamic> card)?
+  onResolveDetails;
   final Future<bool> Function(Map<String, dynamic> card)? onAdd;
 
   @override
@@ -67,143 +64,176 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   static const Color _neon = Color(0xFFB6FF3B);
+  static const double _cardAspect = 63 / 88;
 
-  ScannerController? _controller;
-  late String _game = widget.initialGame == 'mtg' ? 'mtg' : 'pokemon';
+  CameraController? _controller;
+  List<CameraDescription>? _cameras;
+  String? _error;
+  bool _isTakingPicture = false;
   bool _torchOn = false;
-  bool _autoCapture = true;
+  late String _game = widget.initialGame == 'mtg' ? 'mtg' : 'pokemon';
+  double _zoom = 1;
+  double _maxZoom = 1;
+
   bool _processing = false;
   bool _resultVisible = false;
   bool _adding = false;
-  bool _capturing = false;
+  bool _resolvingDetails = false;
   String? _currentPath;
   bool _currentPathIsTemporary = false;
   ScanRecognition? _recognition;
   Map<String, dynamic>? _selectedCandidate;
-  String? _error;
-  DateTime? _autoReadySince;
-  DateTime _autoCooldownUntil = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
     super.initState();
-    _autoCapture = !widget.captureOnly;
-    _controller = ScannerController(config: _scannerConfig());
-    _controller!.addListener(_onControllerChanged);
-    _controller!.detection.addListener(_onDetectionChanged);
-    unawaited(_initialize());
+    _initializeCamera();
   }
 
-  ScannerConfig _scannerConfig() {
-    return ScannerConfig(
-      captureMode: CaptureMode.single,
-      shutterMode: ShutterMode.manual,
-      autoDetectEdges: true,
-      detectionQuality: DetectionQuality.high,
-      autoCrop: false,
-      autoEnhance: false,
-      enhancement: ScanEnhancement.original,
-      guide: ScanGuide.free,
-      allowGuideChange: false,
-      showGrid: false,
-      allowGridToggle: false,
-      flashMode: ScannerFlashMode.off,
-      allowFlashControl: false,
-      camera: CameraFacing.back,
-      allowCameraSwitch: false,
-      allowGalleryImport: false,
-      allowZoom: true,
-      afterCapture: AfterCapture.returnPaths,
-      workingResolution: 2600,
-      autoCaptureTuning: AutoCaptureTuning(
-        holdDuration: Duration(milliseconds: 650),
-        cooldown: Duration(milliseconds: 900),
-        minAreaFraction: 0.14,
-        minFocus: 7,
-      ),
-      theme: ScannerTheme(
-        accent: _neon,
-        detected: _neon,
-        searching: Colors.white,
-        warning: Color(0xFFFFC107),
-        background: Colors.black,
-        surface: Color(0xFF16161A),
-        onSurface: Colors.white,
-      ),
-    );
-  }
-
-  Future<void> _initialize() async {
+  Future<void> _initializeCamera() async {
     try {
-      await _controller?.initialize();
+      _cameras = await availableCameras().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => <CameraDescription>[],
+      );
+      if (_cameras == null || _cameras!.isEmpty) {
+        if (mounted) {
+          setState(
+            () => _error = 'Kameru sa nepodarilo spustiť.\nSkontroluj povolenie kamery v nastaveniach aplikácie.',
+          );
+        }
+        return;
+      }
+
+      final candidates = <CameraDescription>[
+        ..._cameras!.where((c) => c.lensDirection == CameraLensDirection.back),
+        ..._cameras!.where((c) => c.lensDirection != CameraLensDirection.back),
+      ];
+
+      Object? lastError;
+      for (final camera in candidates) {
+        CameraController? controller;
+        try {
+          controller = CameraController(
+            camera,
+            ResolutionPreset.max,
+            enableAudio: false,
+            imageFormatGroup: ImageFormatGroup.jpeg,
+          );
+          await controller.initialize().timeout(
+            const Duration(seconds: 20),
+            onTimeout: () => throw Exception('Kamera nereaguje (timeout).'),
+          );
+          try {
+            await controller.setFocusMode(FocusMode.auto);
+          } catch (_) {}
+          try {
+            await controller.setExposureMode(ExposureMode.auto);
+          } catch (_) {}
+          try {
+            _maxZoom = await controller.getMaxZoomLevel();
+          } catch (_) {
+            _maxZoom = 1;
+          }
+          if (!mounted) {
+            await controller.dispose();
+            return;
+          }
+          setState(() {
+            _controller = controller;
+            _error = null;
+          });
+          return;
+        } catch (e) {
+          lastError = e;
+          await controller?.dispose();
+        }
+      }
+
+      if (mounted) {
+        setState(
+          () => _error =
+              'Kameru sa nepodarilo spustiť.\nSkontroluj povolenie kamery v nastaveniach aplikácie.\n\n$lastError',
+        );
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = 'Kameru sa nepodarilo spustiť: $e');
+      if (mounted) setState(() => _error = 'Chyba kamery: $e');
     }
   }
 
-  void _onControllerChanged() {
-    if (!mounted) return;
-    // Keep the zoom, torch and permission UI in sync with the engine.
-    setState(() {});
-  }
-
-  void _onDetectionChanged() {
-    if (!mounted) return;
+  Future<void> _takePicture() async {
     final controller = _controller;
-    if (controller == null ||
-        widget.captureOnly ||
-        !_autoCapture ||
-        _processing ||
-        _resultVisible ||
-        _adding ||
-        _capturing) {
-      _autoReadySince = null;
+    if (_isTakingPicture ||
+        controller == null ||
+        !controller.value.isInitialized) {
       return;
     }
-    if (DateTime.now().isBefore(_autoCooldownUntil)) {
-      _autoReadySince = null;
-      return;
-    }
-
-    final state = controller.detection.value;
-    final quad = state.quad;
-    if (state.hint != ScanHint.ready ||
-        quad == null ||
-        !_isCardQuad(quad, controller.previewAspectRatio)) {
-      _autoReadySince = null;
-      return;
-    }
-
-    _autoReadySince ??= DateTime.now();
-    if (DateTime.now().difference(_autoReadySince!) >=
-        const Duration(milliseconds: 300)) {
-      _autoReadySince = null;
-      unawaited(_captureScanRaw());
+    setState(() => _isTakingPicture = true);
+    try {
+      final file = await controller.takePicture();
+      if (!mounted) return;
+      setState(() => _isTakingPicture = false);
+      await _recognizePath(file.path, temporary: true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isTakingPicture = false;
+        _error = 'Nepodarilo sa odfotiť: $e';
+      });
     }
   }
 
-  Future<void> _recognizePath(
-    String path, {
-    bool temporary = false,
-    bool fromCamera = false,
-  }) async {
+  Future<void> _captureForCustomPhoto() async {
+    final controller = _controller;
+    if (controller == null) return;
+    try {
+      final file = await controller.takePicture();
+      final dir = await getTemporaryDirectory();
+      final target = p.join(
+        dir.path,
+        'raritio-custom-${DateTime.now().microsecondsSinceEpoch}.jpg',
+      );
+      await File(file.path).copy(target);
+      if (mounted) {
+        Navigator.pop(context, CameraResult(path: target, game: _game));
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Nepodarilo sa odfotiť: $e');
+    }
+  }
+
+  Future<void> _pickGallery() async {
+    if (_processing || _resultVisible || _isTakingPicture) return;
+    final picked = await FilePicker.pickFile(
+      dialogTitle: 'Vybrať fotku karty',
+      type: FileType.image,
+    );
+    final path = picked?.path;
+    if (path == null || path.isEmpty || !mounted) return;
+    if (widget.captureOnly) {
+      Navigator.pop(context, CameraResult(path: path, game: _game));
+      return;
+    }
+    await _recognizePath(path);
+  }
+
+  Future<void> _recognizePath(String path, {bool temporary = false}) async {
     final recognize = widget.onRecognize;
-    if (recognize == null) return;
-    if (!mounted) return;
+    if (recognize == null || !mounted) return;
 
     setState(() {
       _processing = true;
       _resultVisible = true;
       _adding = false;
+      _resolvingDetails = false;
       _recognition = null;
       _selectedCandidate = null;
-      _error = null;
       _currentPath = path;
       _currentPathIsTemporary = temporary;
     });
 
     try {
-      final result = await recognize(path, _game, fromCamera: fromCamera);
+      final result = await recognize(path, _game);
       if (!mounted) return;
       setState(() {
         _processing = false;
@@ -215,6 +245,9 @@ class _CameraScreenState extends State<CameraScreen> {
           _error = result.error ?? 'Kartu sa nepodarilo rozpoznať.';
         }
       });
+      if (_selectedCandidate != null) {
+        unawaited(_resolveSelected());
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -224,34 +257,53 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _finishResult() async {
-    final path = _currentPath;
-    final temporary = _currentPathIsTemporary;
-    if (!mounted) return;
-    setState(() {
-      _processing = false;
-      _resultVisible = false;
-      _adding = false;
-      _recognition = null;
-      _selectedCandidate = null;
-      _error = null;
-      _currentPath = null;
-      _currentPathIsTemporary = false;
-    });
-    _autoReadySince = null;
-    _autoCooldownUntil = DateTime.now().add(const Duration(milliseconds: 900));
-    if (temporary && path != null) {
-      try {
-        final file = File(path);
-        if (await file.exists()) await file.delete();
-      } catch (_) {}
+  Future<void> _resolveSelected() async {
+    final selected = _selectedCandidate;
+    if (selected == null || selected['detailsLoaded'] == true) return;
+    await _resolveCandidate(selected);
+  }
+
+  Future<void> _resolveCandidate(Map<String, dynamic> card) async {
+    final resolver = widget.onResolveDetails;
+    if (resolver == null || card['detailsLoaded'] == true) return;
+    if (mounted) setState(() => _resolvingDetails = true);
+    try {
+      final details = await resolver(card);
+      if (!mounted) return;
+      if (details != null) {
+        final candidates = _recognition?.candidates;
+        if (candidates != null) {
+          final index = candidates.indexWhere(
+            (item) => item['id'] == card['id'],
+          );
+          if (index >= 0) candidates[index] = details;
+        }
+        if (_selectedCandidate?['id'] == card['id']) {
+          _selectedCandidate = details;
+        }
+      }
+    } catch (_) {
+      // Keep the summary if details fail.
+    } finally {
+      if (mounted) setState(() => _resolvingDetails = false);
     }
   }
 
+  void _selectCandidate(Map<String, dynamic> card) {
+    setState(() => _selectedCandidate = card);
+    unawaited(_resolveCandidate(card));
+  }
+
   Future<void> _addSelected() async {
-    final card = _selectedCandidate;
+    var card = _selectedCandidate;
     final add = widget.onAdd;
     if (card == null || _adding || add == null) return;
+
+    if (card['detailsLoaded'] != true) {
+      await _resolveCandidate(card);
+      card = _selectedCandidate;
+      if (card == null) return;
+    }
 
     setState(() => _adding = true);
     var added = false;
@@ -289,9 +341,7 @@ class _CameraScreenState extends State<CameraScreen> {
       );
       await File(path).copy(copy.path);
       target = copy.path;
-    } catch (_) {
-      // The session copy is still available until the camera is disposed.
-    }
+    } catch (_) {}
 
     if (!mounted) return;
     final recognition = _recognition;
@@ -306,90 +356,51 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  Future<void> _captureNow() async {
-    if (_processing || _resultVisible || _adding || _capturing) return;
-    if (widget.captureOnly) {
-      await _captureForCustomPhoto();
-      return;
+  Future<void> _finishResult() async {
+    final path = _currentPath;
+    final temporary = _currentPathIsTemporary;
+    if (!mounted) return;
+    setState(() {
+      _processing = false;
+      _resultVisible = false;
+      _adding = false;
+      _resolvingDetails = false;
+      _recognition = null;
+      _selectedCandidate = null;
+      _currentPath = null;
+      _currentPathIsTemporary = false;
+    });
+    if (temporary && path != null) {
+      try {
+        final file = File(path);
+        if (await file.exists()) await file.delete();
+      } catch (_) {}
     }
-    await _captureScanRaw();
-  }
-
-  Future<void> _captureScanRaw() async {
-    final controller = _controller;
-    if (controller == null ||
-        _capturing ||
-        _processing ||
-        _resultVisible ||
-        _adding) {
-      return;
-    }
-    setState(() => _capturing = true);
-    try {
-      final rawPath = await controller.captureRaw();
-      if (!mounted) return;
-      setState(() => _capturing = false);
-      if (rawPath == null) return;
-      await _recognizePath(rawPath, temporary: true, fromCamera: true);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _capturing = false;
-        _error = 'Fotku sa nepodarilo spraviť: $e';
-      });
-    }
-  }
-
-  Future<void> _captureForCustomPhoto() async {
-    final controller = _controller;
-    if (controller == null) return;
-    final rawPath = await controller.captureRaw();
-    if (rawPath == null || !mounted) return;
-    try {
-      final dir = await getTemporaryDirectory();
-      final target = p.join(
-        dir.path,
-        'raritio-custom-${DateTime.now().microsecondsSinceEpoch}.jpg',
-      );
-      await File(rawPath).copy(target);
-      if (mounted) {
-        Navigator.pop(context, CameraResult(path: target, game: _game));
-      }
-    } catch (_) {
-      if (mounted) {
-        Navigator.pop(context, CameraResult(path: rawPath, game: _game));
-      }
-    }
-  }
-
-  Future<void> _pickGallery() async {
-    if (_processing || _resultVisible || _capturing) return;
-    final picked = await FilePicker.pickFile(
-      dialogTitle: 'Vybrať fotku karty',
-      type: FileType.image,
-    );
-    final path = picked?.path;
-    if (path == null || path.isEmpty || !mounted) return;
-    if (widget.captureOnly) {
-      Navigator.pop(context, CameraResult(path: path, game: _game));
-      return;
-    }
-    await _recognizePath(path);
   }
 
   Future<void> _toggleTorch() async {
     final controller = _controller;
-    if (controller == null) return;
-    final next = _torchOn ? ScannerFlashMode.off : ScannerFlashMode.torch;
-    await controller.setFlashMode(next);
-    if (mounted) setState(() => _torchOn = !_torchOn);
+    if (controller == null || !controller.value.isInitialized) return;
+    try {
+      await controller.setFlashMode(_torchOn ? FlashMode.off : FlashMode.torch);
+      if (mounted) setState(() => _torchOn = !_torchOn);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Blesk nie je dostupný.')));
+      }
+    }
   }
 
   Future<void> _setZoom(double value) async {
     final controller = _controller;
-    if (controller == null) return;
-    await controller.setZoom(value);
-    if (mounted) setState(() {});
+    if (controller == null || !controller.value.isInitialized) return;
+    final target = value.clamp(1.0, _maxZoom > 1 ? _maxZoom : 1.0).toDouble();
+    try {
+      await controller.setZoomLevel(target);
+      if (mounted) setState(() => _zoom = target);
+    } catch (_) {}
   }
 
   Future<void> _chooseGame() async {
@@ -431,9 +442,7 @@ class _CameraScreenState extends State<CameraScreen> {
         ),
       ),
     );
-    if (selected != null && mounted) {
-      setState(() => _game = selected);
-    }
+    if (selected != null && mounted) setState(() => _game = selected);
   }
 
   Future<void> _showSettings() async {
@@ -460,33 +469,10 @@ class _CameraScreenState extends State<CameraScreen> {
                 },
               ),
             ),
-            if (!widget.captureOnly)
-              ListTile(
-                leading: const Icon(
-                  Icons.center_focus_strong_rounded,
-                  color: Colors.white,
-                ),
-                title: const Text(
-                  'Automatické zachytenie',
-                  style: TextStyle(color: Colors.white),
-                ),
-                subtitle: const Text(
-                  'Karta sa vyfotí, keď je zaostrená a stabilná.',
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
-                ),
-                trailing: Switch(
-                  value: _autoCapture,
-                  onChanged: (value) {
-                    Navigator.pop(context);
-                    setState(() => _autoCapture = value);
-                    _autoReadySince = null;
-                  },
-                ),
-              ),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 0, 20, 18),
               child: Text(
-                'Podrž kartu v ráme, telefon rovnobežne s kartou. '
+                'Umiestni celú kartu do rámika a stlač spúšť. '
                 'Pri slabom svetle zapni blesk.',
                 style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
               ),
@@ -499,254 +485,191 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
-    _controller?.detection.removeListener(_onDetectionChanged);
-    _controller?.removeListener(_onControllerChanged);
     _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
-    if (controller == null) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: _neon)),
-      );
-    }
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            _buildPreview(controller),
-            _buildTopBar(),
-            if (!_resultVisible) ...[
-              _buildZoomBar(controller),
-              _buildHint(controller),
-              _buildBottomBar(),
-            ],
-            if (_resultVisible) _buildResultSheet(),
-            if (_error != null && !_resultVisible)
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 160,
-                child: _ErrorPill(message: _error!),
-              ),
-          ],
-        ),
+        body: _error != null
+            ? _CameraMessage(
+                message: _error!,
+                onClose: () => Navigator.pop(context),
+                onRetry: () {
+                  _controller?.dispose();
+                  _controller = null;
+                  setState(() => _error = null);
+                  _initializeCamera();
+                },
+              )
+            : _controller == null || !_controller!.value.isInitialized
+            ? _CameraMessage(
+                message: 'Spúšťam kameru...',
+                loading: true,
+                onClose: () => Navigator.pop(context),
+              )
+            : _buildCamera(context),
       ),
     );
   }
 
-  Widget _buildTopBar() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-          child: Row(
-            children: [
-              _RoundIconButton(
-                icon: Icons.close_rounded,
-                onTap: () => Navigator.pop(context),
-                tooltip: 'Zavrieť',
-              ),
-              Expanded(
-                child: Center(
-                  child: _GamePill(game: _game, onTap: _chooseGame),
-                ),
-              ),
-              _RoundIconButton(
-                icon: _torchOn
-                    ? Icons.flashlight_on_rounded
-                    : Icons.flashlight_off_rounded,
-                onTap: _toggleTorch,
-                tooltip: 'Blesk',
-                active: _torchOn,
-              ),
-            ],
-          ),
-        ),
-      ),
+  Widget _buildCamera(BuildContext context) {
+    final controller = _controller!;
+    final screen = MediaQuery.sizeOf(context);
+    final frameWidth = screen.width * 0.82;
+    var frameHeight = frameWidth / _cardAspect;
+    final maxHeight = screen.height * 0.62;
+    final actualWidth = frameHeight > maxHeight
+        ? maxHeight * _cardAspect
+        : frameWidth;
+    if (frameHeight > maxHeight) frameHeight = maxHeight;
+    final frameRect = Rect.fromCenter(
+      center: Offset(screen.width / 2, screen.height * 0.46),
+      width: actualWidth,
+      height: frameHeight,
     );
-  }
 
-  Widget _buildPreview(ScannerController controller) {
-    final camera = controller.cameraController;
-    final ready =
-        controller.isReady && camera != null && camera.value.isInitialized;
-    if (!ready) {
-      return ScannerPreview(
-        controller: controller,
-        showOutline: false,
-        showGuide: false,
-        showGrid: false,
-        enableTapToFocus: true,
-        enableZoomGesture: true,
-      );
-    }
-
-    final ratio = controller.previewAspectRatio;
     return Stack(
       fit: StackFit.expand,
       children: [
-        ClipRect(
-          child: FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: 1000 * ratio,
-              height: 1000,
-              child: ScannerPreview(
-                controller: controller,
-                showOutline: false,
-                showGuide: false,
-                showGrid: false,
-                enableTapToFocus: true,
-                enableZoomGesture: true,
+        _cameraPreview(controller),
+        _FixedFrameOverlay(frameRect: frameRect),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+              child: Row(
+                children: [
+                  _RoundIconButton(
+                    icon: Icons.close_rounded,
+                    onTap: () => Navigator.pop(context),
+                    tooltip: 'Zavrieť',
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: _GamePill(game: _game, onTap: _chooseGame),
+                    ),
+                  ),
+                  _RoundIconButton(
+                    icon: _torchOn
+                        ? Icons.flashlight_on_rounded
+                        : Icons.flashlight_off_rounded,
+                    onTap: _toggleTorch,
+                    tooltip: 'Blesk',
+                    active: _torchOn,
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        Positioned.fill(
-          child: IgnorePointer(
-            child: ValueListenableBuilder<DetectionState>(
-              valueListenable: controller.detection,
-              builder: (context, state, _) => CustomPaint(
-                painter: _CardFramePainter(
-                  state: state,
-                  previewAspectRatio: ratio,
-                ),
-                child: const SizedBox.expand(),
-              ),
+        Positioned(
+          top: frameRect.top - 36,
+          left: 20,
+          right: 20,
+          child: const Text(
+            'Umiestni kartu do rámika',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              shadows: [Shadow(color: Colors.black87, blurRadius: 10)],
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildZoomBar(ScannerController controller) {
-    final values = <double>[1, 2, 3];
-    return Positioned(
-      bottom: 174 + MediaQuery.of(context).padding.bottom,
-      left: 0,
-      right: 0,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: values.map((value) {
-          final available = value <= controller.maxZoom + 0.01;
-          final active = (controller.zoom - value).abs() < 0.08;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: GestureDetector(
-              onTap: available ? () => _setZoom(value) : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: active ? _neon : const Color(0x99000000),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: available
-                        ? Colors.white.withValues(alpha: 0.25)
-                        : Colors.white.withValues(alpha: 0.08),
-                  ),
-                ),
-                child: Text(
-                  '${value.toStringAsFixed(0)}x',
-                  style: TextStyle(
-                    color: active
-                        ? Colors.black
-                        : available
-                        ? Colors.white
-                        : Colors.white38,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
+        Positioned(
+          top: frameRect.bottom + 10,
+          left: 20,
+          right: 20,
+          child: const Text(
+            'Karta musí byť celá v rámiku.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 11,
+              shadows: [Shadow(color: Colors.black87, blurRadius: 8)],
             ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildHint(ScannerController controller) {
-    return Positioned(
-      bottom: 126 + MediaQuery.of(context).padding.bottom,
-      left: 20,
-      right: 20,
-      child: ValueListenableBuilder<DetectionState>(
-        valueListenable: controller.detection,
-        builder: (context, state, _) {
-          final text = _hintText(state.hint);
-          if (text.isEmpty) return const SizedBox.shrink();
-          return Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xAA000000),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                text,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildBottomBar() {
-    return Positioned(
-      bottom: 24 + MediaQuery.of(context).padding.bottom,
-      left: 24,
-      right: 24,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _BottomCircleButton(
-            icon: Icons.photo_library_outlined,
-            onTap: _pickGallery,
-            tooltip: 'Vybrať z galérie',
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
+        ),
+        Positioned(
+          top: frameRect.bottom + 38,
+          left: 0,
+          right: 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [1.0, 2.0, 3.0].map((value) {
+              final available = value <= _maxZoom + 0.01;
+              final active = (_zoom - value).abs() < 0.05;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: GestureDetector(
+                  onTap: available ? () => _setZoom(value) : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? const Color(0xFFFFC107)
+                          : const Color(0x99000000),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: available
+                            ? Colors.white.withValues(alpha: 0.25)
+                            : Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Text(
+                      '${value.toStringAsFixed(0)}x',
+                      style: TextStyle(
+                        color: active
+                            ? Colors.black
+                            : available
+                            ? Colors.white
+                            : Colors.white38,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        Positioned(
+          bottom: 24 + MediaQuery.of(context).padding.bottom,
+          left: 24,
+          right: 24,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                _autoCapture ? 'AUTO' : 'MANUÁL',
-                style: TextStyle(
-                  color: _autoCapture ? _neon : Colors.white70,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
+              _BottomCircleButton(
+                icon: Icons.photo_library_outlined,
+                onTap: _pickGallery,
+                tooltip: 'Vybrať z galérie',
               ),
-              const SizedBox(height: 4),
               GestureDetector(
-                onTap: _captureNow,
+                onTap: _isTakingPicture
+                    ? null
+                    : widget.captureOnly
+                    ? _captureForCustomPhoto
+                    : _takePicture,
                 child: Container(
-                  width: 78,
-                  height: 78,
+                  width: 82,
+                  height: 82,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 4),
@@ -755,9 +678,9 @@ class _CameraScreenState extends State<CameraScreen> {
                       BoxShadow(color: Colors.black54, blurRadius: 16),
                     ],
                   ),
-                  child: _capturing
+                  child: _isTakingPicture
                       ? const Padding(
-                          padding: EdgeInsets.all(22),
+                          padding: EdgeInsets.all(24),
                           child: CircularProgressIndicator(
                             color: Colors.white,
                             strokeWidth: 3,
@@ -765,8 +688,8 @@ class _CameraScreenState extends State<CameraScreen> {
                         )
                       : Center(
                           child: Container(
-                            width: 54,
-                            height: 54,
+                            width: 58,
+                            height: 58,
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               color: Colors.white,
@@ -775,14 +698,33 @@ class _CameraScreenState extends State<CameraScreen> {
                         ),
                 ),
               ),
+              _BottomCircleButton(
+                icon: Icons.tune_rounded,
+                onTap: _showSettings,
+                tooltip: 'Nastavenia skenera',
+              ),
             ],
           ),
-          _BottomCircleButton(
-            icon: Icons.tune_rounded,
-            onTap: _showSettings,
-            tooltip: 'Nastavenia skenera',
-          ),
-        ],
+        ),
+        if (_resultVisible) _buildResultSheet(),
+      ],
+    );
+  }
+
+  Widget _cameraPreview(CameraController controller) {
+    final previewSize = controller.value.previewSize;
+    if (previewSize == null) return CameraPreview(controller);
+    final portrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final width = portrait ? previewSize.height : previewSize.width;
+    final height = portrait ? previewSize.width : previewSize.height;
+    return ClipRect(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: CameraPreview(controller),
+        ),
       ),
     );
   }
@@ -888,8 +830,7 @@ class _CameraScreenState extends State<CameraScreen> {
                           final card = candidates[index];
                           final active = identical(card, selected);
                           return GestureDetector(
-                            onTap: () =>
-                                setState(() => _selectedCandidate = card),
+                            onTap: () => _selectCandidate(card),
                             child: Container(
                               width: 54,
                               decoration: BoxDecoration(
@@ -977,7 +918,9 @@ class _CameraScreenState extends State<CameraScreen> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              _priceLabel(selected),
+                              _resolvingDetails
+                                  ? 'Načítavam cenu…'
+                                  : _priceLabel(selected),
                               style: const TextStyle(
                                 color: _neon,
                                 fontSize: 16,
@@ -1045,10 +988,10 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           const Icon(Icons.search_off_rounded, color: Colors.white54, size: 34),
           const SizedBox(height: 8),
-          Text(
-            _error ?? 'Kartu sa nepodarilo rozpoznať.',
+          const Text(
+            'Kartu sa nepodarilo rozpoznať.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF94A3B8), height: 1.4),
+            style: TextStyle(color: Color(0xFF94A3B8), height: 1.4),
           ),
           const SizedBox(height: 12),
           Row(
@@ -1238,9 +1181,7 @@ class _CameraScreenState extends State<CameraScreen> {
       card['finish'] = style.finish;
       card['variantId'] = style.id;
       card['variantLabel'] = style.label;
-      if (style.image.isNotEmpty) {
-        card['imageUri'] = style.image;
-      }
+      if (style.image.isNotEmpty) card['imageUri'] = style.image;
       if (style.price != null) {
         card['price'] = style.price;
         card['currentPrice'] = style.price;
@@ -1268,209 +1209,6 @@ class _CameraScreenState extends State<CameraScreen> {
     final currency = (card['priceCurrency'] ?? '').toString().toUpperCase();
     final symbol = currency == 'EUR' ? '€' : r'$';
     return '$symbol${price.toStringAsFixed(2)}';
-  }
-
-  String _hintText(ScanHint hint) {
-    return switch (hint) {
-      ScanHint.searching => 'Hľadám kartu',
-      ScanHint.moveCloser => 'Priblíž kartu',
-      ScanHint.holdSteady => 'Drž chvíľu',
-      ScanHint.badLighting => 'Pridaj svetlo',
-      ScanHint.focusing => 'Zaostrujem',
-      ScanHint.ready => 'Pripravené',
-      ScanHint.cooldown => 'Spracúvam…',
-    };
-  }
-}
-
-bool _isCardQuad(Quad quad, double previewAspectRatio) {
-  if (quad.area < 0.08) return false;
-  final ratio = previewAspectRatio <= 0 ? 3 / 4 : previewAspectRatio;
-  final points = quad.corners
-      .map((point) => Offset(point.dx * ratio, point.dy))
-      .toList();
-  double distance(Offset a, Offset b) => (a - b).distance;
-
-  final width =
-      (distance(points[0], points[1]) + distance(points[3], points[2])) / 2;
-  final height =
-      (distance(points[0], points[3]) + distance(points[1], points[2])) / 2;
-  if (width <= 0 || height <= 0) return false;
-
-  final aspect = width / height;
-  // Standard trading card is 63 x 88 mm (0.716), with some tolerance for
-  // perspective and rounded corners.
-  return (aspect >= 0.60 && aspect <= 0.84) ||
-      (aspect >= 1.19 && aspect <= 1.67);
-}
-
-class _CardFramePainter extends CustomPainter {
-  _CardFramePainter({required this.state, required this.previewAspectRatio});
-
-  final DetectionState state;
-  final double previewAspectRatio;
-
-  static const Color _green = Color(0xFFB6FF3B);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final quad = state.quad;
-    if (quad != null && _isCardQuad(quad, previewAspectRatio)) {
-      final points = _mapQuad(quad, size);
-      final path = Path()..moveTo(points.first.dx, points.first.dy);
-      for (final point in points.skip(1)) {
-        path.lineTo(point.dx, point.dy);
-      }
-      path.close();
-
-      final outer = Path()..addRect(Offset.zero & size);
-      final outside = Path.combine(PathOperation.difference, outer, path);
-      canvas.drawPath(
-        outside,
-        Paint()..color = Colors.black.withValues(alpha: 0.28),
-      );
-
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 12
-          ..color = _green.withValues(alpha: 0.2)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
-      );
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.5
-          ..color = _green,
-      );
-
-      final cornerPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 5
-        ..strokeCap = StrokeCap.round
-        ..color = _green;
-      for (var i = 0; i < points.length; i++) {
-        final current = points[i];
-        final previous = points[(i - 1 + points.length) % points.length];
-        final next = points[(i + 1) % points.length];
-        _drawCorner(canvas, current, previous, next, cornerPaint);
-      }
-
-      if (state.progress > 0) {
-        final bounds = path.getBounds();
-        final y = bounds.bottom + 10;
-        canvas.drawLine(
-          Offset(bounds.left, y),
-          Offset(bounds.right, y),
-          Paint()
-            ..strokeWidth = 3
-            ..color = Colors.white.withValues(alpha: 0.22),
-        );
-        canvas.drawLine(
-          Offset(bounds.left, y),
-          Offset(
-            bounds.left + bounds.width * state.progress.clamp(0.0, 1.0),
-            y,
-          ),
-          Paint()
-            ..strokeWidth = 3
-            ..strokeCap = StrokeCap.round
-            ..color = _green,
-        );
-      }
-      return;
-    }
-
-    // Soft card-aspect guide while no card is detected.
-    final guideWidth = math.min(
-      size.width * 0.78,
-      size.height * 0.58 * 2.5 / 3.5,
-    );
-    final guideHeight = guideWidth * 3.5 / 2.5;
-    final rect = Rect.fromCenter(
-      center: Offset(size.width / 2, size.height * 0.48),
-      width: guideWidth,
-      height: guideHeight,
-    );
-    final guide = RRect.fromRectAndRadius(rect, const Radius.circular(22));
-    canvas.drawRRect(
-      guide,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = Colors.white.withValues(alpha: 0.28),
-    );
-
-    final cornerPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round
-      ..color = _green.withValues(alpha: 0.65);
-    final corners = <Offset>[
-      rect.topLeft,
-      rect.topRight,
-      rect.bottomRight,
-      rect.bottomLeft,
-    ];
-    for (var i = 0; i < corners.length; i++) {
-      final current = corners[i];
-      final previous = corners[(i - 1 + corners.length) % corners.length];
-      final next = corners[(i + 1) % corners.length];
-      _drawCorner(canvas, current, previous, next, cornerPaint);
-    }
-  }
-
-  List<Offset> _mapQuad(Quad quad, Size size) {
-    final ratio = previewAspectRatio <= 0 ? 3 / 4 : previewAspectRatio;
-    final screenAspect = size.width / size.height;
-    final displayWidth = ratio > screenAspect
-        ? size.height * ratio
-        : size.width;
-    final displayHeight = ratio > screenAspect
-        ? size.height
-        : size.width / ratio;
-    final dx = (size.width - displayWidth) / 2;
-    final dy = (size.height - displayHeight) / 2;
-    return quad.corners
-        .map(
-          (point) => Offset(
-            dx + point.dx * displayWidth,
-            dy + point.dy * displayHeight,
-          ),
-        )
-        .toList();
-  }
-
-  void _drawCorner(
-    Canvas canvas,
-    Offset corner,
-    Offset previous,
-    Offset next,
-    Paint paint,
-  ) {
-    const length = 26.0;
-    final a = corner + _towards(corner, previous, length);
-    final b = corner + _towards(corner, next, length);
-    final path = Path()
-      ..moveTo(a.dx, a.dy)
-      ..lineTo(corner.dx, corner.dy)
-      ..lineTo(b.dx, b.dy);
-    canvas.drawPath(path, paint);
-  }
-
-  Offset _towards(Offset from, Offset to, double length) {
-    final delta = to - from;
-    final distance = delta.distance;
-    if (distance == 0) return Offset.zero;
-    return delta / distance * length;
-  }
-
-  @override
-  bool shouldRepaint(covariant _CardFramePainter oldDelegate) {
-    return oldDelegate.state != state ||
-        oldDelegate.previewAspectRatio != previewAspectRatio;
   }
 }
 
@@ -1632,23 +1370,161 @@ class _RoundIconButton extends StatelessWidget {
   }
 }
 
-class _ErrorPill extends StatelessWidget {
-  const _ErrorPill({required this.message});
+class _FixedFrameOverlay extends StatelessWidget {
+  const _FixedFrameOverlay({required this.frameRect});
 
-  final String message;
+  final Rect frameRect;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xCC7F1D1D),
-        borderRadius: BorderRadius.circular(12),
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _FixedFramePainter(frameRect),
+        child: const SizedBox.expand(),
       ),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.white, fontSize: 12),
+    );
+  }
+}
+
+class _FixedFramePainter extends CustomPainter {
+  _FixedFramePainter(this.frameRect);
+
+  final Rect frameRect;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outer = Path()..addRect(Offset.zero & size);
+    final frame = Path()
+      ..addRRect(RRect.fromRectAndRadius(frameRect, const Radius.circular(22)));
+    final cutout = Path.combine(PathOperation.difference, outer, frame);
+    canvas.drawPath(
+      cutout,
+      Paint()..color = Colors.black.withValues(alpha: 0.45),
+    );
+
+    final glow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..color = const Color(0x44B6FF3B)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(frameRect, const Radius.circular(22)),
+      glow,
+    );
+    final border = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..color = Colors.white;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(frameRect, const Radius.circular(22)),
+      border,
+    );
+
+    final accent = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFFB6FF3B);
+    const corner = 26.0;
+    final corners = <List<Offset>>[
+      [
+        Offset(frameRect.left, frameRect.top + corner),
+        Offset(frameRect.left, frameRect.top),
+        Offset(frameRect.left + corner, frameRect.top),
+      ],
+      [
+        Offset(frameRect.right - corner, frameRect.top),
+        Offset(frameRect.right, frameRect.top),
+        Offset(frameRect.right, frameRect.top + corner),
+      ],
+      [
+        Offset(frameRect.left, frameRect.bottom - corner),
+        Offset(frameRect.left, frameRect.bottom),
+        Offset(frameRect.left + corner, frameRect.bottom),
+      ],
+      [
+        Offset(frameRect.right - corner, frameRect.bottom),
+        Offset(frameRect.right, frameRect.bottom),
+        Offset(frameRect.right, frameRect.bottom - corner),
+      ],
+    ];
+    for (final points in corners) {
+      final path = Path()..moveTo(points[0].dx, points[0].dy);
+      path.lineTo(points[1].dx, points[1].dy);
+      path.lineTo(points[2].dx, points[2].dy);
+      canvas.drawPath(path, accent);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FixedFramePainter oldDelegate) {
+    return oldDelegate.frameRect != frameRect;
+  }
+}
+
+class _CameraMessage extends StatelessWidget {
+  const _CameraMessage({
+    required this.message,
+    required this.onClose,
+    this.onRetry,
+    this.loading = false,
+  });
+
+  final String message;
+  final VoidCallback onClose;
+  final VoidCallback? onRetry;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Stack(
+        children: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (loading)
+                    const CircularProgressIndicator(color: Colors.white)
+                  else
+                    const Icon(
+                      Icons.camera_alt_outlined,
+                      color: Colors.redAccent,
+                      size: 44,
+                    ),
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: loading ? Colors.white : Colors.redAccent,
+                      fontSize: 15,
+                      height: 1.4,
+                    ),
+                  ),
+                  if (onRetry != null) ...[
+                    const SizedBox(height: 18),
+                    FilledButton(
+                      onPressed: onRetry,
+                      child: const Text('Skúsiť znova'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            left: 14,
+            child: _RoundIconButton(
+              icon: Icons.close_rounded,
+              onTap: onClose,
+              tooltip: 'Zavrieť',
+            ),
+          ),
+        ],
       ),
     );
   }

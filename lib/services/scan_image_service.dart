@@ -10,7 +10,7 @@ class ScanImageService {
 
   Future<File?> prepareForOcr(
     String path, {
-    double widthFraction = 0.96,
+    double widthFraction = 0.88,
   }) async {
     try {
       final bytes = await File(path).readAsBytes();

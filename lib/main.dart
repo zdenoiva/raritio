@@ -480,6 +480,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
           builder: (context) => CameraScreen(
             initialGame: _lastScanGame,
             onRecognize: _recognizeScanCandidates,
+            onResolveDetails: _resolveScanDetails,
             onAdd: _addScannedCard,
           ),
         ),
@@ -525,76 +526,36 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
   Future<ScanRecognition> _recognizeScanCandidates(
     String path,
-    String game, {
-    bool fromCamera = true,
-  }) async {
+    String game,
+  ) async {
     try {
-      Map<String, dynamic>? ocr;
-      var rawText = '';
-      var text = '';
-      var language = 'en';
-      var outcome = (results: <Map<String, dynamic>>[], usedQuery: '');
-
-      Future<Map<String, dynamic>?> read({
-        required bool crop,
-        double widthFraction = 0.88,
-      }) async {
-        final value = await _bridge.scanImagePath(
-          path,
-          cropToFrame: crop,
-          widthFraction: widthFraction,
-        );
-        if (value == null) return null;
-        final error = value['error'];
-        if (error is String && error.isNotEmpty) return null;
-        return value;
-      }
-
-      Future<void> search(Map<String, dynamic> value) async {
-        text = (value['text'] ?? '').toString().trim();
-        rawText = (value['rawText'] ?? '').toString();
-        language = (value['language'] ?? 'en').toString();
-        if (text.isEmpty) {
-          outcome = (results: <Map<String, dynamic>>[], usedQuery: '');
-          return;
+      var ocr = await _bridge.scanImagePath(path);
+      var text = (ocr?['text'] ?? '').toString().trim();
+      if (ocr == null || text.isEmpty) {
+        // One fallback on the full photo, but only when the frame crop found
+        // no readable name. This keeps the normal path fast.
+        final full = await _bridge.scanImagePath(path, cropToFrame: false);
+        final fullText = (full?['text'] ?? '').toString().trim();
+        if (full != null && fullText.isNotEmpty) {
+          ocr = full;
+          text = fullText;
         }
-        outcome = await _findCards(
-          query: text,
-          requestedLanguage: language,
-          requestedGame: game,
-          fromOcr: true,
-        );
       }
-
-      // Camera photos need a crop that keeps the card's top name. Gallery
-      // photos are often already card-only, so try the whole image first.
-      if (fromCamera) {
-        ocr = await read(crop: true, widthFraction: 0.96);
-        if (ocr != null) await search(ocr);
-      } else {
-        ocr = await read(crop: false);
-        if (ocr != null) await search(ocr);
-      }
-
-      if (outcome.results.isEmpty) {
-        final broad = await read(crop: true, widthFraction: 0.96);
-        if (broad != null) await search(broad);
-      }
-      if (outcome.results.isEmpty) {
-        final tighter = await read(crop: true, widthFraction: 0.72);
-        if (tighter != null) await search(tighter);
-      }
-      if (outcome.results.isEmpty && fromCamera) {
-        final full = await read(crop: false);
-        if (full != null) await search(full);
-      }
-
-      if (ocr == null && text.isEmpty) {
+      if (ocr == null) {
         return const ScanRecognition(
           query: '',
           language: 'en',
           candidates: [],
           error: 'Nepodarilo sa prečítať text z karty.',
+        );
+      }
+      final ocrError = ocr['error'];
+      if (ocrError is String && ocrError.isNotEmpty) {
+        return ScanRecognition(
+          query: '',
+          language: 'en',
+          candidates: const [],
+          error: ocrError,
         );
       }
       if (text.isEmpty) {
@@ -606,24 +567,37 @@ class _RaritioTCGState extends State<RaritioTCG> {
         );
       }
 
-      final candidates = await Future.wait(
-        outcome.results.take(6).map((card) async {
-          Map<String, dynamic> result = card;
-          if (card['game'] == 'pokemon' && card['detailsLoaded'] != true) {
-            final details = await _cardService.getPokemonDetails(
-              (card['id'] ?? '').toString(),
-              language: (card['language'] ?? language).toString(),
-            );
-            if (details != null) result = details;
-          }
-          result = Map<String, dynamic>.from(result);
-          final apiType = (result['cardType'] ?? '').toString();
-          result['cardType'] = apiType.isNotEmpty
-              ? apiType
-              : _cardCategory(rawText, result);
-          return result;
-        }),
+      // If the frame crop missed the collector number, one full-image OCR
+      // pass can recover it and pick the correct printing.
+      if (_queryNumber(text).isEmpty) {
+        final full = await _bridge.scanImagePath(path, cropToFrame: false);
+        final fullText = (full?['text'] ?? '').toString().trim();
+        if (full != null &&
+            fullText.isNotEmpty &&
+            _queryNumber(fullText).isNotEmpty) {
+          ocr = full;
+          text = fullText;
+        }
+      }
+
+      final rawText = (ocr['rawText'] ?? '').toString();
+      final language = (ocr['language'] ?? 'en').toString();
+
+      final outcome = await _findCards(
+        query: text,
+        requestedLanguage: language,
+        requestedGame: game,
+        fromOcr: true,
       );
+
+      final candidates = outcome.results.take(6).map((card) {
+        final result = Map<String, dynamic>.from(card);
+        final apiType = (result['cardType'] ?? '').toString();
+        result['cardType'] = apiType.isNotEmpty
+            ? apiType
+            : _cardCategory(rawText, result);
+        return result;
+      }).toList();
 
       return ScanRecognition(
         query: text,
@@ -659,6 +633,26 @@ class _RaritioTCGState extends State<RaritioTCG> {
       return 'energy';
     }
     return 'pokemon';
+  }
+
+  Future<Map<String, dynamic>?> _resolveScanDetails(
+    Map<String, dynamic> card,
+  ) async {
+    if (card['detailsLoaded'] == true) return card;
+    if (card['game'] == 'pokemon') {
+      final details = await _cardService.getPokemonDetails(
+        (card['id'] ?? '').toString(),
+        language: (card['language'] ?? 'en').toString(),
+      );
+      if (details != null) {
+        final apiType = (details['cardType'] ?? '').toString();
+        if (apiType.isEmpty) {
+          details['cardType'] = _cardCategory('', details);
+        }
+        return details;
+      }
+    }
+    return card;
   }
 
   Future<bool> _addScannedCard(Map<String, dynamic> card) async {
@@ -730,15 +724,13 @@ class _RaritioTCGState extends State<RaritioTCG> {
     required bool fromOcr,
   }) async {
     final language = _resolveSearchLanguage(query, requestedLanguage);
-    final variants = SearchQueryExpander.expand(
-      query,
-      maxVariants: fromOcr ? 10 : 6,
-    );
+    final variants = SearchQueryExpander.expand(query, maxVariants: 6);
 
     var usedQuery = query;
     var results = <Map<String, dynamic>>[];
     var bestScore = -1.0;
     final queryName = _queryName(query);
+    final queryNumber = _queryNumber(query);
 
     // English cards are searched in TCGdex and Scryfall in parallel. For
     // Japanese/Chinese text, MTG is skipped and the other CJK language is
@@ -777,16 +769,18 @@ class _RaritioTCGState extends State<RaritioTCG> {
         break;
       }
 
+      double scoreOf(Map<String, dynamic> card) {
+        var score = _cardNameScore(queryName, (card['name'] ?? '').toString());
+        if (queryNumber.isNotEmpty &&
+            _numberKey((card['number'] ?? '').toString()) == queryNumber) {
+          score += 2;
+        }
+        return score;
+      }
+
       final ranked = List<Map<String, dynamic>>.from(found);
-      ranked.sort((a, b) {
-        final scoreA = _cardNameScore(queryName, (a['name'] ?? '').toString());
-        final scoreB = _cardNameScore(queryName, (b['name'] ?? '').toString());
-        return scoreB.compareTo(scoreA);
-      });
-      final score = _cardNameScore(
-        queryName,
-        (ranked.first['name'] ?? '').toString(),
-      );
+      ranked.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+      final score = scoreOf(ranked.first);
       if (score > bestScore) {
         bestScore = score;
         results = ranked;
@@ -814,6 +808,24 @@ class _RaritioTCGState extends State<RaritioTCG> {
           .trim();
     }
     return name;
+  }
+
+  String _queryNumber(String query) {
+    final trailing = RegExp(
+      r'([A-Za-z]{0,4}\d{1,4})(?:\s*/\s*[A-Za-z0-9-]+)?\s*$',
+    ).firstMatch(query);
+    if (trailing != null) return _numberKey(trailing.group(1)!);
+    final leading = RegExp(
+      r'^\s*#?([A-Za-z]{0,4}\d{1,4})(?:\s*/\s*[A-Za-z0-9-]+)?\s+',
+    ).firstMatch(query);
+    return leading == null ? '' : _numberKey(leading.group(1)!);
+  }
+
+  String _numberKey(String value) {
+    final first = value.split('/').first.trim().toLowerCase();
+    final digits = RegExp(r'\d+').firstMatch(first)?.group(0);
+    if (digits == null) return first;
+    return digits.replaceFirst(RegExp(r'^0+'), '');
   }
 
   double _cardNameScore(String queryName, String candidateName) {
