@@ -82,6 +82,7 @@ let holoTiltFrame = null;
 let holoTiltBase = { beta: null, gamma: null };
 let holoLastOrientation = { beta: 0, gamma: 0, known: false };
 let lastBinderLikesAt = {};
+let lastBinderLikesSignature = {};
 let finishOptionsCardId = null;
 
 // --- Helpers ---
@@ -636,7 +637,11 @@ function requestBinderLikes(force = false) {
 
 function handleBinderLikes(sharedId, likes) {
     if (!sharedId) return;
-    state.binderLikes[sharedId] = likes && typeof likes === 'object' ? likes : {};
+    const normalized = likes && typeof likes === 'object' ? likes : {};
+    const signature = JSON.stringify(normalized);
+    if (lastBinderLikesSignature[sharedId] === signature) return;
+    lastBinderLikesSignature[sharedId] = signature;
+    state.binderLikes[sharedId] = normalized;
     const binder = getCurrentBinder();
     if (binder && binder.sharedId === sharedId) renderBinder();
 }
@@ -801,6 +806,7 @@ function hydrateState(raw, restored = false) {
     state.sharedBinders = [];
     state.binderLikes = {};
     lastBinderLikesAt = {};
+    lastBinderLikesSignature = {};
     previewCardId = null;
     cardModalReturnTo = null;
     dataBusy = false;
@@ -2582,7 +2588,7 @@ function attachHoloTilt() {
         const rotateY = (x - 0.5) * 30;
         const rotateX = (0.5 - y) * 26;
         applyHoloTilt(rotateX, rotateY, x * 100, y * 100);
-    });
+    }, { passive: true });
     card.addEventListener('pointerleave', resetHoloTilt);
 }
 
@@ -4104,6 +4110,7 @@ function init() {
     }
 
     setInterval(() => {
+        if (document.hidden) return;
         const binder = getCurrentBinder();
         if (binder && binder.sharedId) requestBinderLikes(true);
     }, 30000);

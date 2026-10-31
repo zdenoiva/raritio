@@ -34,8 +34,7 @@
 
         /* Header */
         header {
-            background: rgba(10, 10, 12, 0.8);
-            backdrop-filter: blur(10px);
+            background: rgba(10, 10, 12, 0.94);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -382,7 +381,7 @@
             border-radius: var(--radius);
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.16s;
             border: 1px solid var(--border);
             position: relative;
         }
@@ -412,7 +411,6 @@
             font-weight: 800;
             line-height: 1;
             cursor: pointer;
-            backdrop-filter: blur(6px);
         }
 
         .card-reorder button:disabled {
@@ -502,7 +500,6 @@
             left: 0;
             right: 0;
             background: rgba(22, 22, 26, 0.95);
-            backdrop-filter: blur(10px);
             border-top: 1px solid var(--border);
             display: flex;
             justify-content: space-around;
@@ -546,7 +543,6 @@
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
             display: none;
             justify-content: center;
             align-items: flex-end;
@@ -1627,7 +1623,7 @@
             contain-intrinsic-size: 260px 300px;
             /* `paint` containment clipped the glow outside the card. */
             contain: layout style;
-            transition: transform 0.16s, box-shadow 0.2s, border-color 0.2s;
+            transition: transform 0.16s, border-color 0.16s;
         }
 
         .card-item.glow {
@@ -1667,7 +1663,6 @@
             color: #ffffff;
             font-size: 0.72rem;
             font-weight: 900;
-            backdrop-filter: none;
             box-shadow: none;
             text-shadow: 0 1px 5px rgba(0, 0, 0, 0.95), 0 0 9px rgba(0, 0, 0, 0.65);
         }
@@ -1713,7 +1708,6 @@
             border-radius: 999px;
             letter-spacing: 0.2px;
             white-space: nowrap;
-            backdrop-filter: blur(6px);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
         }
 
@@ -1807,10 +1801,16 @@
         body.hide-glow .glow,
         body.hide-glow .holo-card.glow {
             box-shadow: none !important;
+            animation: none !important;
         }
 
         body.hide-glow .card-item.glow {
             border-color: var(--rarity-color, var(--border)) !important;
+        }
+
+        body.hide-glow .card-item.glow::after {
+            display: none !important;
+            animation: none !important;
         }
 
         /* Settings sheet */
@@ -2807,7 +2807,6 @@
                 radial-gradient(circle at 90% 4%, rgba(255, 203, 5, 0.14), transparent 34%),
                 repeating-linear-gradient(118deg, transparent 0 28px, rgba(255, 203, 5, 0.028) 28px 30px),
                 linear-gradient(180deg, #0b1220, #101b31 70%, #0b1220);
-            background-attachment: fixed;
         }
 
         body[data-theme="magic"] {
@@ -2827,7 +2826,6 @@
                 radial-gradient(circle at 88% 8%, rgba(201, 162, 39, 0.12), transparent 34%),
                 repeating-radial-gradient(ellipse at 72% 18%, rgba(201, 162, 39, 0.045) 0 1px, transparent 1px 34px),
                 linear-gradient(180deg, #061724, #0a2231 68%, #061724);
-            background-attachment: fixed;
         }
 
         body[data-theme="stone"] {
@@ -2847,7 +2845,6 @@
                 radial-gradient(circle at 90% 8%, rgba(120, 83, 45, 0.2), transparent 38%),
                 repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 28px),
                 linear-gradient(180deg, #16120f, #221a14 65%, #120f0c);
-            background-attachment: fixed;
         }
 
         body[data-theme="glass"] {
@@ -2860,15 +2857,14 @@
             --text-muted: #b4c4d8;
             --border: rgba(255, 255, 255, 0.22);
             --success: #86efac;
-            --header-bg: rgba(8, 13, 22, 0.6);
-            --nav-bg: rgba(8, 13, 22, 0.68);
+            --header-bg: rgba(8, 13, 22, 0.84);
+            --nav-bg: rgba(8, 13, 22, 0.88);
             background:
                 radial-gradient(circle at 8% 4%, rgba(125, 211, 252, 0.2), transparent 32%),
                 radial-gradient(circle at 92% 2%, rgba(192, 132, 252, 0.2), transparent 34%),
                 radial-gradient(circle at 55% 48%, rgba(244, 114, 182, 0.09), transparent 38%),
                 radial-gradient(circle at 12% 86%, rgba(94, 234, 212, 0.1), transparent 34%),
                 linear-gradient(180deg, #0a0e15, #101827 56%, #0a0e15);
-            background-attachment: fixed;
         }
 
         body[data-theme="poke"] header,
@@ -3219,14 +3215,12 @@
 
         /* Glass theme */
         body[data-theme="glass"] header {
-            backdrop-filter: blur(24px) saturate(160%);
             box-shadow:
                 inset 0 1px 0 rgba(255, 255, 255, 0.18),
                 0 10px 34px rgba(0, 0, 0, 0.28);
         }
 
         body[data-theme="glass"] .bottom-nav {
-            backdrop-filter: blur(24px) saturate(160%);
             box-shadow:
                 inset 0 1px 0 rgba(255, 255, 255, 0.16),
                 0 -10px 30px rgba(0, 0, 0, 0.25);
@@ -3236,7 +3230,6 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
             background:
                 linear-gradient(145deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.045));
-            backdrop-filter: blur(18px) saturate(150%);
             box-shadow:
                 inset 0 1px 0 rgba(255, 255, 255, 0.4),
                 inset 0 -1px 0 rgba(255, 255, 255, 0.08),
@@ -3260,7 +3253,6 @@
 
         body[data-theme="glass"] .card-info {
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035));
-            backdrop-filter: blur(16px) saturate(140%);
         }
 
         body[data-theme="glass"] .card-name {
@@ -3325,7 +3317,6 @@
         body[data-theme="glass"] .reorder-toggle {
             background: linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.055));
             border-color: rgba(255, 255, 255, 0.28);
-            backdrop-filter: blur(18px) saturate(150%);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
@@ -3346,7 +3337,6 @@
 
         body[data-theme="glass"] .modal-content {
             background: rgba(13, 19, 30, 0.86);
-            backdrop-filter: blur(26px) saturate(160%);
             border: 1px solid rgba(255, 255, 255, 0.16);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.16);
         }
@@ -3430,26 +3420,16 @@
         }
 
         @keyframes stone-shift {
-            0%, 100% {
-                opacity: 0.35;
-                transform: translateY(7px) scale(1.03);
-                background-position: 50% 112%, 18% 82%;
-            }
-            50% {
-                opacity: 0.92;
-                transform: translateY(-7px) scale(1.09);
-                background-position: 50% 68%, 82% 18%;
-            }
-        }
-
-        @keyframes stone-border {
-            0%, 100% { border-color: rgba(201, 162, 39, 0.34); }
-            50% { border-color: rgba(255, 224, 130, 0.78); }
+            0%, 100% { opacity: 0.32; transform: translateY(6px) scale(1.03); }
+            50% { opacity: 0.88; transform: translateY(-6px) scale(1.08); }
         }
 
         body[data-theme="poke"] .card-item.glow {
             border-color: #ffcb05;
-            animation: poke-energy 2.3s ease-in-out infinite;
+            box-shadow:
+                0 0 0 2px rgba(255, 203, 5, 0.55),
+                0 0 26px rgba(227, 53, 13, 0.4),
+                0 0 52px rgba(255, 203, 5, 0.2);
         }
 
         body[data-theme="poke"] .card-item.glow::after {
@@ -3466,12 +3446,14 @@
                 transparent 72%
             );
             animation: poke-sweep 3.2s ease-in-out infinite;
-            mix-blend-mode: screen;
         }
 
         body[data-theme="magic"] .card-item.glow {
             border-color: #e8c967;
-            animation: magic-arcane 3.1s ease-in-out infinite;
+            box-shadow:
+                0 0 0 2px rgba(232, 201, 103, 0.55),
+                0 0 26px rgba(45, 212, 191, 0.34),
+                0 0 54px rgba(201, 162, 39, 0.2);
         }
 
         body[data-theme="magic"] .card-item.glow::after {
@@ -3495,7 +3477,10 @@
 
         body[data-theme="stone"] .card-item.glow {
             border-color: #e8c967;
-            animation: stone-ember 3.6s ease-in-out infinite;
+            box-shadow:
+                0 0 0 2px rgba(232, 201, 103, 0.52),
+                0 0 26px rgba(201, 162, 39, 0.32),
+                0 0 52px rgba(120, 83, 45, 0.2);
         }
 
         body[data-theme="stone"] .card-item.glow::after {
@@ -3509,11 +3494,6 @@
                 radial-gradient(circle at 34% 22%, rgba(255, 214, 102, 0.22), transparent 38%);
             background-size: 140% 160%, 120% 120%;
             animation: stone-shift 3.4s ease-in-out infinite;
-            mix-blend-mode: screen;
-        }
-
-        body[data-theme="stone"] .card-item.glow::before {
-            animation: stone-border 3.4s ease-in-out infinite;
         }
 
         body[data-theme="poke"] .holo-card.glow {
@@ -3550,34 +3530,23 @@
         }
 
         body[data-theme="glass"] .card-item.glow {
-            border-color: rgba(255, 255, 255, 0.72);
-            animation: glass-prism 3.4s ease-in-out infinite;
-        }
-
-        body[data-theme="glass"] .card-item.glow::after {
-            content: '';
-            position: absolute;
-            inset: -34%;
-            z-index: 1;
-            pointer-events: none;
-            background: conic-gradient(
-                from 30deg,
-                rgba(125, 211, 252, 0.34),
-                rgba(192, 132, 252, 0.26),
-                rgba(240, 171, 252, 0.3),
-                rgba(251, 191, 36, 0.2),
-                rgba(94, 234, 212, 0.26),
-                rgba(125, 211, 252, 0.34)
-            );
-            animation: glass-spin 8s linear infinite;
-            mix-blend-mode: screen;
-            filter: blur(3px);
+            border-color: rgba(255, 255, 255, 0.76);
+            box-shadow:
+                0 0 0 2px rgba(255, 255, 255, 0.5),
+                0 0 30px rgba(125, 211, 252, 0.34),
+                0 0 64px rgba(192, 132, 252, 0.22);
         }
 
         body[data-theme="glass"] .holo-card.glow {
             box-shadow:
                 0 0 30px rgba(255, 255, 255, 0.26),
                 0 0 72px rgba(192, 132, 252, 0.25);
+        }
+
+        body[data-theme="poke"] .card-item.glow::after,
+        body[data-theme="magic"] .card-item.glow::after,
+        body[data-theme="stone"] .card-item.glow::after {
+            will-change: transform, opacity;
         }
 
         body[data-theme="glass"] .glow-caption { color: #d9fbff; }
@@ -3673,6 +3642,14 @@
             font-size: 0.65rem;
             line-height: 1.4;
         }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -3942,7 +3919,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.4.4</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.4.5</span></p>
         </div>
     </div>
 
@@ -4101,7 +4078,6 @@
     <script src="app.js"></script>
 </body>
 </html>
-
 
 
 

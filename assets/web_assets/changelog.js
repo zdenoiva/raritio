@@ -1,6 +1,19 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.4.5",
+    "date": "2026-10-31",
+    "changes": [
+      "Výrazné zrýchlenie Glass témy: karty už nepoužívajú drahý per-card blur.",
+      "Glass glow je v zozname statický; animácia zostáva len pri detaile karty.",
+      "Odstránené blur vrstvy z headeru, navigácie, modálov a tlačidiel.",
+      "Glow efekty ostatných tém používajú ľahšie transform/opacity animácie.",
+      "Odstránené fixné pozadie a zbytočné box-shadow prechody.",
+      "Vylepšené načítavanie: žiadne zbytočné prekreslenie lajkov a pauza pollingu na pozadí.",
+      "Respektovanie systémového zníženia animácií."
+    ]
+  },
+  {
     "version": "0.4.4",
     "date": "2026-10-31",
     "changes": [

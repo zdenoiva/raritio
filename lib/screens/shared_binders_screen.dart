@@ -44,7 +44,9 @@ class _SharedBindersScreenState extends State<SharedBindersScreen> {
     super.initState();
     _load();
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted && !_loading) _load(quiet: true);
+      final resumed =
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+      if (mounted && !_loading && resumed) _load(quiet: true);
     });
   }
 
