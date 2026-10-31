@@ -2,9 +2,9 @@
   "version": "0.3.21",
   "versionCode": 321,
   "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.21/raritio-0.3.21.apk",
-  "sha256": "41ce441802af3010d5cd6e4b8f7b9ba8db0272f9daa4407f0669a391fa9c1064",
-  "size": 118194124,
-  "publishedAt": "2026-10-31T14:30:00Z",
+  "sha256": "446b9b4e45d10b585595b901e14dc8fb8605e075eee0ae77e0ca578461762f4c",
+  "size": 118193724,
+  "publishedAt": "2026-10-31T15:23:06Z",
   "changelog": [
     "Skener je opäť jednoduchý pevný rámik 63 : 88 s manuálnou spúšťou.",
     "Odstránená dynamická detekcia hrán a balík flutter_better_scanner.",
