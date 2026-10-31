@@ -1,6 +1,15 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.3.20",
+    "date": "2026-10-31",
+    "changes": [
+      "V spodnom náhľade pribudol výber vizuálu karty, ak má karta viac variantov.",
+      "Výber mení Normal / Holo / Reverse Holo, cenu a obrázok variantu.",
+      "Vybraný variant sa uloží spolu s kartou."
+    ]
+  },
+  {
     "version": "0.3.19",
     "date": "2026-10-31",
     "changes": [

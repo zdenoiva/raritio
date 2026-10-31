@@ -792,6 +792,9 @@ class _CameraScreenState extends State<CameraScreen> {
     final selected = _selectedCandidate;
     final candidates =
         recognition?.candidates ?? const <Map<String, dynamic>>[];
+    final styles = selected == null
+        ? const <_CardStyle>[]
+        : _styleOptions(selected);
 
     return Positioned(
       left: 0,
@@ -921,15 +924,24 @@ class _CameraScreenState extends State<CameraScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              (selected['name'] ?? '').toString(),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                              ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    (selected['name'] ?? '').toString(),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                if (styles.length > 1)
+                                  _styleMenu(selected, styles),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -1093,6 +1105,150 @@ class _CameraScreenState extends State<CameraScreen> {
       'mtg' => 'MTG',
       _ => 'Pokémon',
     };
+  }
+
+  List<_CardStyle> _styleOptions(Map<String, dynamic> card) {
+    final rawVariants = card['variants'];
+    final result = <_CardStyle>[];
+    if (rawVariants is List) {
+      for (final raw in rawVariants) {
+        if (raw is! Map) continue;
+        final finish = (raw['finish'] ?? '').toString();
+        final id = (raw['id'] ?? finish).toString();
+        if (id.isEmpty) continue;
+        final label = (raw['label'] ?? '').toString();
+        result.add(
+          _CardStyle(
+            id: id,
+            label: label.isNotEmpty ? label : _finishLabel(finish),
+            finish: finish,
+            image: (raw['image'] ?? '').toString(),
+            price: raw['price'] is num
+                ? (raw['price'] as num).toDouble()
+                : null,
+            currency: (raw['priceCurrency'] ?? '').toString(),
+          ),
+        );
+      }
+    }
+    if (result.isNotEmpty) return result;
+
+    final finishes = card['finishes'];
+    if (finishes is List && finishes.length > 1) {
+      for (final raw in finishes) {
+        final finish = raw.toString();
+        if (finish.isEmpty) continue;
+        result.add(
+          _CardStyle(
+            id: finish,
+            label: _finishLabel(finish),
+            finish: finish,
+            image: '',
+            price: card['price'] is num
+                ? (card['price'] as num).toDouble()
+                : null,
+            currency: (card['priceCurrency'] ?? '').toString(),
+          ),
+        );
+      }
+    }
+    return result;
+  }
+
+  String _finishLabel(String raw) {
+    return switch (raw.toLowerCase()) {
+      'normal' => 'Normal',
+      'holo' => 'Holo',
+      'reverse' => 'Reverse Holo',
+      'reverseholofoil' => 'Reverse Holo',
+      'foil' => 'Foil',
+      'nonfoil' => 'Normal',
+      '1st edition' || 'firstedition' => '1st Edition',
+      _ => raw,
+    };
+  }
+
+  Widget _styleMenu(Map<String, dynamic> card, List<_CardStyle> styles) {
+    final variantId = (card['variantId'] ?? '').toString();
+    final finish = (card['finish'] ?? '').toString();
+    var current = styles.first;
+    for (final style in styles) {
+      if (variantId.isNotEmpty && style.id == variantId) {
+        current = style;
+        break;
+      }
+      if (variantId.isEmpty && style.finish == finish) {
+        current = style;
+      }
+    }
+
+    return PopupMenuButton<String>(
+      tooltip: 'Vybrať vizuál karty',
+      onSelected: (id) {
+        final style = styles.firstWhere((item) => item.id == id);
+        _selectStyle(style);
+      },
+      itemBuilder: (context) => styles
+          .map(
+            (style) => PopupMenuItem<String>(
+              value: style.id,
+              child: Row(
+                children: [
+                  if (style.id == current.id)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 6),
+                      child: Icon(Icons.check_rounded, size: 16, color: _neon),
+                    ),
+                  Text(style.label),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+      child: Container(
+        margin: const EdgeInsets.only(left: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E2A16),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _neon.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              current.label,
+              style: const TextStyle(
+                color: _neon,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down_rounded, color: _neon, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _selectStyle(_CardStyle style) {
+    final card = _selectedCandidate;
+    if (card == null) return;
+    setState(() {
+      card['finish'] = style.finish;
+      card['variantId'] = style.id;
+      card['variantLabel'] = style.label;
+      if (style.image.isNotEmpty) {
+        card['imageUri'] = style.image;
+      }
+      if (style.price != null) {
+        card['price'] = style.price;
+        card['currentPrice'] = style.price;
+      }
+      if (style.currency.isNotEmpty) {
+        card['priceCurrency'] = style.currency;
+      }
+    });
   }
 
   String _cardSubtitle(Map<String, dynamic> card) {
@@ -1316,6 +1472,24 @@ class _CardFramePainter extends CustomPainter {
     return oldDelegate.state != state ||
         oldDelegate.previewAspectRatio != previewAspectRatio;
   }
+}
+
+class _CardStyle {
+  const _CardStyle({
+    required this.id,
+    required this.label,
+    required this.finish,
+    required this.image,
+    required this.price,
+    required this.currency,
+  });
+
+  final String id;
+  final String label;
+  final String finish;
+  final String image;
+  final double? price;
+  final String currency;
 }
 
 class _GamePill extends StatelessWidget {

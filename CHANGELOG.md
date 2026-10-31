@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.20] - 2026-10-31
+
+- V spodnom náhľade pribudol výber vizuálu karty, ak má karta viac variantov.
+- Výber mení Normal / Holo / Reverse Holo, cenu a obrázok variantu.
+- Vybraný variant sa uloží spolu s kartou.
+
 ## [0.3.19] - 2026-10-31
 
 - OCR už nepoužíva generický auto-crop skenera; vracia sa osvedčený výrez na kartu.

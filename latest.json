@@ -1,16 +1,14 @@
 {
-  "version": "0.3.19",
-  "versionCode": 319,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.19/raritio-0.3.19.apk",
-  "sha256": "e1139f0d3ea98351a261e44dfb0930ab2c457495c604b6682f94f25eb00b17a5",
-  "size": 119719742,
-  "publishedAt": "2026-10-31T13:30:00Z",
+  "version": "0.3.20",
+  "versionCode": 320,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.20/raritio-0.3.20.apk",
+  "sha256": "5aa9e6d32db5aa236481d645c5606a0792bfad1ae6d0e1671b38f85fded9f9da",
+  "size": 119916474,
+  "publishedAt": "2026-10-31T14:00:00Z",
   "changelog": [
-    "Skener už nepoužíva generický auto-crop; OCR ide cez osvedčený výrez na kartu.",
-    "Viac variantov výrezu a záložné OCR pre manuálne fotky.",
-    "Detekcia karty podľa pomeru strán 63 : 88.",
-    "Rozpoznaný typ karty: Pokémon / Trainer / Energy / MTG.",
-    "Spodný rad zobrazí až 6 návrhov.",
-    "Raritio beta 0.3.19."
+    "V spodnom náhľade je výber vizuálu karty (Normal / Holo / Reverse Holo), ak ich karta má viac.",
+    "Výber mení obrázok, cenu a variant karty.",
+    "Vybraný variant sa uloží spolu s kartou.",
+    "Raritio beta 0.3.20."
   ]
 }
