@@ -1,18 +1,16 @@
 {
-  "version": "0.4.2",
-  "versionCode": 402,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.2/raritio-0.4.2.apk",
-  "sha256": "dee5d196b84815cc000f4f210b6d6f39103c749d24067d7d1a685fc3f1f269a6",
-  "size": 118282348,
-  "publishedAt": "2026-10-31T18:05:32Z",
+  "version": "0.4.3",
+  "versionCode": 403,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.3/raritio-0.4.3.apk",
+  "sha256": "46a80deeb585bf8f70b38d55d08aafee3a3fcaeff4a3fcb040731bb6e74c15cb",
+  "size": 118299652,
+  "publishedAt": "2026-10-31T18:46:28Z",
   "changelog": [
-    "Poke a Magic majú rarity rámiky a výraznejšie menovky kariet.",
-    "Poke používa Pokémon nameplate, Magic MTG serifovú menovku so zlatým lemom.",
-    "Hlavička Poke a Magic je výraznejšia a farebnejšia.",
-    "Legenda rarity cez „i“ má popisy podľa zvolenej témy.",
-    "História verzií už nemá viditeľný náznak kliknutia.",
-    "Zmena témy už nezobrazuje toast.",
-    "Update dialóg zobrazuje zmeny verzie, ktorá sa ide nainštalovať.",
-    "Skryté štatistiky počítajú aktívnych používateľov namiesto prázdnych testovacích profilov."
+    "Zdieľané, detaily zdieľaných balíkov a detail karty používajú zvolenú tému.",
+    "Poke má energický červeno-žltý efekt drahých kariet.",
+    "Magic má arkanálny zlato-tealový efekt.",
+    "Stone má jemný kamenný ember efekt.",
+    "Klasika si zachováva pôvodnú zlatú žiaru.",
+    "Efekt sa dá vypnúť v Nastaveniach."
   ]
 }
