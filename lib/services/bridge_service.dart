@@ -12,16 +12,21 @@ class BridgeService {
   Future<Map<String, dynamic>?> scanImagePath(
     String path, {
     bool cropToFrame = true,
+    double widthFraction = 0.96,
   }) async {
     File? cropped;
     try {
       if (cropToFrame) {
-        cropped = await _scanImageService.prepareForOcr(path);
+        cropped = await _scanImageService.prepareForOcr(
+          path,
+          widthFraction: widthFraction,
+        );
       }
       final result = await _ocrService.scanImage(cropped ?? File(path));
       if (result == null) return null;
       return <String, dynamic>{
         'text': result.text,
+        'rawText': result.rawText,
         'language': result.language,
       };
     } catch (e) {

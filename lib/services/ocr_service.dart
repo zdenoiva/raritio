@@ -9,17 +9,23 @@ import 'card_text_parser.dart';
 /// for the TCGdex search and for the flag shown on the card.
 class OcrScanResult {
   final String text;
+  final String rawText;
   final String language;
 
-  const OcrScanResult({required this.text, required this.language});
+  const OcrScanResult({
+    required this.text,
+    required this.rawText,
+    required this.language,
+  });
 }
 
 class _OcrCandidate {
   final String text;
+  final String rawText;
   final String language;
   final int score;
 
-  const _OcrCandidate(this.text, this.language, this.score);
+  const _OcrCandidate(this.text, this.rawText, this.language, this.score);
 }
 
 class OCRService {
@@ -29,8 +35,9 @@ class OCRService {
   OCRService() {
     // Keep the Latin model warm for the common case. Japanese and Chinese
     // models are created lazily on the first scan that needs them.
-    _recognizers[TextRecognitionScript.latin] =
-        TextRecognizer(script: TextRecognitionScript.latin);
+    _recognizers[TextRecognitionScript.latin] = TextRecognizer(
+      script: TextRecognitionScript.latin,
+    );
   }
 
   TextRecognizer _recognizer(TextRecognitionScript script) {
@@ -60,7 +67,11 @@ class OCRService {
       if (candidate.score > best.score) best = candidate;
     }
 
-    return OcrScanResult(text: best.text, language: best.language);
+    return OcrScanResult(
+      text: best.text,
+      rawText: best.rawText,
+      language: best.language,
+    );
   }
 
   Future<_OcrCandidate?> _recognize(
@@ -82,6 +93,7 @@ class OCRService {
 
       return _OcrCandidate(
         parsed,
+        recognizedText.text,
         language,
         _score(parsed, language, recognizedText.text),
       );
@@ -119,8 +131,8 @@ class OCRService {
 
     final hasLatin = RegExp(r'[A-Za-z]').hasMatch(text);
     final hasKana = RegExp(r'[\u3040-\u30ff]').hasMatch(text);
-    final hasHan =
-        RegExp(r'[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]').hasMatch(text);
+    final hasHan = RegExp(r'[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]')
+        .hasMatch(text);
     final hasDigit = RegExp(r'\d').hasMatch(text);
     final hasSlash = RegExp(r'[/|\\]').hasMatch(text);
     final numberOnly = RegExp(
@@ -162,8 +174,7 @@ class OCRService {
 
     // The full OCR text can reveal the script even when the parser picked a
     // short line. This helps a Japanese card whose name was split in two.
-    if (language == 'ja' &&
-        RegExp(r'[\u3040-\u30ff]').hasMatch(fullText)) {
+    if (language == 'ja' && RegExp(r'[\u3040-\u30ff]').hasMatch(fullText)) {
       score += 1;
     }
     if (language == 'zh-cn' &&

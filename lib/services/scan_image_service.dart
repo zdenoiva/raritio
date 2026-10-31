@@ -8,16 +8,19 @@ import 'package:image/image.dart' as img;
 class ScanImageService {
   static const double _cardAspect = 2.5 / 3.5;
 
-  Future<File?> prepareForOcr(String path) async {
+  Future<File?> prepareForOcr(
+    String path, {
+    double widthFraction = 0.96,
+  }) async {
     try {
       final bytes = await File(path).readAsBytes();
       final decoded = img.decodeImage(bytes);
       if (decoded == null) return null;
       final oriented = img.bakeOrientation(decoded);
 
-      var cropWidth = (oriented.width * 0.88).round();
+      var cropWidth = (oriented.width * widthFraction.clamp(0.35, 1.0)).round();
       var cropHeight = (cropWidth / _cardAspect).round();
-      final maxHeight = (oriented.height * 0.94).round();
+      final maxHeight = (oriented.height * 0.99).round();
       if (cropHeight > maxHeight) {
         cropHeight = maxHeight;
         cropWidth = (cropHeight * _cardAspect).round();
@@ -26,9 +29,9 @@ class ScanImageService {
       cropHeight = cropHeight.clamp(1, oriented.height);
 
       final x = ((oriented.width - cropWidth) / 2).round();
-      final desiredY = ((oriented.height - cropHeight) / 2).round() +
-          (oriented.height * 0.012).round();
-      final y = desiredY.clamp(0, oriented.height - cropHeight).toInt();
+      final y = ((oriented.height - cropHeight) / 2)
+          .clamp(0, oriented.height - cropHeight)
+          .toInt();
 
       var cropped = img.copyCrop(
         oriented,

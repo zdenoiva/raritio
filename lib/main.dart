@@ -526,42 +526,38 @@ class _RaritioTCGState extends State<RaritioTCG> {
   Future<ScanRecognition> _recognizeScanCandidates(
     String path,
     String game, {
-    bool detectedDocument = true,
+    bool fromCamera = true,
   }) async {
     try {
-      var triedAlternateCrop = false;
       Map<String, dynamic>? ocr;
+      var rawText = '';
       var text = '';
       var language = 'en';
       var outcome = (results: <Map<String, dynamic>>[], usedQuery: '');
 
-      Future<Map<String, dynamic>?> read({required bool crop}) async {
-        final value = await _bridge.scanImagePath(path, cropToFrame: crop);
+      Future<Map<String, dynamic>?> read({
+        required bool crop,
+        double widthFraction = 0.88,
+      }) async {
+        final value = await _bridge.scanImagePath(
+          path,
+          cropToFrame: crop,
+          widthFraction: widthFraction,
+        );
         if (value == null) return null;
         final error = value['error'];
         if (error is String && error.isNotEmpty) return null;
         return value;
       }
 
-      ocr = await read(crop: !detectedDocument);
-      if (ocr == null) {
-        triedAlternateCrop = true;
-        ocr = await read(crop: detectedDocument);
-      }
-
-      if (ocr == null) {
-        return const ScanRecognition(
-          query: '',
-          language: 'en',
-          candidates: [],
-          error: 'Nepodarilo sa prečítať text z karty.',
-        );
-      }
-
-      text = (ocr['text'] ?? '').toString().trim();
-      language = (ocr['language'] ?? 'en').toString();
-
-      if (text.isNotEmpty) {
+      Future<void> search(Map<String, dynamic> value) async {
+        text = (value['text'] ?? '').toString().trim();
+        rawText = (value['rawText'] ?? '').toString();
+        language = (value['language'] ?? 'en').toString();
+        if (text.isEmpty) {
+          outcome = (results: <Map<String, dynamic>>[], usedQuery: '');
+          return;
+        }
         outcome = await _findCards(
           query: text,
           requestedLanguage: language,
@@ -570,27 +566,37 @@ class _RaritioTCGState extends State<RaritioTCG> {
         );
       }
 
-      // A card that was not detected as a document can still fill the frame;
-      // try the alternate crop before giving up.
-      if (outcome.results.isEmpty && !triedAlternateCrop) {
-        triedAlternateCrop = true;
-        final alternate = await read(crop: detectedDocument);
-        final alternateText = (alternate?['text'] ?? '').toString().trim();
-        if (alternateText.isNotEmpty && alternateText != text) {
-          final alternateOutcome = await _findCards(
-            query: alternateText,
-            requestedLanguage: (alternate?['language'] ?? language).toString(),
-            requestedGame: game,
-            fromOcr: true,
-          );
-          if (alternateOutcome.results.isNotEmpty) {
-            text = alternateText;
-            language = (alternate?['language'] ?? language).toString();
-            outcome = alternateOutcome;
-          }
-        }
+      // Camera photos need a crop that keeps the card's top name. Gallery
+      // photos are often already card-only, so try the whole image first.
+      if (fromCamera) {
+        ocr = await read(crop: true, widthFraction: 0.96);
+        if (ocr != null) await search(ocr);
+      } else {
+        ocr = await read(crop: false);
+        if (ocr != null) await search(ocr);
       }
 
+      if (outcome.results.isEmpty) {
+        final broad = await read(crop: true, widthFraction: 0.96);
+        if (broad != null) await search(broad);
+      }
+      if (outcome.results.isEmpty) {
+        final tighter = await read(crop: true, widthFraction: 0.72);
+        if (tighter != null) await search(tighter);
+      }
+      if (outcome.results.isEmpty && fromCamera) {
+        final full = await read(crop: false);
+        if (full != null) await search(full);
+      }
+
+      if (ocr == null && text.isEmpty) {
+        return const ScanRecognition(
+          query: '',
+          language: 'en',
+          candidates: [],
+          error: 'Nepodarilo sa prečítať text z karty.',
+        );
+      }
       if (text.isEmpty) {
         return const ScanRecognition(
           query: '',
@@ -601,15 +607,21 @@ class _RaritioTCGState extends State<RaritioTCG> {
       }
 
       final candidates = await Future.wait(
-        outcome.results.take(3).map((card) async {
+        outcome.results.take(6).map((card) async {
+          Map<String, dynamic> result = card;
           if (card['game'] == 'pokemon' && card['detailsLoaded'] != true) {
             final details = await _cardService.getPokemonDetails(
               (card['id'] ?? '').toString(),
               language: (card['language'] ?? language).toString(),
             );
-            return details ?? card;
+            if (details != null) result = details;
           }
-          return card;
+          result = Map<String, dynamic>.from(result);
+          final apiType = (result['cardType'] ?? '').toString();
+          result['cardType'] = apiType.isNotEmpty
+              ? apiType
+              : _cardCategory(rawText, result);
+          return result;
         }),
       );
 
@@ -629,6 +641,24 @@ class _RaritioTCGState extends State<RaritioTCG> {
         error: 'Rozpoznávanie zlyhalo: $e',
       );
     }
+  }
+
+  String _cardCategory(String rawText, Map<String, dynamic> card) {
+    if (card['game'] == 'mtg') return 'mtg';
+    final text = rawText.toUpperCase();
+    if (RegExp(r'\b(HP\s*\d+|\d+\s*HP|STAGE\s*\d|BASIC|EVOLVES FROM)\b')
+        .hasMatch(text)) {
+      return 'pokemon';
+    }
+    if (RegExp(
+      r'\b(POK[EÉ]MON TOOL|POKEMON TOOL|TRAINER|SUPPORTER|STADIUM|ITEM)\b',
+    ).hasMatch(text)) {
+      return 'trainer';
+    }
+    if (RegExp(r'\b(SPECIAL ENERGY|BASIC ENERGY|ENERGY)\b').hasMatch(text)) {
+      return 'energy';
+    }
+    return 'pokemon';
   }
 
   Future<bool> _addScannedCard(Map<String, dynamic> card) async {
@@ -707,6 +737,8 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
     var usedQuery = query;
     var results = <Map<String, dynamic>>[];
+    var bestScore = -1.0;
+    final queryName = _queryName(query);
 
     // English cards are searched in TCGdex and Scryfall in parallel. For
     // Japanese/Chinese text, MTG is skipped and the other CJK language is
@@ -716,38 +748,103 @@ class _RaritioTCGState extends State<RaritioTCG> {
         : const <String>['zh-cn', 'ja'];
 
     for (final variant in variants) {
+      final found = <Map<String, dynamic>>[];
       if (language == 'en') {
-        final combined = <Map<String, dynamic>>[];
         if (requestedGame != 'mtg') {
-          combined.addAll(await _cardService.searchPokemon(variant));
+          found.addAll(await _cardService.searchPokemon(variant));
         }
         if (requestedGame != 'pokemon') {
-          combined.addAll(await _cardService.searchMtg(variant));
-        }
-        if (combined.isNotEmpty) {
-          results = combined;
-          usedQuery = variant;
-          break;
+          found.addAll(await _cardService.searchMtg(variant));
         }
       } else if (requestedGame == 'mtg') {
         continue;
       } else {
         for (final searchLanguage in cjkLanguages) {
-          final found = await _cardService.searchPokemon(
-            variant,
-            language: searchLanguage,
+          found.addAll(
+            await _cardService.searchPokemon(variant, language: searchLanguage),
           );
-          if (found.isNotEmpty) {
-            results = found;
-            usedQuery = variant;
-            break;
-          }
+          if (found.isNotEmpty) break;
         }
-        if (results.isNotEmpty) break;
       }
+
+      if (found.isEmpty) continue;
+
+      if (queryName.isEmpty) {
+        if (results.isEmpty) {
+          results = found;
+          usedQuery = variant;
+        }
+        break;
+      }
+
+      final ranked = List<Map<String, dynamic>>.from(found);
+      ranked.sort((a, b) {
+        final scoreA = _cardNameScore(queryName, (a['name'] ?? '').toString());
+        final scoreB = _cardNameScore(queryName, (b['name'] ?? '').toString());
+        return scoreB.compareTo(scoreA);
+      });
+      final score = _cardNameScore(
+        queryName,
+        (ranked.first['name'] ?? '').toString(),
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        results = ranked;
+        usedQuery = variant;
+      }
+      if (bestScore >= 0.9) break;
     }
 
     return (results: results, usedQuery: usedQuery);
+  }
+
+  String _queryName(String query) {
+    var name = query
+        .replaceAll(
+          RegExp(r'\s*#?[A-Za-z]{0,4}\d{1,4}(?:\s*/\s*[A-Za-z0-9-]+)?\s*$'),
+          '',
+        )
+        .trim();
+    if (name.isEmpty) {
+      name = query
+          .replaceAll(
+            RegExp(r'^\s*#?[A-Za-z]{0,4}\d{1,4}(?:\s*/\s*[A-Za-z0-9-]+)?\s*'),
+            '',
+          )
+          .trim();
+    }
+    return name;
+  }
+
+  double _cardNameScore(String queryName, String candidateName) {
+    String normalize(String value) {
+      return value
+          .toLowerCase()
+          .replaceAll(
+            RegExp(r"[^a-z0-9à-ž\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\s'\-]"),
+            ' ',
+          )
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+    }
+
+    final query = normalize(queryName);
+    final candidate = normalize(candidateName);
+    if (query.isEmpty || candidate.isEmpty) return 0;
+    if (candidate == query ||
+        candidate.contains(query) ||
+        query.contains(candidate)) {
+      return 1;
+    }
+
+    final queryWords = query
+        .split(' ')
+        .where((word) => word.length >= 3)
+        .toSet();
+    if (queryWords.isEmpty) return 0;
+    final candidateWords = candidate.split(' ').toSet();
+    final matched = queryWords.where(candidateWords.contains).length;
+    return matched / queryWords.length;
   }
 
   String _detectLanguage(String query) {

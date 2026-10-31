@@ -259,6 +259,7 @@ class CardService {
         'number': number,
         'artist': card['illustrator'] ?? '',
         'priceHistory': priceHistory,
+        'cardType': _categoryFromApi(card['category']),
         'detailsLoaded': true,
       };
     } catch (e) {
@@ -765,6 +766,7 @@ class CardService {
               'finishes': _mtgFinishes(card),
               'number': card['collector_number'] ?? '',
               'artist': card['artist'] ?? '',
+              'cardType': 'mtg',
               'detailsLoaded': true,
             },
           ),
@@ -777,6 +779,17 @@ class CardService {
   }
 
   /// Reloads the Scryfall image for a stored MTG card id.
+  String _categoryFromApi(dynamic value) {
+    switch ((value ?? '').toString().toLowerCase()) {
+      case 'trainer':
+        return 'trainer';
+      case 'energy':
+        return 'energy';
+      default:
+        return 'pokemon';
+    }
+  }
+
   Future<String?> getMtgImage(String id) async {
     if (id.trim().isEmpty) return null;
     try {

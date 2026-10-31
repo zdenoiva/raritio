@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.19] - 2026-10-31
+
+- OCR už nepoužíva generický auto-crop skenera; vracia sa osvedčený výrez na kartu.
+- Pridané viac variantov výrezu a záložné OCR.
+- Detekcia karty kontroluje pomer strán 63 : 88, takže odmietne TV, stôl alebo podložku.
+- Automatické zachytenie sa spustí len pri karte so správnym pomerom.
+- Výsledky zobrazujú typ karty: Pokémon / Trainer / Energy / MTG.
+- Spodný rad zobrazí všetky dostupné návrhy, až 6 kariet.
+
 ## [0.3.18] - 2026-10-31
 
 - Skener je celý na šírku aj výšku obrazovky, bez čiernych pásov.

@@ -56,7 +56,7 @@ class CameraScreen extends StatefulWidget {
   final Future<ScanRecognition> Function(
     String path,
     String game, {
-    bool detectedDocument,
+    bool fromCamera,
   })?
   onRecognize;
   final Future<bool> Function(Map<String, dynamic> card)? onAdd;
@@ -75,12 +75,14 @@ class _CameraScreenState extends State<CameraScreen> {
   bool _processing = false;
   bool _resultVisible = false;
   bool _adding = false;
+  bool _capturing = false;
   String? _currentPath;
-  ScanPage? _currentPage;
-  String? _handledPageId;
+  bool _currentPathIsTemporary = false;
   ScanRecognition? _recognition;
   Map<String, dynamic>? _selectedCandidate;
   String? _error;
+  DateTime? _autoReadySince;
+  DateTime _autoCooldownUntil = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
@@ -88,16 +90,17 @@ class _CameraScreenState extends State<CameraScreen> {
     _autoCapture = !widget.captureOnly;
     _controller = ScannerController(config: _scannerConfig());
     _controller!.addListener(_onControllerChanged);
+    _controller!.detection.addListener(_onDetectionChanged);
     unawaited(_initialize());
   }
 
   ScannerConfig _scannerConfig() {
     return ScannerConfig(
       captureMode: CaptureMode.single,
-      shutterMode: widget.captureOnly ? ShutterMode.manual : ShutterMode.auto,
+      shutterMode: ShutterMode.manual,
       autoDetectEdges: true,
       detectionQuality: DetectionQuality.high,
-      autoCrop: !widget.captureOnly,
+      autoCrop: false,
       autoEnhance: false,
       enhancement: ScanEnhancement.original,
       guide: ScanGuide.free,
@@ -140,53 +143,52 @@ class _CameraScreenState extends State<CameraScreen> {
 
   void _onControllerChanged() {
     if (!mounted) return;
-    final controller = _controller;
-    if (controller == null) return;
-
-    if (!widget.captureOnly &&
-        !_processing &&
-        !_resultVisible &&
-        controller.pages.isNotEmpty) {
-      final page = controller.pages.first;
-      if (page.id != _handledPageId) {
-        _handledPageId = page.id;
-        unawaited(_recognizePage(page));
-      }
-    }
-
     // Keep the zoom, torch and permission UI in sync with the engine.
-    if (mounted) setState(() {});
+    setState(() {});
   }
 
-  Future<void> _recognizePage(ScanPage page) async {
+  void _onDetectionChanged() {
+    if (!mounted) return;
     final controller = _controller;
-    if (controller == null) return;
-
-    // The controller publishes the page when it is added, before the rendered
-    // JPEG is necessarily on disk. Wait for the render to settle.
-    for (var attempt = 0; attempt < 60 && controller.isBusy; attempt++) {
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-    }
-
-    final path = controller.pagePath(page);
-    if (path == null || !await File(path).exists()) {
-      if (mounted) {
-        setState(() {
-          _resultVisible = true;
-          _processing = false;
-          _currentPage = page;
-          _error = 'Nepodarilo sa pripraviť fotku karty.';
-        });
-      }
+    if (controller == null ||
+        widget.captureOnly ||
+        !_autoCapture ||
+        _processing ||
+        _resultVisible ||
+        _adding ||
+        _capturing) {
+      _autoReadySince = null;
       return;
     }
-    await _recognizePath(path, page: page);
+    if (DateTime.now().isBefore(_autoCooldownUntil)) {
+      _autoReadySince = null;
+      return;
+    }
+
+    final state = controller.detection.value;
+    final quad = state.quad;
+    if (state.hint != ScanHint.ready ||
+        quad == null ||
+        !_isCardQuad(quad, controller.previewAspectRatio)) {
+      _autoReadySince = null;
+      return;
+    }
+
+    _autoReadySince ??= DateTime.now();
+    if (DateTime.now().difference(_autoReadySince!) >=
+        const Duration(milliseconds: 300)) {
+      _autoReadySince = null;
+      unawaited(_captureScanRaw());
+    }
   }
 
-  Future<void> _recognizePath(String path, {ScanPage? page}) async {
+  Future<void> _recognizePath(
+    String path, {
+    bool temporary = false,
+    bool fromCamera = false,
+  }) async {
     final recognize = widget.onRecognize;
     if (recognize == null) return;
-    _controller?.setShutterMode(ShutterMode.manual);
     if (!mounted) return;
 
     setState(() {
@@ -197,15 +199,11 @@ class _CameraScreenState extends State<CameraScreen> {
       _selectedCandidate = null;
       _error = null;
       _currentPath = path;
-      _currentPage = page;
+      _currentPathIsTemporary = temporary;
     });
 
     try {
-      final result = await recognize(
-        path,
-        _game,
-        detectedDocument: page?.detectedDocument ?? false,
-      );
+      final result = await recognize(path, _game, fromCamera: fromCamera);
       if (!mounted) return;
       setState(() {
         _processing = false;
@@ -227,7 +225,8 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _finishResult() async {
-    final page = _currentPage;
+    final path = _currentPath;
+    final temporary = _currentPathIsTemporary;
     if (!mounted) return;
     setState(() {
       _processing = false;
@@ -237,22 +236,16 @@ class _CameraScreenState extends State<CameraScreen> {
       _selectedCandidate = null;
       _error = null;
       _currentPath = null;
-      _currentPage = null;
+      _currentPathIsTemporary = false;
     });
-    _handledPageId = page?.id;
-    if (page != null) {
-      await _controller?.deletePage(page);
+    _autoReadySince = null;
+    _autoCooldownUntil = DateTime.now().add(const Duration(milliseconds: 900));
+    if (temporary && path != null) {
+      try {
+        final file = File(path);
+        if (await file.exists()) await file.delete();
+      } catch (_) {}
     }
-    _handledPageId = null;
-    if (_autoCapture) {
-      // Give the user a moment to move the card away before auto-capture
-      // starts watching the same frame again.
-      await Future<void>.delayed(const Duration(milliseconds: 700));
-      if (!mounted) return;
-    }
-    _controller?.setShutterMode(
-      _autoCapture ? ShutterMode.auto : ShutterMode.manual,
-    );
   }
 
   Future<void> _addSelected() async {
@@ -314,12 +307,37 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _captureNow() async {
-    if (_processing || _resultVisible || _adding) return;
+    if (_processing || _resultVisible || _adding || _capturing) return;
     if (widget.captureOnly) {
       await _captureForCustomPhoto();
       return;
     }
-    await _controller?.capture();
+    await _captureScanRaw();
+  }
+
+  Future<void> _captureScanRaw() async {
+    final controller = _controller;
+    if (controller == null ||
+        _capturing ||
+        _processing ||
+        _resultVisible ||
+        _adding) {
+      return;
+    }
+    setState(() => _capturing = true);
+    try {
+      final rawPath = await controller.captureRaw();
+      if (!mounted) return;
+      setState(() => _capturing = false);
+      if (rawPath == null) return;
+      await _recognizePath(rawPath, temporary: true, fromCamera: true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _capturing = false;
+        _error = 'Fotku sa nepodarilo spraviť: $e';
+      });
+    }
   }
 
   Future<void> _captureForCustomPhoto() async {
@@ -345,21 +363,18 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _pickGallery() async {
-    if (_processing || _resultVisible) return;
+    if (_processing || _resultVisible || _capturing) return;
+    final picked = await FilePicker.pickFile(
+      dialogTitle: 'Vybrať fotku karty',
+      type: FileType.image,
+    );
+    final path = picked?.path;
+    if (path == null || path.isEmpty || !mounted) return;
     if (widget.captureOnly) {
-      final picked = await FilePicker.pickFile(
-        dialogTitle: 'Vybrať fotku karty',
-        type: FileType.image,
-      );
-      final path = picked?.path;
-      if (path != null && path.isNotEmpty && mounted) {
-        Navigator.pop(context, CameraResult(path: path, game: _game));
-      }
+      Navigator.pop(context, CameraResult(path: path, game: _game));
       return;
     }
-    final pages = await _controller?.pickFromGallery() ?? const <ScanPage>[];
-    if (pages.isEmpty || !mounted) return;
-    // The controller listener will start recognition for the first page.
+    await _recognizePath(path);
   }
 
   Future<void> _toggleTorch() async {
@@ -464,9 +479,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   onChanged: (value) {
                     Navigator.pop(context);
                     setState(() => _autoCapture = value);
-                    _controller?.setShutterMode(
-                      value ? ShutterMode.auto : ShutterMode.manual,
-                    );
+                    _autoReadySince = null;
                   },
                 ),
               ),
@@ -486,6 +499,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
+    _controller?.detection.removeListener(_onDetectionChanged);
     _controller?.removeListener(_onControllerChanged);
     _controller?.dispose();
     super.dispose();
@@ -741,16 +755,24 @@ class _CameraScreenState extends State<CameraScreen> {
                       BoxShadow(color: Colors.black54, blurRadius: 16),
                     ],
                   ),
-                  child: Center(
-                    child: Container(
-                      width: 54,
-                      height: 54,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                  child: _capturing
+                      ? const Padding(
+                          padding: EdgeInsets.all(22),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        )
+                      : Center(
+                          child: Container(
+                            width: 54,
+                            height: 54,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -843,7 +865,7 @@ class _CameraScreenState extends State<CameraScreen> {
                       ),
                       const Spacer(),
                       Text(
-                        '${candidates.length} ${candidates.length == 1 ? 'výsledok' : 'výsledky'}',
+                        '${candidates.length} ${_resultsLabel(candidates.length)}',
                         style: const TextStyle(
                           color: Color(0xFF94A3B8),
                           fontSize: 11,
@@ -919,7 +941,29 @@ class _CameraScreenState extends State<CameraScreen> {
                                 fontSize: 12,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E2A16),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: _neon.withValues(alpha: 0.45),
+                                ),
+                              ),
+                              child: Text(
+                                _cardTypeLabel(selected),
+                                style: const TextStyle(
+                                  color: _neon,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
                             Text(
                               _priceLabel(selected),
                               style: const TextStyle(
@@ -1036,6 +1080,21 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
+  String _resultsLabel(int count) {
+    if (count == 1) return 'výsledok';
+    if (count < 5) return 'výsledky';
+    return 'výsledkov';
+  }
+
+  String _cardTypeLabel(Map<String, dynamic> card) {
+    return switch ((card['cardType'] ?? '').toString()) {
+      'energy' => 'Energy',
+      'trainer' => 'Trainer',
+      'mtg' => 'MTG',
+      _ => 'Pokémon',
+    };
+  }
+
   String _cardSubtitle(Map<String, dynamic> card) {
     final parts = <String>[
       if ((card['set'] ?? '').toString().trim().isNotEmpty)
@@ -1068,6 +1127,27 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 }
 
+bool _isCardQuad(Quad quad, double previewAspectRatio) {
+  if (quad.area < 0.08) return false;
+  final ratio = previewAspectRatio <= 0 ? 3 / 4 : previewAspectRatio;
+  final points = quad.corners
+      .map((point) => Offset(point.dx * ratio, point.dy))
+      .toList();
+  double distance(Offset a, Offset b) => (a - b).distance;
+
+  final width =
+      (distance(points[0], points[1]) + distance(points[3], points[2])) / 2;
+  final height =
+      (distance(points[0], points[3]) + distance(points[1], points[2])) / 2;
+  if (width <= 0 || height <= 0) return false;
+
+  final aspect = width / height;
+  // Standard trading card is 63 x 88 mm (0.716), with some tolerance for
+  // perspective and rounded corners.
+  return (aspect >= 0.60 && aspect <= 0.84) ||
+      (aspect >= 1.19 && aspect <= 1.67);
+}
+
 class _CardFramePainter extends CustomPainter {
   _CardFramePainter({required this.state, required this.previewAspectRatio});
 
@@ -1079,7 +1159,7 @@ class _CardFramePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final quad = state.quad;
-    if (quad != null) {
+    if (quad != null && _isCardQuad(quad, previewAspectRatio)) {
       final points = _mapQuad(quad, size);
       final path = Path()..moveTo(points.first.dx, points.first.dy);
       for (final point in points.skip(1)) {

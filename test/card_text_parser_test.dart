@@ -37,7 +37,10 @@ void main() {
       line('Illus. GOSSAN', 450, 1100, 220, 14),
     ];
 
-    expect(parser.parseLines(lines, imageWidth: 720, imageHeight: 1280), "Misty's Gyarados 049/182");
+    expect(
+      parser.parseLines(lines, imageWidth: 720, imageHeight: 1280),
+      "Misty's Gyarados 049/182",
+    );
   });
 
   test('normalizes typographic apostrophes', () {
@@ -46,7 +49,10 @@ void main() {
       line('049/182', 70, 1080, 130, 18),
     ];
 
-    expect(parser.parseLines(lines, imageWidth: 720, imageHeight: 1280), "Misty's Gyarados 049/182");
+    expect(
+      parser.parseLines(lines, imageWidth: 720, imageHeight: 1280),
+      "Misty's Gyarados 049/182",
+    );
   });
 
   test('does not mistake HP for the card name', () {
@@ -56,7 +62,52 @@ void main() {
       line('199/165', 70, 1080, 130, 18),
     ];
 
-    expect(parser.parseLines(lines, imageWidth: 720, imageHeight: 1280), 'Charizard ex 199/165');
+    expect(
+      parser.parseLines(lines, imageWidth: 720, imageHeight: 1280),
+      'Charizard ex 199/165',
+    );
+  });
+
+  test('does not mistake split HP text for the card name', () {
+    final lines = [
+      line('STAGEI', 20, 20, 90, 16),
+      line("Ethan's Magcargo", 90, 55, 420, 36),
+      line('m 130', 760, 65, 100, 20),
+      line('036/182', 70, 1080, 130, 18),
+    ];
+
+    expect(
+      parser.parseLines(lines, imageWidth: 720, imageHeight: 1280),
+      "Ethan's Magcargo 036/182",
+    );
+  });
+
+  test('ignores the species/HT/WT line', () {
+    final lines = [
+      line('STAGEI', 20, 20, 90, 16),
+      line("Ethan's Magcargo", 90, 55, 420, 36),
+      line('Evolves from Ethan\'s Slugma', 90, 95, 360, 20),
+      line('m 130', 760, 65, 100, 20),
+      line('NO. 0219 Lava Pokémon HT. 2\'7" WT. 121.3 lbs.', 70, 420, 500, 16),
+      line('036/182', 70, 1080, 130, 18),
+    ];
+
+    expect(
+      parser.parseLines(lines, imageWidth: 720, imageHeight: 1280),
+      "Ethan's Magcargo 036/182",
+    );
+  });
+
+  test('plain text fallback skips stage and HP fragments', () {
+    final text = [
+      'STAGEI',
+      "Ethan's Magcargo",
+      'Evolves from Ethan\'s Slugma',
+      'm 130',
+      '036/182',
+    ].join('\n');
+
+    expect(parser.parsePlainText(text), "Ethan's Magcargo");
   });
 
   test('works with trainer cards and letters in the number', () {
@@ -66,7 +117,10 @@ void main() {
       line('TG01/TG30', 70, 1080, 140, 18),
     ];
 
-    expect(parser.parseLines(lines, imageWidth: 720, imageHeight: 1280), "Professor's Research TG01/TG30");
+    expect(
+      parser.parseLines(lines, imageWidth: 720, imageHeight: 1280),
+      "Professor's Research TG01/TG30",
+    );
   });
 
   test('returns name only when no number is visible', () {
@@ -76,7 +130,10 @@ void main() {
       line('HP 120', 760, 65, 100, 20),
     ];
 
-    expect(parser.parseLines(lines, imageWidth: 720, imageHeight: 1280), 'Gyarados');
+    expect(
+      parser.parseLines(lines, imageWidth: 720, imageHeight: 1280),
+      'Gyarados',
+    );
   });
 
   test('extracts promo card numbers without a total', () {
@@ -111,7 +168,10 @@ void main() {
       line('049/182', 70, 1080, 130, 18),
     ];
 
-    expect(parser.parseLines(lines, imageWidth: 720, imageHeight: 1280), "Misty's Gyarados 049/182");
+    expect(
+      parser.parseLines(lines, imageWidth: 720, imageHeight: 1280),
+      "Misty's Gyarados 049/182",
+    );
   });
 
   test('extracts a Japanese card name and promo number', () {
@@ -152,4 +212,3 @@ void main() {
     );
   });
 }
-

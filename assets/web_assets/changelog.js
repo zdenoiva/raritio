@@ -1,6 +1,18 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.3.19",
+    "date": "2026-10-31",
+    "changes": [
+      "OCR už nepoužíva generický auto-crop skenera; vracia sa osvedčený výrez na kartu.",
+      "Pridané viac variantov výrezu a záložné OCR.",
+      "Detekcia karty kontroluje pomer strán 63 : 88, takže odmietne TV, stôl alebo podložku.",
+      "Automatické zachytenie sa spustí len pri karte so správnym pomerom.",
+      "Výsledky zobrazujú typ karty: Pokémon / Trainer / Energy / MTG.",
+      "Spodný rad zobrazí všetky dostupné návrhy, až 6 kariet."
+    ]
+  },
+  {
     "version": "0.3.18",
     "date": "2026-10-31",
     "changes": [

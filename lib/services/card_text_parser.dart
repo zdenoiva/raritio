@@ -18,10 +18,12 @@ class CardTextParser {
   static const String _cjkRange =
       r'\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff';
 
-  static final RegExp _leadingJunk =
-      RegExp(r'^[^A-Za-zÀ-ž' + _cjkRange + r']+');
-  static final RegExp _trailingJunk =
-      RegExp(r"[^A-Za-zÀ-ž0-9\.\-\'\s" + _cjkRange + r']+$');
+  static final RegExp _leadingJunk = RegExp(
+    r'^[^A-Za-zÀ-ž' + _cjkRange + r']+',
+  );
+  static final RegExp _trailingJunk = RegExp(
+    r"[^A-Za-zÀ-ž0-9\.\-\'\s" + _cjkRange + r']+$',
+  );
   static final RegExp _hasCjk = RegExp('[$_cjkRange]');
   static final RegExp _cjkLabel = RegExp(
     r'^(たねポケモン|1進化ポケモン|2進化ポケモン|グッズ|サポート|スタジアム|エネルギー|ポケモン|'
@@ -138,12 +140,29 @@ class CardTextParser {
     if (candidates.isEmpty) return null;
 
     candidates.sort((a, b) {
+      final byScore = _nameLineScore(
+        b.text,
+        b.height,
+      ).compareTo(_nameLineScore(a.text, a.height));
+      if (byScore != 0) return byScore;
       final byHeight = b.height.compareTo(a.height);
       if (byHeight != 0) return byHeight;
       return a.top.compareTo(b.top);
     });
 
     return candidates.first.text;
+  }
+
+  int _nameLineScore(String text, double height) {
+    final letters = RegExp(
+      r'[A-Za-zÀ-ž\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]',
+    ).allMatches(text).length;
+    final digits = RegExp(r'[0-9]').allMatches(text).length;
+    final words = text
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .length;
+    return letters * 2 + words * 2 - digits * 3 + height.round();
   }
 
   bool _isJunk(String raw) {
@@ -153,8 +172,12 @@ class CardTextParser {
 
     // Card type / stage labels.
     if (RegExp(
-      r'^(BASIC|STAGE\s*\d|STAGE|EVOLUTION|TRAINER|SUPPORTER|ITEM|STADIUM|TOOL|ENERGY|POKÉMON|POKEMON)$',
+      r'^(BASIC|STAGE\s*\d|STAGEI|STAGEII|STAGE|EVOLUTION|EVOLVES\s+FROM|TRAINER|SUPPORTER|ITEM|STADIUM|TOOL|ENERGY|POKÉMON|POKEMON)$',
     ).hasMatch(upper)) {
+      return true;
+    }
+    if (RegExp(r'^[A-Za-z]\s*\d+$').hasMatch(text)) return true;
+    if (RegExp(r'^EVOLVES\s+FROM\b', caseSensitive: false).hasMatch(text)) {
       return true;
     }
 
@@ -172,6 +195,19 @@ class CardTextParser {
     final hasCjk = _hasCjk.hasMatch(text);
     if (text.length <= 2 && !hasCjk) return true;
     if (text.length <= 1 && hasCjk) return true;
+
+    // Card species line: "NO. 0219 Lava Pokémon HT. 2'7\" WT. 121.3 lbs."
+    if (RegExp(
+      r'^(NO\.?|HT\.?|WT\.?)\b',
+      caseSensitive: false,
+    ).hasMatch(text)) {
+      return true;
+    }
+    if (upper.contains(' HT.') ||
+        upper.contains(' WT') ||
+        upper.contains('LBS.')) {
+      return true;
+    }
 
     // Copyright / artist lines.
     if (upper.contains('ILLUS') ||
@@ -194,7 +230,7 @@ class CardTextParser {
 
     // Lines that are mostly digits (damage counters, HP, etc.).
     final digits = text.replaceAll(RegExp(r'[^0-9]'), '').length;
-    if (digits > text.length * 0.6) return true;
+    if (digits > text.length * 0.35) return true;
 
     return false;
   }
