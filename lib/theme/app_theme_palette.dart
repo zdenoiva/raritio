@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Native colours for the four Raritio themes.
+/// Native colours for the Raritio themes.
 ///
 /// The WebView owns the source of truth for the selected theme. Native screens
 /// receive its id and use this palette so Zdieľané and the scanner feel like
@@ -76,6 +76,19 @@ class AppThemePalette {
         muted: Color(0xFFCBBFA8),
         onAccent: Color(0xFF140F0A),
         success: Color(0xFFE8C967),
+      ),
+      'glass' => const AppThemePalette(
+        id: 'glass',
+        background: Color(0xFF0A0E15),
+        surface: Color(0xFF121A26),
+        surfaceAlt: Color(0xFF1A2433),
+        border: Color(0xFF3B4A60),
+        accent: Color(0xFF7DD3FC),
+        accentAlt: Color(0xFFC084FC),
+        text: Color(0xFFF4F9FF),
+        muted: Color(0xFFB4C4D8),
+        onAccent: Color(0xFF07111C),
+        success: Color(0xFF86EFAC),
       ),
       _ => const AppThemePalette(
         id: 'classic',

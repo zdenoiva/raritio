@@ -1,6 +1,17 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.4.4",
+    "date": "2026-10-31",
+    "changes": [
+      "Pribudla téma Glass inšpirovaná priehľadným iPhone sklom.",
+      "Glass má vlastné rarity rámiky, priehľadné karty a prismatický glow efekt.",
+      "Stone dostal výraznejší pohyblivý ember efekt pri drahých kartách.",
+      "Poke má názvy kariet zarovnané doľava a širšie nameplate bez zbytočných okrajov.",
+      "Všetky témy naďalej používajú vlastné efekty drahých kariet."
+    ]
+  },
+  {
     "version": "0.4.3",
     "date": "2026-10-31",
     "changes": [

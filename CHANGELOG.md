@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.4] - 2026-10-31
+
+- Pribudla téma Glass inšpirovaná priehľadným iPhone sklom.
+- Glass má vlastné rarity rámiky, priehľadné karty a prismatický glow efekt.
+- Stone dostal výraznejší pohyblivý ember efekt pri drahých kartách.
+- Poke má názvy kariet zarovnané doľava a širšie nameplate bez zbytočných okrajov.
+- Všetky témy naďalej používajú vlastné efekty drahých kariet.
+
 ## [0.4.3] - 2026-10-31
 
 - Zdieľané, detaily zdieľaných balíkov a detail karty používajú zvolenú tému.

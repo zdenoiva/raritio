@@ -1237,6 +1237,10 @@ _ScannerPalette _paletteFor(String theme) {
       accent: Color(0xFFC9A227),
       surface: Color(0xFF211912),
     ),
+    'glass' => const _ScannerPalette(
+      accent: Color(0xFF7DD3FC),
+      surface: Color(0xFF121A26),
+    ),
     _ => const _ScannerPalette(
       accent: Color(0xFFB6FF3B),
       surface: Color(0xFF101114),

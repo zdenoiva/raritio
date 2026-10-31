@@ -2767,6 +2767,10 @@
             box-shadow: 0 0 0 1px var(--primary);
         }
 
+        .theme-picker .theme-option:last-child:nth-child(odd) {
+            grid-column: 1 / -1;
+        }
+
         .theme-option-preview {
             width: 38px;
             height: 38px;
@@ -2846,16 +2850,39 @@
             background-attachment: fixed;
         }
 
+        body[data-theme="glass"] {
+            --bg: #0a0e15;
+            --surface: rgba(255, 255, 255, 0.075);
+            --surface-light: rgba(255, 255, 255, 0.13);
+            --primary: #7dd3fc;
+            --primary-hover: #38bdf8;
+            --text: #f4f9ff;
+            --text-muted: #b4c4d8;
+            --border: rgba(255, 255, 255, 0.22);
+            --success: #86efac;
+            --header-bg: rgba(8, 13, 22, 0.6);
+            --nav-bg: rgba(8, 13, 22, 0.68);
+            background:
+                radial-gradient(circle at 8% 4%, rgba(125, 211, 252, 0.2), transparent 32%),
+                radial-gradient(circle at 92% 2%, rgba(192, 132, 252, 0.2), transparent 34%),
+                radial-gradient(circle at 55% 48%, rgba(244, 114, 182, 0.09), transparent 38%),
+                radial-gradient(circle at 12% 86%, rgba(94, 234, 212, 0.1), transparent 34%),
+                linear-gradient(180deg, #0a0e15, #101827 56%, #0a0e15);
+            background-attachment: fixed;
+        }
+
         body[data-theme="poke"] header,
         body[data-theme="magic"] header,
-        body[data-theme="stone"] header {
+        body[data-theme="stone"] header,
+        body[data-theme="glass"] header {
             background: var(--header-bg);
             border-bottom-color: var(--border);
         }
 
         body[data-theme="poke"] .bottom-nav,
         body[data-theme="magic"] .bottom-nav,
-        body[data-theme="stone"] .bottom-nav {
+        body[data-theme="stone"] .bottom-nav,
+        body[data-theme="glass"] .bottom-nav {
             background: var(--nav-bg);
         }
 
@@ -2872,6 +2899,12 @@
         body[data-theme="stone"] .brand-mark {
             background: linear-gradient(135deg, #c9a227, #7c4a1c);
             color: #140f0a;
+        }
+
+        body[data-theme="glass"] .brand-mark {
+            background: linear-gradient(135deg, #7dd3fc, #c084fc 55%, #f0abfc);
+            color: #07111c;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 4px 16px rgba(125, 211, 252, 0.28);
         }
 
         body[data-theme="poke"] .card-item,
@@ -2931,7 +2964,10 @@
             border-radius: 44% 44% 5px 5px / 15% 15% 5px 5px;
         }
 
-        body[data-theme="poke"] .card-info { background: linear-gradient(180deg, rgba(19, 28, 46, 0.96), rgba(11, 18, 32, 0.98)); }
+        body[data-theme="poke"] .card-info {
+            padding: 9px 5px 7px;
+            background: linear-gradient(180deg, rgba(19, 28, 46, 0.96), rgba(11, 18, 32, 0.98));
+        }
         body[data-theme="magic"] .card-info { background: linear-gradient(180deg, rgba(8, 31, 44, 0.98), rgba(6, 23, 36, 1)); }
         body[data-theme="stone"] .card-info {
             padding: 12px 8px 8px;
@@ -3066,14 +3102,15 @@
         }
 
         body[data-theme="poke"] .card-name {
-            margin: -3px 4px 4px;
+            margin: 0 0 4px;
             padding: 3px 5px;
-            border-radius: 3px;
+            border-radius: 0 4px 4px 0;
             background: linear-gradient(180deg, #fff3bf, #ffd75e);
             color: #5b2b00;
             border: 1px solid #e3350d;
+            border-left-width: 2px;
             font-family: Georgia, serif;
-            text-align: center;
+            text-align: left;
         }
 
         body[data-theme="poke"] .card-item.rarity-common .card-name {
@@ -3180,6 +3217,161 @@
             color: #ffe7a3;
         }
 
+        /* Glass theme */
+        body[data-theme="glass"] header {
+            backdrop-filter: blur(24px) saturate(160%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.18),
+                0 10px 34px rgba(0, 0, 0, 0.28);
+        }
+
+        body[data-theme="glass"] .bottom-nav {
+            backdrop-filter: blur(24px) saturate(160%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.16),
+                0 -10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        body[data-theme="glass"] .card-item {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.045));
+            backdrop-filter: blur(18px) saturate(150%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+                0 10px 28px rgba(0, 0, 0, 0.32);
+        }
+
+        body[data-theme="glass"] .card-item::before {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border-radius: calc(var(--radius) - 3px);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        body[data-theme="glass"] .card-image-wrap {
+            background: rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        body[data-theme="glass"] .card-info {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035));
+            backdrop-filter: blur(16px) saturate(140%);
+        }
+
+        body[data-theme="glass"] .card-name {
+            margin: -3px 4px 4px;
+            padding: 4px 7px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.075));
+            border: 1px solid rgba(255, 255, 255, 0.38);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                0 4px 12px rgba(0, 0, 0, 0.2);
+            color: #ffffff;
+            text-shadow: 0 1px 8px rgba(0, 0, 0, 0.32);
+        }
+
+        body[data-theme="glass"] .card-set { color: rgba(226, 240, 255, 0.72); }
+        body[data-theme="glass"] .card-price { color: #d9fbff; }
+
+        body[data-theme="glass"] .card-item.rarity-common {
+            border-color: rgba(226, 232, 240, 0.55);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 8px 22px rgba(0, 0, 0, 0.28);
+        }
+        body[data-theme="glass"] .card-item.rarity-uncommon {
+            border-color: rgba(94, 234, 212, 0.72);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 0 18px rgba(45, 212, 191, 0.16), 0 8px 22px rgba(0, 0, 0, 0.28);
+        }
+        body[data-theme="glass"] .card-item.rarity-rare {
+            border-color: rgba(96, 165, 250, 0.78);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 0 20px rgba(96, 165, 250, 0.18), 0 8px 22px rgba(0, 0, 0, 0.28);
+        }
+        body[data-theme="glass"] .card-item.rarity-holo {
+            border-color: rgba(240, 171, 252, 0.78);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 0 22px rgba(240, 171, 252, 0.2), 0 8px 22px rgba(0, 0, 0, 0.28);
+        }
+        body[data-theme="glass"] .card-item.rarity-ultra,
+        body[data-theme="glass"] .card-item.rarity-mythic,
+        body[data-theme="glass"] .card-item.rarity-legendary {
+            border-color: rgba(251, 191, 36, 0.78);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44), 0 0 24px rgba(251, 191, 36, 0.2), 0 8px 22px rgba(0, 0, 0, 0.3);
+        }
+        body[data-theme="glass"] .card-item.rarity-promo {
+            border-color: rgba(251, 113, 133, 0.78);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 0 20px rgba(251, 113, 133, 0.18), 0 8px 22px rgba(0, 0, 0, 0.28);
+        }
+        body[data-theme="glass"] .card-item.rarity-illustration,
+        body[data-theme="glass"] .card-item.rarity-secret {
+            border: 1.5px solid transparent;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.055)) padding-box,
+                conic-gradient(from 130deg, #7dd3fc, #c084fc, #f0abfc, #fbbf24, #5eead4, #7dd3fc) border-box;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 24px rgba(192, 132, 252, 0.18), 0 8px 22px rgba(0, 0, 0, 0.28);
+        }
+
+        body[data-theme="glass"] .card-item.rarity-illustration .card-name,
+        body[data-theme="glass"] .card-item.rarity-secret .card-name {
+            border-color: rgba(240, 171, 252, 0.7);
+            background: linear-gradient(135deg, rgba(240, 171, 252, 0.24), rgba(125, 211, 252, 0.12));
+        }
+
+        body[data-theme="glass"] .binder-picker-button,
+        body[data-theme="glass"] .sort-button,
+        body[data-theme="glass"] .reorder-toggle {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.055));
+            border-color: rgba(255, 255, 255, 0.28);
+            backdrop-filter: blur(18px) saturate(150%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        }
+
+        body[data-theme="glass"] .binder-picker-icon,
+        body[data-theme="glass"] .binder-picker-chevron { color: #a5e9ff; }
+        body[data-theme="glass"] .total-value {
+            color: #d9fbff;
+            background: rgba(125, 211, 252, 0.16);
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            padding: 3px 8px;
+            border-radius: 999px;
+            text-shadow: 0 0 12px rgba(125, 211, 252, 0.35);
+        }
+
+        body[data-theme="glass"] .btn-primary {
+            color: #07111c;
+        }
+
+        body[data-theme="glass"] .modal-content {
+            background: rgba(13, 19, 30, 0.86);
+            backdrop-filter: blur(26px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+        }
+
+        body[data-theme="glass"] .settings-section {
+            border-top-color: rgba(255, 255, 255, 0.14);
+        }
+
+        body[data-theme="glass"] .badge-foil {
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.75), rgba(192, 132, 252, 0.75));
+            color: #07111c;
+        }
+
+        body[data-theme="glass"] .holo-card-inner {
+            box-shadow:
+                0 0 0 1px rgba(255, 255, 255, 0.35),
+                0 0 0 5px rgba(125, 211, 252, 0.12),
+                0 18px 42px rgba(0, 0, 0, 0.48);
+        }
+
+        body[data-theme="glass"] .detail-name {
+            color: #ffffff;
+            text-shadow: 0 1px 14px rgba(125, 211, 252, 0.25);
+        }
+
         /* Theme-specific high-value card effects */
         @keyframes poke-energy {
             0%, 100% {
@@ -3238,8 +3430,21 @@
         }
 
         @keyframes stone-shift {
-            0%, 100% { opacity: 0.45; transform: translateY(4px); }
-            50% { opacity: 0.8; transform: translateY(-2px); }
+            0%, 100% {
+                opacity: 0.35;
+                transform: translateY(7px) scale(1.03);
+                background-position: 50% 112%, 18% 82%;
+            }
+            50% {
+                opacity: 0.92;
+                transform: translateY(-7px) scale(1.09);
+                background-position: 50% 68%, 82% 18%;
+            }
+        }
+
+        @keyframes stone-border {
+            0%, 100% { border-color: rgba(201, 162, 39, 0.34); }
+            50% { border-color: rgba(255, 224, 130, 0.78); }
         }
 
         body[data-theme="poke"] .card-item.glow {
@@ -3299,14 +3504,16 @@
             inset: 0;
             z-index: 1;
             pointer-events: none;
-            background: radial-gradient(
-                ellipse at 50% 100%,
-                rgba(249, 115, 22, 0.18),
-                rgba(201, 162, 39, 0.08) 36%,
-                transparent 68%
-            );
-            animation: stone-shift 3.8s ease-in-out infinite;
+            background:
+                radial-gradient(circle at 50% 96%, rgba(249, 115, 22, 0.34), transparent 34%),
+                radial-gradient(circle at 34% 22%, rgba(255, 214, 102, 0.22), transparent 38%);
+            background-size: 140% 160%, 120% 120%;
+            animation: stone-shift 3.4s ease-in-out infinite;
             mix-blend-mode: screen;
+        }
+
+        body[data-theme="stone"] .card-item.glow::before {
+            animation: stone-border 3.4s ease-in-out infinite;
         }
 
         body[data-theme="poke"] .holo-card.glow {
@@ -3320,6 +3527,60 @@
         body[data-theme="stone"] .holo-card.glow {
             box-shadow: 0 0 28px rgba(232, 201, 103, 0.38), 0 0 64px rgba(120, 83, 45, 0.24);
         }
+
+        @keyframes glass-prism {
+            0%, 100% {
+                box-shadow:
+                    0 0 0 1px rgba(255, 255, 255, 0.5),
+                    0 0 22px rgba(125, 211, 252, 0.28),
+                    0 0 48px rgba(192, 132, 252, 0.14);
+            }
+            50% {
+                box-shadow:
+                    0 0 0 2px rgba(255, 255, 255, 0.76),
+                    0 0 32px rgba(240, 171, 252, 0.38),
+                    0 0 72px rgba(125, 211, 252, 0.24);
+            }
+        }
+
+        @keyframes glass-spin {
+            0% { transform: rotate(0deg) scale(1.1); opacity: 0.16; }
+            50% { opacity: 0.3; }
+            100% { transform: rotate(360deg) scale(1.1); opacity: 0.16; }
+        }
+
+        body[data-theme="glass"] .card-item.glow {
+            border-color: rgba(255, 255, 255, 0.72);
+            animation: glass-prism 3.4s ease-in-out infinite;
+        }
+
+        body[data-theme="glass"] .card-item.glow::after {
+            content: '';
+            position: absolute;
+            inset: -34%;
+            z-index: 1;
+            pointer-events: none;
+            background: conic-gradient(
+                from 30deg,
+                rgba(125, 211, 252, 0.34),
+                rgba(192, 132, 252, 0.26),
+                rgba(240, 171, 252, 0.3),
+                rgba(251, 191, 36, 0.2),
+                rgba(94, 234, 212, 0.26),
+                rgba(125, 211, 252, 0.34)
+            );
+            animation: glass-spin 8s linear infinite;
+            mix-blend-mode: screen;
+            filter: blur(3px);
+        }
+
+        body[data-theme="glass"] .holo-card.glow {
+            box-shadow:
+                0 0 30px rgba(255, 255, 255, 0.26),
+                0 0 72px rgba(192, 132, 252, 0.25);
+        }
+
+        body[data-theme="glass"] .glow-caption { color: #d9fbff; }
 
         body[data-theme="poke"] .glow-caption { color: #ffcb05; }
         body[data-theme="magic"] .glow-caption { color: #e8c967; }
@@ -3336,9 +3597,11 @@
             body[data-theme="poke"] .card-item.glow,
             body[data-theme="magic"] .card-item.glow,
             body[data-theme="stone"] .card-item.glow,
+            body[data-theme="glass"] .card-item.glow,
             body[data-theme="poke"] .card-item.glow::after,
             body[data-theme="magic"] .card-item.glow::after,
-            body[data-theme="stone"] .card-item.glow::after {
+            body[data-theme="stone"] .card-item.glow::after,
+            body[data-theme="glass"] .card-item.glow::after {
                 animation: none;
             }
         }
@@ -3679,7 +3942,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.4.3</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.4.4</span></p>
         </div>
     </div>
 

@@ -27,7 +27,8 @@ const THEMES = [
     { id: 'classic', label: 'Klasika', hint: 'Súčasný vzhľad', colors: ['#0a0a0c', '#16161a', '#3b82f6'] },
     { id: 'poke', label: 'Poke', hint: 'Trainer energia', colors: ['#0b1220', '#e3350d', '#ffcb05'] },
     { id: 'magic', label: 'Magic', hint: 'MTG card back', colors: ['#061724', '#c9a227', '#2dd4bf'] },
-    { id: 'stone', label: 'Stone', hint: 'Hearthstone rám', colors: ['#16120f', '#c9a227', '#7c4a1c'] }
+    { id: 'stone', label: 'Stone', hint: 'Hearthstone rám', colors: ['#16120f', '#c9a227', '#7c4a1c'] },
+    { id: 'glass', label: 'Glass', hint: 'Priesvitný iPhone vzhľad', colors: ['#0a0e15', '#7dd3fc', '#c084fc'] },
 ];
 
 function createDefaultState() {
@@ -3698,6 +3699,17 @@ const RARITY_LEGEND_BY_THEME = {
         { label: 'Common', description: 'Common – kamenný rám.', value: 'common', color: '#94a3b8' },
         { label: 'Foil', description: 'Foil – zlatý lesk.', value: 'holo foil', color: '#e8c967' },
         { label: 'Neznáma', description: 'Neznáma rarita, neutrálny rám.', value: 'unknown', color: '#64748b' }
+    ],
+    glass: [
+        { label: 'Secret / Rainbow', description: 'Dúhový priehľadný rám – najvzácnejšie karty.', value: 'secret rainbow hyper', color: '#f0abfc' },
+        { label: 'Illustration / Alt Art', description: 'Fialový glass rám pre full-art a alt-art.', value: 'special illustration alt art', color: '#c084fc' },
+        { label: 'Ultra / Gold', description: 'Teplý zlatý odlesk na priehľadnom ráme.', value: 'ultra gold vmax vstar', color: '#fbbf24' },
+        { label: 'Holo / Foil', description: 'Ružovo-cyanový holografický odlesk.', value: 'holo foil', color: '#f0abfc' },
+        { label: 'Promo', description: 'Promo karta s ružovým glass akcentom.', value: 'promo', color: '#fb7185' },
+        { label: 'Rare', description: 'Modrý priehľadný rám.', value: 'rare', color: '#60a5fa' },
+        { label: 'Uncommon', description: 'Mintový priehľadný rám.', value: 'uncommon', color: '#5eead4' },
+        { label: 'Common', description: 'Jemný biely glass rám.', value: 'common', color: '#e2e8f0' },
+        { label: 'Neznáma', description: 'Neznáma rarita, neutrálny glass rám.', value: 'unknown', color: '#94a3b8' }
     ]
 };
 
