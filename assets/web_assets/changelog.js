@@ -1,6 +1,18 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.3.17",
+    "date": "2026-10-31",
+    "changes": [
+      "Skener má dynamický rámik, ktorý sleduje obrys karty.",
+      "Automatické zachytenie, keď je karta zaostrená a stabilná.",
+      "Po zachytení sa zobrazia 2–3 návrhy karty priamo v skeneri.",
+      "Kartu pridáš jedným tlačidlom do aktuálneho balíka a skenuješ ďalej.",
+      "Ak rozpoznanie zlyhá, skener ponúkne staré ručné hľadanie.",
+      "Ponechaný manuálny spúšť, blesk, zoom a galéria."
+    ]
+  },
+  {
     "version": "0.3.16",
     "date": "2026-10-31",
     "changes": [

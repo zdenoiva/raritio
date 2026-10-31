@@ -1,19 +1,17 @@
 {
-  "version": "0.3.16",
-  "versionCode": 316,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.16/raritio-0.3.16.apk",
-  "sha256": "0f4bff71f4fc4555ee8074af2e4bf9a364889c71bac0d3e11d2f408651ce5196",
-  "size": 118028932,
-  "publishedAt": "2026-10-31T12:00:00Z",
+  "version": "0.3.17",
+  "versionCode": 317,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.3.17/raritio-0.3.17.apk",
+  "sha256": "b93206fbfef8c29d2c8310e1bc0d0a7f64c0c61fd82a317eea0fe7efcf4b8a81",
+  "size": 119817670,
+  "publishedAt": "2026-10-31T12:30:00Z",
   "changelog": [
-    "Bez emailu v účte; zostáva prezývka a friend kód.",
-    "Možnosť zmazať účet a zdieľané dáta.",
-    "Bezpečnejšie RLS a owner-only share token.",
-    "Externé odkazy s funkčným tlačidlom Späť.",
-    "Šifrované zálohy vrátane profilu a prihlásenia.",
-    "Overenie podpisu APK pri aktualizácii.",
-    "Nový full-screen skener s výberom typu a zoomom.",
-    "Aktualizované závislosti.",
-    "Raritio beta 0.3.16."
+    "Dynamický rámik sleduje obrys karty.",
+    "Automatické zachytenie po zaostrení a stabilizovaní.",
+    "2–3 návrhy karty priamo v skeneri.",
+    "Pridanie karty jedným tlačidlom do aktuálneho balíka.",
+    "Pri zlyhaní sa otvorí staré ručné hľadanie.",
+    "Ponechaný zoom, blesk a galéria.",
+    "Raritio beta 0.3.17."
   ]
 }

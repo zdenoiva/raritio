@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.17] - 2026-10-31
+
+- Skener má dynamický rámik, ktorý sleduje obrys karty.
+- Automatické zachytenie, keď je karta zaostrená a stabilná.
+- Po zachytení sa zobrazia 2–3 návrhy karty priamo v skeneri.
+- Kartu pridáš jedným tlačidlom do aktuálneho balíka a skenuješ ďalej.
+- Ak rozpoznanie zlyhá, skener ponúkne staré ručné hľadanie.
+- Ponechaný manuálny spúšť, blesk, zoom a galéria.
+
 ## [0.3.16] - 2026-10-31
 
 - Účet už neobsahuje email; zostáva anonymný Supabase účet, prezývka a vygenerovaný friend kód.

@@ -2916,6 +2916,36 @@ function handleCardDetailsError(cardId) {
     }
 }
 
+function addScannedCard(payload) {
+    try {
+        const card = normalizeCard(payload);
+        const binder = getCurrentBinder();
+        if (!binder) return 'no-binder';
+        if (!card.id) return 'error';
+        if (binder.cards.some(item => item.id === card.id)) {
+            return 'duplicate';
+        }
+
+        const newCard = {
+            ...card,
+            currentPrice: Number(card.price ?? card.currentPrice) || 0,
+            language: normalizeLanguage(card.language),
+            addedAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString(),
+            source: card.source || (card.game === 'mtg' ? 'scryfall' : 'tcgdex')
+        };
+        recordPriceSnapshot(newCard, newCard.currentPrice);
+        binder.cards.push(newCard);
+        saveState();
+        renderBinderSelector();
+        renderBinder();
+        return 'added';
+    } catch (e) {
+        console.error('addScannedCard failed', e);
+        return 'error';
+    }
+}
+
 function addCardToSelectedBinders(cardId) {
     const card = state.searchResults.find(c => c.id === cardId);
     if (!card) return;

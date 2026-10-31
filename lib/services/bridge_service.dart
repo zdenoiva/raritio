@@ -9,10 +9,15 @@ class BridgeService {
 
   /// Processes an image and returns `{text, language}` for the web UI, or
   /// `{error}` when OCR could not run at all.
-  Future<Map<String, dynamic>?> scanImagePath(String path) async {
+  Future<Map<String, dynamic>?> scanImagePath(
+    String path, {
+    bool cropToFrame = true,
+  }) async {
     File? cropped;
     try {
-      cropped = await _scanImageService.prepareForOcr(path);
+      if (cropToFrame) {
+        cropped = await _scanImageService.prepareForOcr(path);
+      }
       final result = await _ocrService.scanImage(cropped ?? File(path));
       if (result == null) return null;
       return <String, dynamic>{
@@ -31,4 +36,3 @@ class BridgeService {
     }
   }
 }
-

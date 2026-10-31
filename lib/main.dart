@@ -477,7 +477,11 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final CameraResult? cameraResult = await Navigator.push<CameraResult>(
         context,
         MaterialPageRoute(
-          builder: (context) => CameraScreen(initialGame: _lastScanGame),
+          builder: (context) => CameraScreen(
+            initialGame: _lastScanGame,
+            onRecognize: _recognizeScanCandidates,
+            onAdd: _addScannedCard,
+          ),
         ),
       );
 
@@ -488,23 +492,120 @@ class _RaritioTCGState extends State<RaritioTCG> {
       }
       _lastScanGame = cameraResult.game;
 
+      if (cameraResult.ocrText?.trim().isNotEmpty == true) {
+        _controller.runJavaScript(
+          'handleScanResult(${jsonEncode(<String, dynamic>{'text': cameraResult.ocrText, 'language': cameraResult.ocrLanguage ?? 'en', 'game': cameraResult.game})})',
+        );
+        return;
+      }
+
       final result = await _bridge.scanImagePath(cameraResult.path);
       if (result == null) {
         _controller.runJavaScript(
-          'showError(${jsonEncode("Nepodarilo sa rozpoznať text. Skús kartu odfotiť znovu.")})',
+          'showSearch({ focus: true }); '
+          'showToast(${jsonEncode("Text sa nepodarilo prečítať. Zadaj kartu ručne.")})',
         );
         return;
       }
 
       final error = result['error'];
       if (error is String && error.isNotEmpty) {
-        _controller.runJavaScript('showError(${jsonEncode(error)})');
+        _controller.runJavaScript(
+          'showSearch({ focus: true }); '
+          'showToast(${jsonEncode("Text sa nepodarilo prečítať. Zadaj kartu ručne.")})',
+        );
       } else {
         result['game'] = cameraResult.game;
         _controller.runJavaScript('handleScanResult(${jsonEncode(result)})');
       }
     } catch (e) {
       _controller.runJavaScript('showError(${jsonEncode("Chyba kamery: $e")})');
+    }
+  }
+
+  Future<ScanRecognition> _recognizeScanCandidates(
+    String path,
+    String game,
+  ) async {
+    try {
+      final ocr = await _bridge.scanImagePath(path, cropToFrame: false);
+      if (ocr == null) {
+        return const ScanRecognition(
+          query: '',
+          language: 'en',
+          candidates: [],
+          error: 'Nepodarilo sa prečítať text z karty.',
+        );
+      }
+      final ocrError = ocr['error'];
+      if (ocrError is String && ocrError.isNotEmpty) {
+        return ScanRecognition(
+          query: '',
+          language: 'en',
+          candidates: const [],
+          error: ocrError,
+        );
+      }
+
+      final text = (ocr['text'] ?? '').toString().trim();
+      final language = (ocr['language'] ?? 'en').toString();
+      if (text.isEmpty) {
+        return const ScanRecognition(
+          query: '',
+          language: 'en',
+          candidates: [],
+          error: 'Na karte sa nenašiel čitateľný názov.',
+        );
+      }
+
+      final outcome = await _findCards(
+        query: text,
+        requestedLanguage: language,
+        requestedGame: game,
+        fromOcr: true,
+      );
+
+      final candidates = await Future.wait(
+        outcome.results.take(3).map((card) async {
+          if (card['game'] == 'pokemon' && card['detailsLoaded'] != true) {
+            final details = await _cardService.getPokemonDetails(
+              (card['id'] ?? '').toString(),
+              language: (card['language'] ?? language).toString(),
+            );
+            return details ?? card;
+          }
+          return card;
+        }),
+      );
+
+      return ScanRecognition(
+        query: text,
+        language: language,
+        candidates: candidates,
+        error: candidates.isEmpty
+            ? 'Kartu sa nepodarilo nájsť v katalógu.'
+            : null,
+      );
+    } catch (e) {
+      return ScanRecognition(
+        query: '',
+        language: 'en',
+        candidates: const [],
+        error: 'Rozpoznávanie zlyhalo: $e',
+      );
+    }
+  }
+
+  Future<bool> _addScannedCard(Map<String, dynamic> card) async {
+    try {
+      final raw = await _controller.runJavaScriptReturningResult(
+        'addScannedCard(${jsonEncode(card)})',
+      );
+      final value = raw.toString().replaceAll('"', '').trim();
+      return value == 'added';
+    } catch (e) {
+      print('Add scanned card error: $e');
+      return false;
     }
   }
 
@@ -539,56 +640,15 @@ class _RaritioTCGState extends State<RaritioTCG> {
         return;
       }
 
-      final language = _resolveSearchLanguage(query, requestedLanguage);
-      final variants = SearchQueryExpander.expand(
-        query,
-        maxVariants: fromOcr ? 10 : 6,
+      final outcome = await _findCards(
+        query: query,
+        requestedLanguage: requestedLanguage,
+        requestedGame: requestedGame,
+        fromOcr: fromOcr,
       );
 
-      var usedQuery = query;
-      var results = <Map<String, dynamic>>[];
-
-      // English cards are searched in TCGdex and Scryfall in parallel. For
-      // Japanese/Chinese text, MTG is skipped and the other CJK language is
-      // used as a fallback in case the script detector picked the wrong one.
-      final cjkLanguages = language == 'ja'
-          ? const <String>['ja', 'zh-cn']
-          : const <String>['zh-cn', 'ja'];
-
-      for (final variant in variants) {
-        if (language == 'en') {
-          final combined = <Map<String, dynamic>>[];
-          if (requestedGame != 'mtg') {
-            combined.addAll(await _cardService.searchPokemon(variant));
-          }
-          if (requestedGame != 'pokemon') {
-            combined.addAll(await _cardService.searchMtg(variant));
-          }
-          if (combined.isNotEmpty) {
-            results = combined;
-            usedQuery = variant;
-            break;
-          }
-        } else if (requestedGame == 'mtg') {
-          continue;
-        } else {
-          for (final searchLanguage in cjkLanguages) {
-            final found = await _cardService.searchPokemon(
-              variant,
-              language: searchLanguage,
-            );
-            if (found.isNotEmpty) {
-              results = found;
-              usedQuery = variant;
-              break;
-            }
-          }
-          if (results.isNotEmpty) break;
-        }
-      }
-
       _controller.runJavaScript(
-        'handleSearchResults(${jsonEncode(results)}, ${jsonEncode(usedQuery)}, ${jsonEncode(requestId)})',
+        'handleSearchResults(${jsonEncode(outcome.results)}, ${jsonEncode(outcome.usedQuery)}, ${jsonEncode(requestId)})',
       );
     } catch (e) {
       print("Search error: $e");
@@ -596,6 +656,63 @@ class _RaritioTCGState extends State<RaritioTCG> {
         'handleSearchResults([], ${jsonEncode(null)}, ${jsonEncode(requestId)})',
       );
     }
+  }
+
+  Future<({List<Map<String, dynamic>> results, String usedQuery})> _findCards({
+    required String query,
+    required String requestedLanguage,
+    required String requestedGame,
+    required bool fromOcr,
+  }) async {
+    final language = _resolveSearchLanguage(query, requestedLanguage);
+    final variants = SearchQueryExpander.expand(
+      query,
+      maxVariants: fromOcr ? 10 : 6,
+    );
+
+    var usedQuery = query;
+    var results = <Map<String, dynamic>>[];
+
+    // English cards are searched in TCGdex and Scryfall in parallel. For
+    // Japanese/Chinese text, MTG is skipped and the other CJK language is
+    // used as a fallback in case the script detector picked the wrong one.
+    final cjkLanguages = language == 'ja'
+        ? const <String>['ja', 'zh-cn']
+        : const <String>['zh-cn', 'ja'];
+
+    for (final variant in variants) {
+      if (language == 'en') {
+        final combined = <Map<String, dynamic>>[];
+        if (requestedGame != 'mtg') {
+          combined.addAll(await _cardService.searchPokemon(variant));
+        }
+        if (requestedGame != 'pokemon') {
+          combined.addAll(await _cardService.searchMtg(variant));
+        }
+        if (combined.isNotEmpty) {
+          results = combined;
+          usedQuery = variant;
+          break;
+        }
+      } else if (requestedGame == 'mtg') {
+        continue;
+      } else {
+        for (final searchLanguage in cjkLanguages) {
+          final found = await _cardService.searchPokemon(
+            variant,
+            language: searchLanguage,
+          );
+          if (found.isNotEmpty) {
+            results = found;
+            usedQuery = variant;
+            break;
+          }
+        }
+        if (results.isNotEmpty) break;
+      }
+    }
+
+    return (results: results, usedQuery: usedQuery);
   }
 
   String _detectLanguage(String query) {
@@ -707,7 +824,9 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
       final CameraResult? cameraResult = await Navigator.push<CameraResult>(
         context,
-        MaterialPageRoute(builder: (context) => const CameraScreen()),
+        MaterialPageRoute(
+          builder: (context) => const CameraScreen(captureOnly: true),
+        ),
       );
 
       if (cameraResult == null) {
