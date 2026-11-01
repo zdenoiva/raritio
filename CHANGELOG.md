@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.5] - 2026-11-01
+
+- Glass glow karta je vrátená presne do predchádzajúceho vzhľadu.
+- Classic, Poke, Magic a Stone dostali vlastný glow efekt inšpirovaný Glass: jemný farebný podklad celej karty a zladený podklad pod názvom, popisom a cenou.
+- Stone si zachováva zlatý glow podklad, ale už nie je prehnane presýtený.
+
 ## [0.5.4] - 2026-11-01
 
 - Prvé hodnotenie už neotvára Nastavenia na začiatku, ale samostatné okno s postupom.

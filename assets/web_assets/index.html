@@ -3821,7 +3821,7 @@
         body[data-theme="classic"] .card-item.glow {
             border: 2px solid transparent;
             background:
-                linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(145deg, rgba(96, 165, 250, 0.2), rgba(240, 171, 252, 0.08)) padding-box,
                 linear-gradient(135deg, #60a5fa, #a78bfa 38%, #f0abfc 64%, #60a5fa) border-box;
             box-shadow:
                 0 0 0 1px rgba(96, 165, 250, 0.24),
@@ -3832,7 +3832,10 @@
         body[data-theme="classic"] .card-item.glow .card-name { color: #eef2ff; }
 
         body[data-theme="poke"] .card-item.glow {
-            border-color: #ffcb05;
+            border: 2px solid transparent;
+            background:
+                linear-gradient(145deg, rgba(255, 203, 5, 0.2), rgba(227, 53, 13, 0.08)) padding-box,
+                linear-gradient(135deg, #ffcb05, #e3350d 48%, #ffcb05) border-box;
             box-shadow:
                 0 0 0 2px rgba(255, 203, 5, 0.55),
                 0 0 26px rgba(227, 53, 13, 0.4),
@@ -3856,7 +3859,10 @@
         }
 
         body[data-theme="magic"] .card-item.glow {
-            border-color: #e8c967;
+            border: 2px solid transparent;
+            background:
+                linear-gradient(145deg, rgba(232, 201, 103, 0.2), rgba(45, 212, 191, 0.08)) padding-box,
+                linear-gradient(135deg, #e8c967, #2dd4bf 50%, #c9a227) border-box;
             box-shadow:
                 0 0 0 2px rgba(232, 201, 103, 0.55),
                 0 0 26px rgba(45, 212, 191, 0.34),
@@ -3885,7 +3891,7 @@
         body[data-theme="stone"] .card-item.glow {
             border: 3px solid transparent;
             background:
-                linear-gradient(var(--surface), var(--surface)) padding-box,
+                linear-gradient(145deg, rgba(255, 224, 138, 0.2), rgba(120, 83, 45, 0.12)) padding-box,
                 linear-gradient(135deg, #d8b44a, #6d4a1d 20%, #ffe08a 44%, #7a5622 68%, #e8c967) border-box;
             box-shadow:
                 0 0 0 2px rgba(232, 201, 103, 0.48),
@@ -3981,21 +3987,21 @@
         body[data-theme="classic"] .card-item.glow .card-set { color: #dbeafe; }
 
         body[data-theme="poke"] .card-item.glow .card-info {
-            background: linear-gradient(180deg, rgba(255, 203, 5, 0.26), rgba(227, 53, 13, 0.12) 52%, rgba(11, 18, 32, 0.98));
+            background: linear-gradient(180deg, rgba(255, 203, 5, 0.2), rgba(227, 53, 13, 0.08) 52%, rgba(11, 18, 32, 0.98));
             border-top: 1px solid rgba(255, 203, 5, 0.5);
         }
 
         body[data-theme="poke"] .card-item.glow .card-set { color: #ffe7a3; }
 
         body[data-theme="magic"] .card-item.glow .card-info {
-            background: linear-gradient(180deg, rgba(232, 201, 103, 0.25), rgba(45, 212, 191, 0.11) 52%, rgba(6, 23, 36, 0.98));
+            background: linear-gradient(180deg, rgba(232, 201, 103, 0.2), rgba(45, 212, 191, 0.08) 52%, rgba(6, 23, 36, 0.98));
             border-top: 1px solid rgba(232, 201, 103, 0.54);
         }
 
         body[data-theme="magic"] .card-item.glow .card-set { color: #e8d9a0; }
 
         body[data-theme="stone"] .card-item.glow .card-info {
-            background: linear-gradient(180deg, rgba(255, 224, 138, 0.42), rgba(201, 162, 39, 0.24) 48%, rgba(68, 45, 13, 0.96));
+            background: linear-gradient(180deg, rgba(255, 224, 138, 0.32), rgba(201, 162, 39, 0.18) 48%, rgba(68, 45, 13, 0.96));
             border-top: 1px solid rgba(255, 224, 138, 0.92);
             box-shadow: inset 0 1px 0 rgba(255, 231, 163, 0.38);
         }
@@ -4009,11 +4015,6 @@
 
         body[data-theme="stone"] .card-item.glow .card-set { color: #f2d995; }
         body[data-theme="stone"] .card-item.glow .card-price { color: #ffe08a; }
-
-        body[data-theme="glass"] .card-item.glow .card-info {
-            background: linear-gradient(180deg, rgba(240, 171, 252, 0.18), rgba(125, 211, 252, 0.09) 52%, rgba(10, 14, 21, 0.95));
-            border-top: 1px solid rgba(255, 255, 255, 0.34);
-        }
 
         body[data-theme="poke"] .card-item.glow::after,
         body[data-theme="magic"] .card-item.glow::after,
@@ -4542,7 +4543,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.5.4</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.5.5</span></p>
         </div>
     </div>
 

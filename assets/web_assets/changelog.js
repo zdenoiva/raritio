@@ -1,6 +1,15 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.5.5",
+    "date": "2026-11-01",
+    "changes": [
+      "Glass glow karta je vrátená presne do predchádzajúceho vzhľadu.",
+      "Classic, Poke, Magic a Stone dostali vlastný glow efekt inšpirovaný Glass: jemný farebný podklad celej karty a zladený podklad pod názvom, popisom a cenou.",
+      "Stone si zachováva zlatý glow podklad, ale už nie je prehnane presýtený."
+    ]
+  },
+  {
     "version": "0.5.4",
     "date": "2026-11-01",
     "changes": [
