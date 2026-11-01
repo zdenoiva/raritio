@@ -1,20 +1,18 @@
 {
-  "version": "0.4.6",
-  "versionCode": 406,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.4.6/raritio-0.4.6.apk",
-  "sha256": "532a98e5eb1775e647e91d6a180c1af8fae51ade2fe3cdb26af3bf4956e5b377",
-  "size": 118385568,
-  "publishedAt": "2026-10-31T21:43:48Z",
+  "version": "0.5.0",
+  "versionCode": 500,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.0/raritio-0.5.0.apk",
+  "sha256": "53f8a9c8620094f1cc59fb8b41f9d7b70d846d6a218881d666ff594226cc7146",
+  "size": 118652428,
+  "publishedAt": "2026-11-01T09:31:34Z",
   "changelog": [
-    "Všetky ceny a súčty sú v eurách, symbol € je za číslom.",
-    "Ceny v USD sa prepočítavajú aktuálnym kurzom pri aktualizácii cien.",
-    "Drahé karty v Klasike a Stone dostali výraznejší glow rám.",
-    "Glass už nezafarbuje celé lacné illustration karty; pastelový efekt má len glow.",
-    "Poke nameplate je celý vnútri karty a viac textu sa vmestí.",
-    "Vypnuté označovanie textu dlhým podržaním a jemnejší efekt stlačenia tlačidiel.",
-    "Zvýšená citlivosť nakláňania kariet.",
-    "Tlačidlá Zoradiť a Presúvať sú nižšie.",
-    "Skryté štatistiky zobrazujú používanie tém a najpopulárnejšiu tému.",
-    "SQL migrácia pre témy je v `2026-10-31_public_stats.sql`."
+    "Nové AI ohodnotenie karty cez Ximilar: odfotíš prednú a zadnú stranu a appka odhadne grading.",
+    "Pred odoslaním appka skontroluje rozlíšenie, svetlo, odlesky a ostrosť fotky.",
+    "Výsledok obsahuje celkovú známku, stav a podskóre pre rohy, okraje, povrch a centrovanie.",
+    "Hodnotenie môže bežať na pozadí; po dokončení appka zobrazí upozornenie s tlačidlom „Zobraziť hodnotenie“.",
+    "Karty s hodnotením majú badge `G x,x` v zozname a dajú sa zoradiť podľa gradingu.",
+    "Pri cene karty je nové fialové „Max. grading“ podľa najvyššej PriceCharting grade ceny.",
+    "Ximilar token sa dá vložiť v Nastaveniach; free plán dáva 10 hodnotení mesačne.",
+    "Opravené prepočítanie PriceCharting grade cien z USD do EUR."
   ]
 }
