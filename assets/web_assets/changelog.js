@@ -1,6 +1,17 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.5.3",
+    "date": "2026-11-01",
+    "changes": [
+      "Cena gradingu je v karte pri cene v tom istom riadku, textovo len G suma €, bez ďalšieho riadku.",
+      "Opravené chýbajúce zobrazenie ceny pri niektorých ohodnotených kartách; dopĺňa sa aj po dotiahnutí PriceCharting cien.",
+      "Magic, Stone a Glass majú názov karty od kraja rovnako ako Poke.",
+      "Stone glow má zlatý podklad aj pod názvom, popisom a cenou.",
+      "Glow podklad karty je farebne zladený aj v Classic, Poke a Magic, podobne ako v Glass."
+    ]
+  },
+  {
     "version": "0.5.2",
     "date": "2026-11-01",
     "changes": [

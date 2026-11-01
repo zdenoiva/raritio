@@ -995,10 +995,12 @@ function cardTileHtml(card, options = {}) {
                 <div class="card-name">${escapeHtml(card.name)}</div>
                 <div class="card-set">${escapeHtml(card.set)}</div>
                 <div class="card-footer">
-                    <div class="card-price" data-price-for="${cardId}">${formatCardPrice(card, price)}</div>
+                    <div class="card-price-group">
+                        <div class="card-price" data-price-for="${cardId}">${formatCardPrice(card, price)}</div>
+                        ${gradingPrice ? `<span class="card-grading-price">G ${formatEur(gradingPrice.value)}</span>` : ''}
+                    </div>
                     <span class="card-flag" title="${escapeHtml(languageLabel(card.language))}">${languageFlag(card.language)}</span>
                 </div>
-                ${gradingPrice ? `<div class="card-grading-max">G ${formatGrade(gradingValue)} · ${formatEur(gradingPrice.value)}</div>` : ''}
             </div>
             ${reorder ? `
                 <div class="card-reorder">
@@ -1101,7 +1103,17 @@ function gradingPriceForCard(card) {
             label: String(grade.label || '')
         });
     }
-    if (candidates.length === 0) return null;
+    if (candidates.length === 0) {
+        let legacy = null;
+        for (const grade of grades) {
+            const value = toEur(grade && grade.price, 'USD');
+            if (!Number.isFinite(value) || value <= 0) continue;
+            if (!legacy || value > legacy.value) {
+                legacy = { value, label: String(grade.label || 'grade'), score: 0 };
+            }
+        }
+        return legacy;
+    }
 
     // Ximilar is PSA-style, so prefer PSA prices when PriceCharting has them.
     const psa = candidates.filter(item => item.company === 'PSA');
@@ -1116,7 +1128,13 @@ function gradingPriceForCard(card) {
         .filter(item => item.score > target)
         .sort((a, b) => a.score - b.score);
     if (above.length > 0 && above[0].score - target <= 1.5) return above[0];
-    return null;
+
+    // Last resort: nearest available grade price. Keeps a graded card from
+    // losing its price when PriceCharting has an unusual grade table.
+    const nearest = candidates
+        .slice()
+        .sort((a, b) => Math.abs(a.score - target) - Math.abs(b.score - target));
+    return nearest[0] || null;
 }
 
 function sortedBinderCards(cards, mode) {
@@ -2861,7 +2879,11 @@ function handlePriceCharting(cardId, data, language = null, game = null) {
     updateBinderTotal();
 
     const activeBinder = getCurrentBinder();
-    if (activeBinder && (activeBinder.sortMode === 'price_desc' || activeBinder.sortMode === 'price_asc')) {
+    if (gradingGrade(updatedCard) > 0) {
+        // The card tile was rendered before its grade prices arrived, so its
+        // inline grading price would otherwise stay missing.
+        renderBinder(true);
+    } else if (activeBinder && (activeBinder.sortMode === 'price_desc' || activeBinder.sortMode === 'price_asc')) {
         renderBinder(true);
     }
 

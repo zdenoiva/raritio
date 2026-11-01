@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.3] - 2026-11-01
+
+- Cena gradingu je v karte pri cene v tom istom riadku, textovo len `G suma €`, bez ďalšieho riadku.
+- Opravené chýbajúce zobrazenie ceny pri niektorých ohodnotených kartách; dopĺňa sa aj po dotiahnutí PriceCharting cien.
+- Magic, Stone a Glass majú názov karty od kraja rovnako ako Poke.
+- Stone glow má zlatý podklad aj pod názvom, popisom a cenou.
+- Glow podklad karty je farebne zladený aj v Classic, Poke a Magic, podobne ako v Glass.
+
 ## [0.5.2] - 2026-11-01
 
 - Cena gradingu v zozname aj detaile sa berie podľa výslednej známky (napr. pri 8,5 z PSA 8), nie podľa maximálnej PSA 10 ceny.
