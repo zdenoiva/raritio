@@ -1,18 +1,13 @@
 {
-  "version": "0.5.0",
-  "versionCode": 500,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.0/raritio-0.5.0.apk",
-  "sha256": "53f8a9c8620094f1cc59fb8b41f9d7b70d846d6a218881d666ff594226cc7146",
-  "size": 118652428,
-  "publishedAt": "2026-11-01T09:31:34Z",
+  "version": "0.5.1",
+  "versionCode": 501,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.1/raritio-0.5.1.apk",
+  "sha256": "07ef0538114ef49381dc052461a52eedea2dfb2d774d06629c6d65bf95a73b88",
+  "size": 118652648,
+  "publishedAt": "2026-11-01T10:06:10Z",
   "changelog": [
-    "Nové AI ohodnotenie karty cez Ximilar: odfotíš prednú a zadnú stranu a appka odhadne grading.",
-    "Pred odoslaním appka skontroluje rozlíšenie, svetlo, odlesky a ostrosť fotky.",
-    "Výsledok obsahuje celkovú známku, stav a podskóre pre rohy, okraje, povrch a centrovanie.",
-    "Hodnotenie môže bežať na pozadí; po dokončení appka zobrazí upozornenie s tlačidlom „Zobraziť hodnotenie“.",
-    "Karty s hodnotením majú badge `G x,x` v zozname a dajú sa zoradiť podľa gradingu.",
-    "Pri cene karty je nové fialové „Max. grading“ podľa najvyššej PriceCharting grade ceny.",
-    "Ximilar token sa dá vložiť v Nastaveniach; free plán dáva 10 hodnotení mesačne.",
-    "Opravené prepočítanie PriceCharting grade cien z USD do EUR."
+    "Odkaz na Ximilar token sa otvára v predvolenom systémovom prehliadači, kde prihlásenie funguje.",
+    "Spúšť fotoaparátu už pri nedostupnej kamere alebo počas spracovania nereaguje ticho; zobrazí sa hláška.",
+    "Zachytenie fotky má timeout a ochranu proti dvojkliku, aby sa kamera nezasekla bez odozvy."
   ]
 }
