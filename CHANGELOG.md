@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.4] - 2026-11-01
+
+- Prvé hodnotenie už neotvára Nastavenia na začiatku, ale samostatné okno s postupom.
+- Okno vysvetlí Ximilar, ponúkne otvorenie Settings → Token v systémovom prehliadači a hneď pole na vloženie API tokenu.
+- Po uložení tokenu appka sama pokračuje na fotenie karty.
+- Nastavenia ostávajú dostupné aj na neskoršiu zmenu tokenu.
+
 ## [0.5.3] - 2026-11-01
 
 - Cena gradingu je v karte pri cene v tom istom riadku, textovo len `G suma €`, bez ďalšieho riadku.

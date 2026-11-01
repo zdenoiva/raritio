@@ -1343,6 +1343,87 @@
             margin-top: 8px;
         }
 
+        .grading-setup-sheet {
+            max-width: 390px;
+        }
+
+        .grading-setup-intro {
+            margin-top: 3px;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            line-height: 1.42;
+        }
+
+        .grading-setup-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 13px 0;
+        }
+
+        .grading-setup-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            padding: 9px 10px;
+            border-radius: 11px;
+            border: 1px solid var(--border);
+            background: var(--surface-light);
+            color: var(--text-muted);
+            font-size: 0.69rem;
+            line-height: 1.35;
+        }
+
+        .grading-setup-num {
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            color: #fff;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            font-size: 0.62rem;
+            font-weight: 900;
+        }
+
+        .grading-setup-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0 13px;
+            padding: 10px 12px;
+            border-radius: 11px;
+            border: 1px solid rgba(59, 130, 246, 0.42);
+            color: #dbeafe;
+            background: rgba(59, 130, 246, 0.12);
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .grading-setup-label {
+            display: block;
+            margin-top: 2px;
+            color: var(--text);
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+
+        .grading-setup-status {
+            min-height: 1.1em;
+            margin-top: 7px;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            line-height: 1.35;
+        }
+
+        .grading-setup-sheet .btn-primary,
+        .grading-setup-sheet .btn-secondary {
+            width: 100%;
+            margin-top: 8px;
+        }
+
         /* Card Details */
         .card-detail-layout {
             display: flex;
@@ -4253,6 +4334,53 @@
         </div>
     </div>
 
+    <!-- First grading setup -->
+    <div id="grading-setup-modal" class="modal-overlay center-modal" onclick="closeGradingSetup(event)">
+        <div class="modal-content grading-setup-sheet" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h2>Ešte nastav Ximilar</h2>
+                    <p class="modal-subtitle">Pred prvým ohodnotením karty</p>
+                </div>
+                <button class="close-btn" onclick="closeGradingSetup()" aria-label="Zavrieť">×</button>
+            </div>
+
+            <p class="grading-setup-intro">
+                Ximilar je AI služba na pre-grading. Free plán dáva 1 000 kreditov mesačne,
+                čo je 10 hodnotení prednej a zadnej strany. Účet je bezplatný.
+            </p>
+
+            <div class="grading-setup-steps">
+                <div class="grading-setup-step">
+                    <span class="grading-setup-num">1</span>
+                    <span>Otvoriť Ximilar a prihlásiť sa alebo vytvoriť účet.</span>
+                </div>
+                <div class="grading-setup-step">
+                    <span class="grading-setup-num">2</span>
+                    <span>V Ximilar App otvor <strong>Settings → Token</strong>.</span>
+                </div>
+                <div class="grading-setup-step">
+                    <span class="grading-setup-num">3</span>
+                    <span>Skopíruj token a vlož ho nižšie. Uloží sa len do tohto telefónu.</span>
+                </div>
+            </div>
+
+            <a class="grading-setup-link"
+               href="https://app.ximilar.com/my-plan/settings"
+               target="_blank"
+               rel="noopener"
+               data-system-browser="true">Otvoriť Ximilar → Settings → Token</a>
+
+            <label class="grading-setup-label" for="grading-setup-token">Ximilar API token</label>
+            <input id="grading-setup-token" class="grading-token-input" type="password"
+                   placeholder="Vlož token z Ximilar App" autocomplete="off" spellcheck="false">
+            <p id="grading-setup-status" class="grading-setup-status"></p>
+
+            <button class="btn-primary" onclick="saveGradingTokenFromSetup()">Uložiť a pokračovať</button>
+            <button class="btn-secondary" onclick="closeGradingSetup()">Neskôr</button>
+        </div>
+    </div>
+
     <!-- Search Modal -->
     <div id="search-modal" class="modal-overlay" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
@@ -4414,7 +4542,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.5.3</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.5.4</span></p>
         </div>
     </div>
 

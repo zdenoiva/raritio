@@ -86,6 +86,7 @@ let lastBinderLikesAt = {};
 let lastBinderLikesSignature = {};
 let finishOptionsCardId = null;
 let gradingConfigured = false;
+let pendingGradingSetupCardId = '';
 
 // --- Helpers ---
 function getCurrentBinder() {
@@ -2626,8 +2627,7 @@ function startCardGrading(cardId) {
         return;
     }
     if (!gradingConfigured) {
-        showToast('Najprv vlož Ximilar token v Nastaveniach.');
-        showDataModal();
+        showGradingSetup(card.id);
         return;
     }
     window.flutterBridge.postMessage('startCardGrading:' + JSON.stringify({
@@ -2738,6 +2738,41 @@ function openExternalUrl(url) {
     window.flutterBridge.postMessage('openExternal:' + JSON.stringify({ url: safe }));
 }
 
+function showGradingSetup(cardId) {
+    pendingGradingSetupCardId = String(cardId || '');
+    const input = document.getElementById('grading-setup-token');
+    const status = document.getElementById('grading-setup-status');
+    if (input) input.value = '';
+    if (status) {
+        status.innerText = 'Token sa uloží len do tohto zariadenia. Free plán Ximilaru dáva 10 hodnotení mesačne.';
+    }
+    const modal = document.getElementById('grading-setup-modal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeGradingSetup(event) {
+    if (event && event.target !== event.currentTarget) return;
+    pendingGradingSetupCardId = '';
+    const modal = document.getElementById('grading-setup-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+function saveGradingTokenFromSetup() {
+    const input = document.getElementById('grading-setup-token');
+    const token = input ? input.value.trim() : '';
+    const status = document.getElementById('grading-setup-status');
+    if (!token) {
+        if (status) status.innerText = 'Najprv vlož API token z Ximilar App.';
+        return;
+    }
+    if (!window.flutterBridge) {
+        if (status) status.innerText = 'Bridge nie je dostupný.';
+        return;
+    }
+    if (status) status.innerText = 'Ukladám token...';
+    window.flutterBridge.postMessage('saveGradingToken:' + JSON.stringify({ token }));
+}
+
 function requestGradingConfig() {
     if (!window.flutterBridge) return;
     window.flutterBridge.postMessage('gradingConfig:');
@@ -2773,11 +2808,26 @@ function clearGradingToken() {
 }
 
 function handleGradingTokenSaved(ok, message) {
+    const text = String(message || (ok ? 'Uložené.' : 'Nepodarilo sa uložiť token.'));
     const input = document.getElementById('grading-token-input');
     if (ok && input) input.value = '';
     const status = document.getElementById('grading-token-status');
     if (status && message) status.innerText = message;
-    showToast(String(message || (ok ? 'Uložené.' : 'Nepodarilo sa uložiť token.')));
+
+    const setupInput = document.getElementById('grading-setup-token');
+    const setupStatus = document.getElementById('grading-setup-status');
+    if (setupStatus) setupStatus.innerText = text;
+    if (ok && setupInput) setupInput.value = '';
+
+    showToast(text);
+
+    if (ok && pendingGradingSetupCardId) {
+        const cardId = pendingGradingSetupCardId;
+        pendingGradingSetupCardId = '';
+        const modal = document.getElementById('grading-setup-modal');
+        if (modal) modal.classList.remove('active');
+        setTimeout(() => startCardGrading(cardId), 0);
+    }
 }
 
 function requestPriceCharting(card) {

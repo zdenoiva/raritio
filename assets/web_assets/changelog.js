@@ -1,6 +1,16 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.5.4",
+    "date": "2026-11-01",
+    "changes": [
+      "Prvé hodnotenie už neotvára Nastavenia na začiatku, ale samostatné okno s postupom.",
+      "Okno vysvetlí Ximilar, ponúkne otvorenie Settings → Token v systémovom prehliadači a hneď pole na vloženie API tokenu.",
+      "Po uložení tokenu appka sama pokračuje na fotenie karty.",
+      "Nastavenia ostávajú dostupné aj na neskoršiu zmenu tokenu."
+    ]
+  },
+  {
     "version": "0.5.3",
     "date": "2026-11-01",
     "changes": [
