@@ -1069,6 +1069,274 @@
             padding: 24px 8px;
         }
 
+        /* AI grading */
+        .badge-graded {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(59, 130, 246, 0.9));
+            color: #fff;
+            font-size: 0.56rem;
+            font-weight: 900;
+            letter-spacing: 0.01em;
+            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
+        }
+
+        .badge-graded.processing {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(236, 72, 153, 0.9));
+        }
+
+        .card-grading-max {
+            margin-top: 4px;
+            color: #c084fc;
+            font-size: 0.56rem;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .grading-max-value {
+            color: #c084fc;
+        }
+
+        .grading-max-label {
+            display: inline-block;
+            margin-left: 3px;
+            color: var(--text-muted);
+            font-size: 0.58rem;
+            font-weight: 700;
+        }
+
+        .grading-panel {
+            padding: 13px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--surface-light);
+        }
+
+        .grading-panel.done {
+            border-color: rgba(16, 185, 129, 0.42);
+            background: linear-gradient(145deg, rgba(16, 185, 129, 0.09), var(--surface-light));
+        }
+
+        .grading-panel.processing {
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+
+        .grading-panel.error {
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .grading-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .grading-panel-head > div:first-child {
+            min-width: 0;
+            flex: 1 1 150px;
+        }
+
+        .grading-score {
+            flex: 0 0 auto;
+        }
+
+        .grading-title {
+            color: var(--text);
+            font-size: 0.76rem;
+            font-weight: 900;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .grading-subtitle,
+        .grading-copy,
+        .grading-note {
+            color: var(--text-muted);
+            font-size: 0.66rem;
+            line-height: 1.35;
+        }
+
+        .grading-subtitle { margin-top: 2px; }
+        .grading-copy { margin-top: 9px; }
+
+        .grading-score {
+            min-width: 52px;
+            padding: 7px 9px;
+            border-radius: 12px;
+            text-align: center;
+            color: #052e16;
+            background: linear-gradient(135deg, #86efac, #34d399);
+            font-size: 1.15rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .grading-badge-empty {
+            padding: 4px 8px;
+            border-radius: 999px;
+            color: var(--primary);
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            font-size: 0.55rem;
+            font-weight: 800;
+        }
+
+        .grading-action {
+            width: 100%;
+            margin-top: 10px;
+            padding: 9px 12px;
+            border: 0;
+            border-radius: 11px;
+            color: #fff;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            font-size: 0.72rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .grading-action:active { opacity: 0.8; }
+
+        .grading-actions {
+            display: flex;
+            gap: 7px;
+            margin-top: 10px;
+        }
+
+        .grading-actions .grading-action { margin-top: 0; }
+
+        .grading-link {
+            padding: 9px 11px;
+            border-radius: 11px;
+            border: 1px solid var(--border);
+            color: var(--text);
+            background: transparent;
+            font-size: 0.68rem;
+            font-weight: 800;
+        }
+
+        .grading-subgrades {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .grading-subgrade {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 5px;
+            padding: 7px 8px;
+            border-radius: 9px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-muted);
+            font-size: 0.62rem;
+        }
+
+        .grading-subgrade strong {
+            color: var(--text);
+            font-size: 0.72rem;
+        }
+
+        .grading-max-line {
+            margin-top: 9px;
+            padding: 8px 9px;
+            border-radius: 9px;
+            color: var(--text-muted);
+            background: rgba(192, 132, 252, 0.09);
+            border: 1px solid rgba(192, 132, 252, 0.22);
+            font-size: 0.62rem;
+        }
+
+        .grading-max-line strong { color: #c084fc; }
+        .grading-max-line span { color: var(--text-muted); }
+
+        .grading-note { margin-top: 8px; }
+
+        .grading-spinner {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid rgba(245, 158, 11, 0.25);
+            border-top-color: #f59e0b;
+            animation: grading-spin 0.9s linear infinite;
+        }
+
+        @keyframes grading-spin { to { transform: rotate(360deg); } }
+
+        .grading-token-input {
+            width: 100%;
+            margin-top: 8px;
+            padding: 11px 12px;
+            border-radius: 11px;
+            border: 1px solid var(--border);
+            background: var(--surface-light);
+            color: var(--text);
+            font-size: 0.72rem;
+            font-family: var(--font-mono, monospace);
+        }
+
+        .grading-token-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .grading-ready-sheet {
+            max-width: 360px;
+            text-align: center;
+            padding-bottom: 24px;
+        }
+
+        .grading-ready-icon {
+            width: 54px;
+            height: 54px;
+            margin: 4px auto 10px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: #052e16;
+            background: linear-gradient(135deg, #86efac, #34d399);
+            font-size: 28px;
+            font-weight: 900;
+        }
+
+        .grading-ready-sheet h2 { margin-bottom: 5px; }
+
+        .grading-ready-sheet p {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            line-height: 1.4;
+        }
+
+        .grading-ready-grade {
+            margin: 11px auto 6px;
+            color: #34d399;
+            font-size: 2.1rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .grading-ready-condition {
+            color: var(--text);
+            font-size: 0.75rem;
+            font-weight: 800;
+            margin-bottom: 14px;
+        }
+
+        .grading-ready-sheet .btn-primary,
+        .grading-ready-sheet .btn-secondary {
+            width: 100%;
+            margin-top: 8px;
+        }
+
         /* Card Details */
         .card-detail-layout {
             display: flex;
@@ -3907,6 +4175,19 @@
         </div>
     </div>
 
+    <!-- Grading ready notification -->
+    <div id="grading-ready-modal" class="modal-overlay center-modal" onclick="closeGradingReady(event)">
+        <div class="modal-content grading-ready-sheet" onclick="event.stopPropagation()">
+            <div class="grading-ready-icon">✓</div>
+            <h2>Hodnotenie je hotové</h2>
+            <p id="grading-ready-name">Karta</p>
+            <div id="grading-ready-grade" class="grading-ready-grade">—</div>
+            <div id="grading-ready-condition" class="grading-ready-condition">AI odhad</div>
+            <button class="btn-primary" onclick="openGradedCardFromReady()">Zobraziť hodnotenie</button>
+            <button class="btn-secondary" onclick="closeGradingReady()">Neskôr</button>
+        </div>
+    </div>
+
     <!-- Search Modal -->
     <div id="search-modal" class="modal-overlay" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
@@ -4028,7 +4309,22 @@
                 </label>
             </div>
 
-            <div class="settings-section">
+                        <div class="settings-section">
+                <div class="settings-section-title">AI ohodnotenie kariet</div>
+                <p class="settings-note">
+                    Ximilar Free dáva 1 000 kreditov/mesiac. Jedno hodnotenie prednej a zadnej strany stojí 100 kreditov, teda 10 hodnotení zdarma.
+                    Token získaš v <a href="https://app.ximilar.com/my-plan/settings" target="_blank">Ximilar App → Settings → Token</a>.
+                </p>
+                <input id="grading-token-input" class="grading-token-input" type="password"
+                       placeholder="Ximilar API token" autocomplete="off" spellcheck="false">
+                <div class="settings-action-row">
+                    <button class="btn-secondary" onclick="saveGradingToken()">Uložiť token</button>
+                    <button class="btn-secondary" onclick="clearGradingToken()">Odstrániť</button>
+                </div>
+                <p id="grading-token-status" class="settings-note">Token nie je nastavený.</p>
+            </div>
+
+<div class="settings-section">
                 <div class="settings-section-title">Záloha a obnova</div>
                 <p class="settings-note">
                     Záloha je šifrovaná heslom a obsahuje balíky, karty, ceny,
@@ -4053,7 +4349,7 @@
                 </div>
             </div>
 
-            <p class="settings-version">Verzia <span id="app-version">0.4.6</span></p>
+            <p class="settings-version">Verzia <span id="app-version">0.5.0</span></p>
         </div>
     </div>
 

@@ -8,7 +8,7 @@ Raritio je osobná Android aplikácia na správu zbierky Pokémon a MTG kariet. 
 
 ## Aktuálna verzia
 
-- **0.4.6** (beta)
+- **0.5.0** (beta)
 - Android package: `sk.zdenoiva.raritio`
 
 ## Funkcie
@@ -24,7 +24,16 @@ Raritio je osobná Android aplikácia na správu zbierky Pokémon a MTG kariet. 
 - Zdieľanie konkrétnym kamošom bez skenovania
 - Likes kariet v zdieľaných balíkoch (jeden like na kamoša)
 - QR kódy a Android share menu
+- AI pre-grading kariet cez Ximilar (predná + zadná strana)
 - Kontrola aktualizácií z GitHub Releases
+
+## AI grading
+
+Ohodnotenie kariet používa **Ximilar Card Grader**. Free plán Ximilaru má 1 000 kreditov mesačne a jedno hodnotenie prednej + zadnej strany stojí 100 kreditov, teda **10 hodnotení zdarma**.
+
+Token sa dá vložiť priamo v appke: **Nastavenia → AI ohodnotenie kariet**. Pre release build sa dá nastaviť aj GitHub Actions secret `XIMILAR_API_TOKEN` a workflow ho odovzdá cez `--dart-define`.
+
+Výsledok je AI odhad (PSA-style), nie oficiálna známka PSA/BGS/CGC.
 
 ## Zdieľanie balíkov
 

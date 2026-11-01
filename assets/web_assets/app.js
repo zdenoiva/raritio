@@ -1,6 +1,6 @@
 // --- State Management ---
 const DEFAULT_BINDER_NAME = 'Môj balík';
-const BINDER_SORT_MODES = ['custom', 'name', 'rarity', 'price_desc', 'price_asc', 'recent', 'set'];
+const BINDER_SORT_MODES = ['custom', 'name', 'rarity', 'price_desc', 'price_asc', 'recent', 'set', 'grading'];
 const BINDER_SORT_OPTIONS = [
     { value: 'custom', label: 'Vlastné', icon: '≡', description: 'Presne tak, ako si karty uložil.' },
     { value: 'name', label: 'Abecedne', icon: 'A', description: 'Podľa názvu karty od A po Z.' },
@@ -8,6 +8,7 @@ const BINDER_SORT_OPTIONS = [
     { value: 'price_desc', label: 'Cena ↓', icon: '$↓', description: 'Najdrahšie karty hore.' },
     { value: 'price_asc', label: 'Cena ↑', icon: '$↑', description: 'Najlacnejšie karty hore.' },
     { value: 'recent', label: 'Najnovšie', icon: '◷', description: 'Naposledy pridané karty hore.' },
+    { value: 'grading', label: 'Grading ↓', icon: 'G', description: 'Najvyššie ohodnotené karty hore.' },
     { value: 'set', label: 'Podľa edície', icon: '▤', description: 'Edícia a číslo karty.' }
 ];
 
@@ -84,6 +85,7 @@ let holoLastOrientation = { beta: 0, gamma: 0, known: false };
 let lastBinderLikesAt = {};
 let lastBinderLikesSignature = {};
 let finishOptionsCardId = null;
+let gradingConfigured = false;
 
 // --- Helpers ---
 function getCurrentBinder() {
@@ -962,6 +964,9 @@ function cardTileHtml(card, options = {}) {
     const binderLike = binder && binder.sharedId
         ? (state.binderLikes[binder.sharedId] || {})[card.id]
         : null;
+    const gradingValue = gradingGrade(card);
+    const gradingBusy = card.grading && card.grading.status === 'processing';
+    const gradingMax = gradingValue > 0 ? maxGradingValue(card) : null;
 
     return `
         <div class="card-item rarity-${rarity} ${glow ? 'glow' : ''} game-${gameClassValue} ${reorder ? 'reorder-mode' : ''}"
@@ -972,6 +977,7 @@ function cardTileHtml(card, options = {}) {
                 <div class="card-badges-left">
                     ${state.settings.gameBadges ? `<span class="badge-game ${gameClassValue}">${game}</span>` : ''}
                     ${card.customImage ? '<span class="badge-custom">Custom</span>' : ''}
+                    ${gradingValue > 0 ? `<span class="badge-graded" title="Ohodnotená karta">G ${formatGrade(gradingValue)}</span>` : (gradingBusy ? '<span class="badge-graded processing" title="Hodnotenie prebieha">G…</span>' : '')}
                 </div>
                 ${state.settings.foilBadges && finish ? `<span class="badge-foil finish-${finishClass(finishKey)}"><span class="badge-spark">✦</span>${escapeHtml(finish)}</span>` : ''}
             </div>
@@ -992,6 +998,7 @@ function cardTileHtml(card, options = {}) {
                     <div class="card-price" data-price-for="${cardId}">${formatCardPrice(card, price)}</div>
                     <span class="card-flag" title="${escapeHtml(languageLabel(card.language))}">${languageFlag(card.language)}</span>
                 </div>
+                ${gradingMax ? `<div class="card-grading-max">Max. grading ${formatEur(gradingMax.value)}</div>` : ''}
             </div>
             ${reorder ? `
                 <div class="card-reorder">
@@ -1053,6 +1060,30 @@ function cardAddedTime(card) {
     return Number.isFinite(value) ? value : 0;
 }
 
+function gradingGrade(card) {
+    const value = Number(card && card.grading && card.grading.grade);
+    return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function formatGrade(value) {
+    const grade = Number(value);
+    if (!Number.isFinite(grade) || grade <= 0) return '—';
+    return grade.toFixed(1).replace('.', ',');
+}
+
+function maxGradingValue(card) {
+    const grades = Array.isArray(card && card.gradePrices) ? card.gradePrices : [];
+    let best = null;
+    for (const grade of grades) {
+        const value = toEur(grade && grade.price, 'USD');
+        if (!Number.isFinite(value) || value <= 0) continue;
+        if (!best || value > best.value) {
+            best = { value, label: String(grade.label || 'grade') };
+        }
+    }
+    return best;
+}
+
 function sortedBinderCards(cards, mode) {
     const indexed = cards.map((card, index) => ({ card, index }));
     if (mode === 'custom' || !BINDER_SORT_MODES.includes(mode)) {
@@ -1081,6 +1112,8 @@ function sortedBinderCards(cards, mode) {
             }) || String(cardA.number || '').localeCompare(String(cardB.number || ''), 'sk', {
                 numeric: true
             }) || compareCardNames(cardA, cardB);
+        } else if (mode === 'grading') {
+            result = gradingGrade(cardB) - gradingGrade(cardA) || compareCardNames(cardA, cardB);
         }
 
         return result || a.index - b.index;
@@ -2423,13 +2456,275 @@ function renderGradePrices(card) {
                 ${grades.map(grade => `
                     <div class="grade-row">
                         <span class="grade-label">${escapeHtml(grade.label)}</span>
-                        <span class="grade-value">${formatChartMoney(cardEurValue(card, grade.price))}</span>
+                        <span class="grade-value">${formatChartMoney(toEur(grade.price, 'USD'))}</span>
                     </div>
                 `).join('')}
             </div>
             <div class="grade-note">Zdroj: PriceCharting. Zobrazené sú všetky dostupné grade. Ceny sú prepočítané na EUR a môžu sa líšiť podľa stavu karty.</div>
         </div>
     `;
+}
+
+function gradingMaxHtml(card) {
+    const best = maxGradingValue(card);
+    if (!best) return '—';
+    return `${formatEur(best.value)} <span class="grading-max-label">${escapeHtml(best.label)}</span>`;
+}
+
+function renderGradingPanel(card) {
+    const grading = card && card.grading ? card.grading : null;
+    const status = grading ? String(grading.status || '') : '';
+    const grade = gradingGrade(card);
+    const detailButton = (label) => `
+        <button class="grading-action" onclick="startCardGrading('${escapeHtml(card.id)}')">
+            ${escapeHtml(label)}
+        </button>
+    `;
+
+    if (status === 'processing') {
+        return `
+            <div class="grading-panel processing">
+                <div class="grading-panel-head">
+                    <div>
+                        <div class="grading-title">AI grading</div>
+                        <div class="grading-subtitle">Ximilar práve hodnotí fotky</div>
+                    </div>
+                    <span class="grading-spinner" aria-hidden="true"></span>
+                </div>
+                <p class="grading-copy">Hodnotenie zvyčajne trvá 10–30 sekúnd. Môžeš pokračovať v prehliadaní aplikácie, ozveme sa, keď bude hotové.</p>
+            </div>
+        `;
+    }
+
+    if (status === 'error') {
+        return `
+            <div class="grading-panel error">
+                <div class="grading-panel-head">
+                    <div>
+                        <div class="grading-title">AI grading</div>
+                        <div class="grading-subtitle">Hodnotenie sa nepodarilo</div>
+                    </div>
+                </div>
+                <p class="grading-copy">${escapeHtml(grading.error || 'Skús to znova.')}</p>
+                ${detailButton('Skúsiť znova')}
+            </div>
+        `;
+    }
+
+    if (grade <= 0) {
+        return `
+            <div class="grading-panel">
+                <div class="grading-panel-head">
+                    <div>
+                        <div class="grading-title">AI grading</div>
+                        <div class="grading-subtitle">Ximilar pre-grading z fotiek</div>
+                    </div>
+                    <span class="grading-badge-empty">Nové</span>
+                </div>
+                <p class="grading-copy">Odfoť prednú a zadnú stranu. AI odhadne centrovanie, rohy, okraje a povrch karty.</p>
+                ${detailButton('Ohodnoť kartu')}
+                <p class="grading-note">Odhad, nie oficiálna známka PSA/BGS/CGC.</p>
+            </div>
+        `;
+    }
+
+    const sub = [
+        ['Rohy', grading.corners],
+        ['Okraje', grading.edges],
+        ['Povrch', grading.surface],
+        ['Centrovanie', grading.centering]
+    ].filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
+
+    const max = maxGradingValue(card);
+    return `
+        <div class="grading-panel done">
+            <div class="grading-panel-head">
+                <div>
+                    <div class="grading-title">AI grading</div>
+                    <div class="grading-subtitle">${escapeHtml(grading.condition || 'Odhad stavu')} · Ximilar</div>
+                </div>
+                <div class="grading-score">${formatGrade(grade)}</div>
+            </div>
+            ${sub.length ? `
+                <div class="grading-subgrades">
+                    ${sub.map(([label, value]) => `
+                        <div class="grading-subgrade">
+                            <span>${escapeHtml(label)}</span>
+                            <strong>${formatGrade(value)}</strong>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            ${max ? `<div class="grading-max-line">Max. odhad gradingu <strong>${formatEur(max.value)}</strong> <span>${escapeHtml(max.label)}</span></div>` : ''}
+            <div class="grading-actions">
+                ${detailButton('Ohodnotiť znova')}
+                ${grading.frontImageUrl ? `<button class="grading-link" onclick="openExternalUrl('${escapeHtml(grading.frontImageUrl)}')">Náhľad AI</button>` : ''}
+            </div>
+            <p class="grading-note">Odhad z fotiek, nie oficiálna známka. Foto z ${escapeHtml(grading.gradedAt ? new Date(grading.gradedAt).toLocaleDateString('sk-SK') : 'Ximilar')}.</p>
+        </div>
+    `;
+}
+
+function startCardGrading(cardId) {
+    const card = findCardForImage(cardId) || state.binders.flatMap(b => b.cards).find(c => c.id === cardId);
+    if (!card) return;
+    if (!window.flutterBridge) {
+        showToast('Bridge nie je dostupný.');
+        return;
+    }
+    if (!gradingConfigured) {
+        showToast('Najprv vlož Ximilar token v Nastaveniach.');
+        showDataModal();
+        return;
+    }
+    window.flutterBridge.postMessage('startCardGrading:' + JSON.stringify({
+        id: card.id,
+        name: card.name,
+        game: card.game
+    }));
+}
+
+function handleGradingStarted(cardId) {
+    const updated = updateCardEverywhere(cardId, card => {
+        card.grading = {
+            status: 'processing',
+            startedAt: new Date().toISOString(),
+            provider: 'ximilar'
+        };
+    });
+    if (!updated) return;
+    saveState();
+    renderBinder(true);
+    refreshOpenCardDetail(cardId);
+    showToast('Hodnotenie prebieha na pozadí. Ozveme sa, keď bude hotové.');
+}
+
+function handleGradingCancelled(cardId) {
+    refreshOpenCardDetail(cardId);
+}
+
+function handleGradingError(cardId, message) {
+    const text = String(message || 'Hodnotenie zlyhalo.');
+    const updated = updateCardEverywhere(cardId, card => {
+        card.grading = {
+            status: 'error',
+            error: text,
+            provider: 'ximilar'
+        };
+    });
+    if (!updated) return;
+    saveState();
+    renderBinder(true);
+    refreshOpenCardDetail(cardId);
+    showToast(text);
+}
+
+let gradingReadyCardId = '';
+
+function handleGradingResult(cardId, result, openDetail = false) {
+    const grade = Number(result && result.grade);
+    if (!Number.isFinite(grade) || grade <= 0) return;
+    const updated = updateCardEverywhere(cardId, card => {
+        card.grading = { ...result, status: 'done', grade };
+    });
+    if (!updated) {
+        showToast('Karta už nie je v zbierke, hodnotenie sa neuložilo.');
+        return;
+    }
+    saveState();
+    renderBinder(true);
+    if (previewCardId === cardId) showCardDetails(cardId, true);
+    if (openDetail) {
+        openGradedCard(cardId);
+    } else {
+        showGradingReady(cardId, result);
+    }
+}
+
+function showGradingReady(cardId, result) {
+    gradingReadyCardId = cardId;
+    const card = state.binders.flatMap(b => b.cards).find(c => c.id === cardId);
+    const name = card && card.name ? card.name : 'Karta';
+    const nameNode = document.getElementById('grading-ready-name');
+    const gradeNode = document.getElementById('grading-ready-grade');
+    const conditionNode = document.getElementById('grading-ready-condition');
+    if (nameNode) nameNode.innerText = name;
+    if (gradeNode) gradeNode.innerText = formatGrade(result.grade);
+    if (conditionNode) conditionNode.innerText = String(result.condition || 'AI odhad');
+    const modal = document.getElementById('grading-ready-modal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeGradingReady(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const modal = document.getElementById('grading-ready-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+function openGradedCardFromReady() {
+    const cardId = gradingReadyCardId;
+    const modal = document.getElementById('grading-ready-modal');
+    if (modal) modal.classList.remove('active');
+    if (cardId) openGradedCard(cardId);
+}
+
+function openGradedCard(cardId) {
+    const binder = state.binders.find(item => item.cards.some(card => card.id === cardId));
+    if (binder) {
+        state.currentBinderId = binder.id;
+        renderBinderSelector();
+        renderBinder();
+    }
+    if (typeof updateNav === 'function') updateNav('nav-binder');
+    showCardDetails(cardId);
+}
+
+function openExternalUrl(url) {
+    const safe = safeExternalUrl(url);
+    if (!safe || !window.flutterBridge) return;
+    window.flutterBridge.postMessage('openExternal:' + JSON.stringify({ url: safe }));
+}
+
+function requestGradingConfig() {
+    if (!window.flutterBridge) return;
+    window.flutterBridge.postMessage('gradingConfig:');
+}
+
+function handleGradingConfig(data) {
+    gradingConfigured = !!(data && data.configured);
+    const status = document.getElementById('grading-token-status');
+    if (status) {
+        status.innerText = gradingConfigured
+            ? (data && data.buildToken ? 'Ximilar token je nastavený v builde.' : 'Ximilar token je uložený.')
+            : 'Token nie je nastavený. Free plán Ximilaru dáva 1 000 kreditov/mesiac = 10 hodnotení.';
+    }
+}
+
+function saveGradingToken() {
+    const input = document.getElementById('grading-token-input');
+    const token = input ? input.value.trim() : '';
+    if (!token) {
+        showToast('Vlož Ximilar API token.');
+        return;
+    }
+    if (!window.flutterBridge) {
+        showToast('Bridge nie je dostupný.');
+        return;
+    }
+    window.flutterBridge.postMessage('saveGradingToken:' + JSON.stringify({ token }));
+}
+
+function clearGradingToken() {
+    if (!window.flutterBridge) return;
+    window.flutterBridge.postMessage('clearGradingToken:');
+}
+
+function handleGradingTokenSaved(ok, message) {
+    const input = document.getElementById('grading-token-input');
+    if (ok && input) input.value = '';
+    const status = document.getElementById('grading-token-status');
+    if (status && message) status.innerText = message;
+    showToast(String(message || (ok ? 'Uložené.' : 'Nepodarilo sa uložiť token.')));
 }
 
 function requestPriceCharting(card) {
@@ -2685,8 +2980,10 @@ function showCardDetails(cardId, preserveScroll = false) {
             <div class="detail-card"><span class="detail-card-label">Číslo</span><span class="detail-card-value">${escapeHtml(card.number || '-')}</span></div>
             <div class="detail-card"><span class="detail-card-label">Autor</span><span class="detail-card-value">${escapeHtml(card.artist || '-')}</span></div>
             <div class="detail-card"><span class="detail-card-label">Cena</span><span class="detail-card-value price" id="detail-price">${formatCardPrice(card)}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Max. grading</span><span class="detail-card-value grading-max-value">${gradingMaxHtml(card)}</span></div>
             <div class="detail-card"><span class="detail-card-label">Zdroj ceny</span><span class="detail-card-value">${escapeHtml(priceSourceLabel(card))}</span></div>
         </div>
+        <div id="grading-container">${renderGradingPanel(card)}</div>
         <div id="grade-prices-container">${renderGradePrices(card)}</div>
         <div id="price-history-container">${renderPriceHistory(card)}</div>
         <div class="binder-picker">
@@ -3714,6 +4011,7 @@ function showDataModal() {
     dataBusy = false;
     setDataStatus('');
     syncSettingsUI();
+    requestGradingConfig();
     document.getElementById('data-modal').classList.add('active');
 }
 
@@ -4194,6 +4492,8 @@ function init() {
     const historyTitle = document.getElementById('version-history-title');
     if (historyTitle) historyTitle.addEventListener('click', handleHistoryTitleTap);
     applySettings();
+    requestExchangeRate();
+    requestGradingConfig();
     renderBinderSelector();
     renderBinder();
     updateSearchClearVisibility();

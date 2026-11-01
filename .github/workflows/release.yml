@@ -48,7 +48,9 @@ jobs:
           EOF
 
       - name: Build release APK
-        run: flutter build apk --release
+        env:
+          XIMILAR_API_TOKEN: ${{ secrets.XIMILAR_API_TOKEN }}
+        run: flutter build apk --release --dart-define=XIMILAR_API_TOKEN="$XIMILAR_API_TOKEN"
 
       - name: Prepare release metadata
         id: meta

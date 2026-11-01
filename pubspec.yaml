@@ -1,7 +1,7 @@
 name: raritio
 description: "Raritio — osobná zbierka Pokémon a MTG kariet."
 publish_to: 'none'
-version: 0.4.6+406
+version: 0.5.0+500
 
 environment:
   sdk: ^3.13.7

@@ -14,14 +14,17 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:raritio/app_version.dart';
 import 'package:raritio/config/supabase_config.dart';
 import 'package:raritio/screens/camera_screen.dart';
+import 'package:raritio/screens/card_grading_screen.dart';
 import 'package:raritio/screens/external_browser_screen.dart';
 import 'package:raritio/screens/shared_binder_detail_screen.dart';
 import 'package:raritio/screens/shared_binders_screen.dart';
 import 'package:raritio/services/backup_crypto_service.dart';
 import 'package:raritio/services/bridge_service.dart';
 import 'package:raritio/services/card_service.dart';
+import 'package:raritio/services/card_grading_service.dart';
 import 'package:raritio/services/custom_card_image_service.dart';
 import 'package:raritio/services/exchange_rate_service.dart';
+import 'package:raritio/services/grading_token_service.dart';
 import 'package:raritio/services/price_charting_service.dart';
 import 'package:raritio/services/price_service.dart';
 import 'package:raritio/services/search_query_expander.dart';
@@ -82,6 +85,10 @@ class _RaritioTCGState extends State<RaritioTCG> {
   final CardService _cardService = CardService();
   final PriceChartingService _priceChartingService = PriceChartingService();
   final ExchangeRateService _exchangeRateService = ExchangeRateService();
+  final CardGradingService _gradingService = CardGradingService();
+  final GradingTokenService _gradingTokens = GradingTokenService();
+  bool _gradingFlowOpen = false;
+  final Set<String> _gradingPolls = <String>{};
   final StateService _stateService = StateService();
   final BackupCryptoService _backupCrypto = BackupCryptoService();
   final CustomCardImageService _customCardImageService =
@@ -152,6 +159,14 @@ class _RaritioTCGState extends State<RaritioTCG> {
       _handleReloadCardImage(message);
     } else if (message.startsWith('captureCardPhoto:')) {
       _handleCaptureCardPhoto(message);
+    } else if (message.startsWith('startCardGrading:')) {
+      unawaited(_handleStartCardGrading(message));
+    } else if (message.startsWith('gradingConfig:')) {
+      unawaited(_sendGradingConfig());
+    } else if (message.startsWith('saveGradingToken:')) {
+      unawaited(_handleSaveGradingToken(message));
+    } else if (message.startsWith('clearGradingToken:')) {
+      unawaited(_handleClearGradingToken());
     } else if (message.startsWith('openShared:')) {
       unawaited(_openSharedScreen());
     } else if (message.startsWith('refreshSharedBinders:')) {
@@ -212,13 +227,14 @@ class _RaritioTCGState extends State<RaritioTCG> {
       // restores an older snapshot.
       await _stateWriteChain;
       final state = await _stateService.loadState();
-      _controller.runJavaScript('hydrateState(${jsonEncode(state)})');
+      await _controller.runJavaScript('hydrateState(${jsonEncode(state)})');
     } catch (e) {
       print('State load error: $e');
-      _controller.runJavaScript('hydrateState(null)');
+      await _controller.runJavaScript('hydrateState(null)');
     }
     unawaited(_refreshSharedBinderSummaries());
     unawaited(_maybeCheckForUpdates());
+    unawaited(_resumePendingGrading());
   }
 
   Future<void> _openExternal(String rawUrl) async {
@@ -1094,6 +1110,146 @@ class _RaritioTCGState extends State<RaritioTCG> {
         );
       }
     }
+  }
+
+  Future<void> _sendGradingConfig() async {
+    final configured = await _gradingTokens.isConfigured();
+    if (!mounted) return;
+    _controller.runJavaScript(
+      'handleGradingConfig(${jsonEncode({'configured': configured, 'buildToken': _gradingTokens.hasBuildToken})})',
+    );
+  }
+
+  Future<void> _handleSaveGradingToken(String message) async {
+    try {
+      final payload = message.substring('saveGradingToken:'.length).trim();
+      final data = jsonDecode(payload);
+      final token = data is Map ? (data['token'] ?? '').toString().trim() : '';
+      if (token.length < 20) {
+        _controller.runJavaScript(
+          'handleGradingTokenSaved(false, ${jsonEncode('Token je príliš krátky. Skopíruj celý token z Ximilar App.')})',
+        );
+        return;
+      }
+      await _gradingTokens.saveToken(token);
+      await _sendGradingConfig();
+      _controller.runJavaScript(
+        'handleGradingTokenSaved(true, ${jsonEncode('Ximilar token bol uložený.')})',
+      );
+    } catch (e) {
+      _controller.runJavaScript(
+        'handleGradingTokenSaved(false, ${jsonEncode('Token sa nepodarilo uložiť: $e')})',
+      );
+    }
+  }
+
+  Future<void> _handleClearGradingToken() async {
+    await _gradingTokens.clearToken();
+    await _sendGradingConfig();
+    _controller.runJavaScript(
+      'handleGradingTokenSaved(true, ${jsonEncode('Ximilar token bol odstránený.')})',
+    );
+  }
+
+  Future<void> _handleStartCardGrading(String message) async {
+    if (_gradingFlowOpen) return;
+    String cardId = '';
+    String cardName = 'Karta';
+    String game = 'pokemon';
+    try {
+      final payload = message.substring('startCardGrading:'.length).trim();
+      final data = jsonDecode(payload);
+      if (data is! Map) return;
+      cardId = (data['id'] ?? '').toString().trim();
+      cardName = (data['name'] ?? 'Karta').toString();
+      game = (data['game'] ?? 'pokemon').toString();
+      if (cardId.isEmpty) return;
+
+      _gradingFlowOpen = true;
+      final outcome = await Navigator.push<CardGradingOutcome>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CardGradingScreen(
+            cardId: cardId,
+            cardName: cardName,
+            game: game,
+            theme: _appTheme,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      if (outcome == null || outcome.cancelled) {
+        _controller.runJavaScript(
+          'handleGradingCancelled(${jsonEncode(cardId)})',
+        );
+        return;
+      }
+      if (outcome.result != null) {
+        if (outcome.requestId != null) {
+          await _gradingService.clearPending(outcome.requestId!);
+        }
+        _controller.runJavaScript(
+          'handleGradingResult(${jsonEncode(cardId)}, ${jsonEncode(outcome.result!.toJson())}, true)',
+        );
+        return;
+      }
+      if (outcome.requestId != null) {
+        _controller.runJavaScript(
+          'handleGradingStarted(${jsonEncode(cardId)})',
+        );
+        unawaited(_pollGrading(outcome.requestId!, cardId));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _controller.runJavaScript(
+        'handleGradingError(${jsonEncode(cardId)}, ${jsonEncode('Hodnotenie zlyhalo: $e')})',
+      );
+    } finally {
+      _gradingFlowOpen = false;
+    }
+  }
+
+  Future<void> _pollGrading(String requestId, String cardId) async {
+    if (!_gradingPolls.add(requestId)) return;
+    final started = DateTime.now();
+    try {
+      while (mounted) {
+        final result = await _gradingService.poll(requestId);
+        if (!mounted) return;
+        if (result != null) {
+          _controller.runJavaScript(
+            'handleGradingResult(${jsonEncode(cardId)}, ${jsonEncode(result.toJson())}, false)',
+          );
+          return;
+        }
+        if (DateTime.now().difference(started) > const Duration(minutes: 10)) {
+          throw const GradingException(
+            'Hodnotenie trvá príliš dlho. Skús to neskôr.',
+          );
+        }
+        await Future<void>.delayed(const Duration(seconds: 3));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _controller.runJavaScript(
+        'handleGradingError(${jsonEncode(cardId)}, ${jsonEncode(e.toString())})',
+      );
+    } finally {
+      _gradingPolls.remove(requestId);
+    }
+  }
+
+  Future<void> _resumePendingGrading() async {
+    try {
+      final pending = await _gradingService.loadPending();
+      for (final item in pending) {
+        if (!mounted) return;
+        _controller.runJavaScript(
+          'handleGradingStarted(${jsonEncode(item.cardId)})',
+        );
+        unawaited(_pollGrading(item.requestId, item.cardId));
+      }
+    } catch (_) {}
   }
 
   Future<void> _openSharedScreen() async {

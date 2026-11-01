@@ -1,6 +1,20 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.5.0",
+    "date": "2026-11-01",
+    "changes": [
+      "Nové AI ohodnotenie karty cez Ximilar: odfotíš prednú a zadnú stranu a appka odhadne grading.",
+      "Pred odoslaním appka skontroluje rozlíšenie, svetlo, odlesky a ostrosť fotky.",
+      "Výsledok obsahuje celkovú známku, stav a podskóre pre rohy, okraje, povrch a centrovanie.",
+      "Hodnotenie môže bežať na pozadí; po dokončení appka zobrazí upozornenie s tlačidlom „Zobraziť hodnotenie“.",
+      "Karty s hodnotením majú badge G x,x v zozname a dajú sa zoradiť podľa gradingu.",
+      "Pri cene karty je nové fialové „Max. grading“ podľa najvyššej PriceCharting grade ceny.",
+      "Ximilar token sa dá vložiť v Nastaveniach; free plán dáva 10 hodnotení mesačne.",
+      "Opravené prepočítanie PriceCharting grade cien z USD do EUR."
+    ]
+  },
+  {
     "version": "0.4.6",
     "date": "2026-10-31",
     "changes": [
