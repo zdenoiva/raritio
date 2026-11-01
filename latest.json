@@ -1,12 +1,15 @@
 {
-  "version": "0.5.2",
-  "versionCode": 502,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.2/raritio-0.5.2.apk",
-  "sha256": "94a2235241614f02be43035d2f52994edb8a1a28dd340093d49c182dde168dbe",
-  "size": 118653216,
-  "publishedAt": "2026-11-01T10:24:13Z",
+  "version": "0.5.3",
+  "versionCode": 503,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.3/raritio-0.5.3.apk",
+  "sha256": "6fcbb4e3376fd05b7b4c6ca9c5ec5cb97c493a999f3060a1d04790fd5c986715",
+  "size": 118653984,
+  "publishedAt": "2026-11-01T10:51:41Z",
   "changelog": [
-    "Cena gradingu v zozname aj detaile sa berie podľa výslednej známky (napr. pri 8,5 z PSA 8), nie podľa maximálnej PSA 10 ceny.",
-    "Viacslovné foil/reverse badge sa zalamujú do dvoch riadkov a už sa neprekrývajú s badge Pokémon."
+    "Cena gradingu je v karte pri cene v tom istom riadku, textovo len `G suma €`, bez ďalšieho riadku.",
+    "Opravené chýbajúce zobrazenie ceny pri niektorých ohodnotených kartách; dopĺňa sa aj po dotiahnutí PriceCharting cien.",
+    "Magic, Stone a Glass majú názov karty od kraja rovnako ako Poke.",
+    "Stone glow má zlatý podklad aj pod názvom, popisom a cenou.",
+    "Glow podklad karty je farebne zladený aj v Classic, Poke a Magic, podobne ako v Glass."
   ]
 }
