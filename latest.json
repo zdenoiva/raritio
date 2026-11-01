@@ -1,14 +1,13 @@
 {
-  "version": "0.5.4",
-  "versionCode": 504,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.4/raritio-0.5.4.apk",
-  "sha256": "711414aeb47a69887eefb36e54a3892ce047467e0788eed5fb43685fc8503c6e",
-  "size": 118655056,
-  "publishedAt": "2026-11-01T11:06:14Z",
+  "version": "0.5.5",
+  "versionCode": 505,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.5/raritio-0.5.5.apk",
+  "sha256": "4494de85dbeeb65722b710fcad367f3537b34dc9ff516651094612532322066e",
+  "size": 118655156,
+  "publishedAt": "2026-11-01T11:21:13Z",
   "changelog": [
-    "Prvé hodnotenie už neotvára Nastavenia na začiatku, ale samostatné okno s postupom.",
-    "Okno vysvetlí Ximilar, ponúkne otvorenie Settings → Token v systémovom prehliadači a hneď pole na vloženie API tokenu.",
-    "Po uložení tokenu appka sama pokračuje na fotenie karty.",
-    "Nastavenia ostávajú dostupné aj na neskoršiu zmenu tokenu."
+    "Glass glow karta je vrátená presne do predchádzajúceho vzhľadu.",
+    "Classic, Poke, Magic a Stone dostali vlastný glow efekt inšpirovaný Glass: jemný farebný podklad celej karty a zladený podklad pod názvom, popisom a cenou.",
+    "Stone si zachováva zlatý glow podklad, ale už nie je prehnane presýtený."
   ]
 }
