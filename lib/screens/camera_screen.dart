@@ -164,33 +164,46 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  void _showCaptureMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _takePicture() async {
+    if (_isTakingPicture || _processing || _resultVisible) return;
     final controller = _controller;
-    if (_isTakingPicture ||
-        controller == null ||
-        !controller.value.isInitialized) {
+    if (controller == null || !controller.value.isInitialized) {
+      _showCaptureMessage('Kamera sa ešte spúšťa. Skús to o chvíľu.');
       return;
     }
     setState(() => _isTakingPicture = true);
     try {
-      final file = await controller.takePicture();
+      final file = await controller.takePicture().timeout(
+        const Duration(seconds: 25),
+      );
       if (!mounted) return;
       setState(() => _isTakingPicture = false);
       await _recognizePath(file.path, temporary: true);
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _isTakingPicture = false;
-        _error = 'Nepodarilo sa odfotiť: $e';
-      });
+      setState(() => _isTakingPicture = false);
+      _showCaptureMessage('Nepodarilo sa odfotiť. Skús to znova.');
     }
   }
 
   Future<void> _captureForCustomPhoto() async {
+    if (_isTakingPicture) return;
     final controller = _controller;
-    if (controller == null) return;
+    if (controller == null || !controller.value.isInitialized) {
+      _showCaptureMessage('Kamera sa ešte spúšťa. Skús to o chvíľu.');
+      return;
+    }
+    setState(() => _isTakingPicture = true);
     try {
-      final file = await controller.takePicture();
+      final file = await controller.takePicture().timeout(
+        const Duration(seconds: 25),
+      );
       final dir = await getTemporaryDirectory();
       final target = p.join(
         dir.path,
@@ -201,7 +214,10 @@ class _CameraScreenState extends State<CameraScreen> {
         Navigator.pop(context, CameraResult(path: target, game: _game));
       }
     } catch (e) {
-      if (mounted) setState(() => _error = 'Nepodarilo sa odfotiť: $e');
+      if (mounted) {
+        setState(() => _isTakingPicture = false);
+        _showCaptureMessage('Nepodarilo sa odfotiť. Skús to znova.');
+      }
     }
   }
 
@@ -665,6 +681,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 tooltip: 'Vybrať z galérie',
               ),
               GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: _isTakingPicture
                     ? null
                     : widget.captureOnly

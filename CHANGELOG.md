@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.1] - 2026-11-01
+
+- Odkaz na Ximilar token sa otvára v predvolenom systémovom prehliadači, kde prihlásenie funguje.
+- Spúšť fotoaparátu už pri nedostupnej kamere alebo počas spracovania nereaguje ticho; zobrazí sa hláška.
+- Zachytenie fotky má timeout a ochranu proti dvojkliku, aby sa kamera nezasekla bez odozvy.
+
 ## [0.5.0] - 2026-11-01
 
 - Nové AI ohodnotenie karty cez Ximilar: odfotíš prednú a zadnú stranu a appka odhadne grading.

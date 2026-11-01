@@ -4479,10 +4479,13 @@ function init() {
         }
         event.preventDefault();
         event.stopPropagation();
+        const systemBrowser = link.dataset.systemBrowser === 'true' ||
+            link.getAttribute('data-system-browser') === 'true';
         if (window.flutterBridge) {
-            window.flutterBridge.postMessage('openExternal:' + JSON.stringify({
-                url: url.href
-            }));
+            window.flutterBridge.postMessage(
+                (systemBrowser ? 'openSystemBrowser:' : 'openExternal:') +
+                JSON.stringify({ url: url.href })
+            );
         } else {
             window.open(url.href, '_blank', 'noopener');
         }

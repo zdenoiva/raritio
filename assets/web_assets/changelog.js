@@ -1,6 +1,15 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.5.1",
+    "date": "2026-11-01",
+    "changes": [
+      "Odkaz na Ximilar token sa otvára v predvolenom systémovom prehliadači, kde prihlásenie funguje.",
+      "Spúšť fotoaparátu už pri nedostupnej kamere alebo počas spracovania nereaguje ticho; zobrazí sa hláška.",
+      "Zachytenie fotky má timeout a ochranu proti dvojkliku, aby sa kamera nezasekla bez odozvy."
+    ]
+  },
+  {
     "version": "0.5.0",
     "date": "2026-11-01",
     "changes": [

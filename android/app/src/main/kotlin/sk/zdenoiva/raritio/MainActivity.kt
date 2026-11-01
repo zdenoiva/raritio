@@ -4,7 +4,9 @@ import android.Manifest
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.ContentValues
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -20,6 +22,7 @@ import java.security.MessageDigest
 class MainActivity : FlutterActivity() {
     private val backupChannel = "sk.zdenoiva.raritio/backup"
     private val securityChannel = "sk.zdenoiva.raritio/security"
+    private val externalBrowserChannel = "sk.zdenoiva.raritio/external"
     private val storagePermissionRequest = 1002
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -49,6 +52,28 @@ class MainActivity : FlutterActivity() {
                 }
 
                 else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            externalBrowserChannel,
+        ).setMethodCallHandler { call, result ->
+            if (call.method == "openUrl") {
+                val url = call.argument<String>("url")
+                val uri = url?.let { Uri.parse(it) }
+                if (uri == null || (uri.scheme != "http" && uri.scheme != "https")) {
+                    result.error("ARG_ERROR", "A valid http(s) URL is required", null)
+                    return@setMethodCallHandler
+                }
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.error("OPEN_ERROR", e.message, null)
+                }
+            } else {
+                result.notImplemented()
             }
         }
 

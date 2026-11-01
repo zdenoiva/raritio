@@ -79,6 +79,9 @@ class RaritioTCG extends StatefulWidget {
 }
 
 class _RaritioTCGState extends State<RaritioTCG> {
+  static const MethodChannel _externalBrowserChannel = MethodChannel(
+    'sk.zdenoiva.raritio/external',
+  );
   late final WebViewController _controller;
   final BridgeService _bridge = BridgeService();
   final PriceService _priceService = PriceService();
@@ -149,6 +152,13 @@ class _RaritioTCGState extends State<RaritioTCG> {
         final data = jsonDecode(message.substring('openExternal:'.length));
         if (data is Map) {
           unawaited(_openExternal((data['url'] ?? '').toString()));
+        }
+      } catch (_) {}
+    } else if (message.startsWith('openSystemBrowser:')) {
+      try {
+        final data = jsonDecode(message.substring('openSystemBrowser:'.length));
+        if (data is Map) {
+          unawaited(_openSystemBrowser((data['url'] ?? '').toString()));
         }
       } catch (_) {}
     } else if (message.startsWith('searchCards:')) {
@@ -249,6 +259,22 @@ class _RaritioTCGState extends State<RaritioTCG> {
         builder: (context) => ExternalBrowserScreen(url: uri.toString()),
       ),
     );
+  }
+
+  Future<void> _openSystemBrowser(String rawUrl) async {
+    final uri = Uri.tryParse(rawUrl.trim());
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return;
+    }
+    try {
+      await _externalBrowserChannel.invokeMethod<bool>('openUrl', {
+        'url': uri.toString(),
+      });
+    } catch (_) {
+      // If Android cannot hand the link to a browser, keep the in-app browser
+      // as a fallback instead of losing the link entirely.
+      if (mounted) await _openExternal(uri.toString());
+    }
   }
 
   Future<void> _refreshSharedBinderSummaries() async {
