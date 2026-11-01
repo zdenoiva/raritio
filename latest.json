@@ -1,13 +1,12 @@
 {
-  "version": "0.5.1",
-  "versionCode": 501,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.1/raritio-0.5.1.apk",
-  "sha256": "07ef0538114ef49381dc052461a52eedea2dfb2d774d06629c6d65bf95a73b88",
-  "size": 118652648,
-  "publishedAt": "2026-11-01T10:06:10Z",
+  "version": "0.5.2",
+  "versionCode": 502,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.2/raritio-0.5.2.apk",
+  "sha256": "94a2235241614f02be43035d2f52994edb8a1a28dd340093d49c182dde168dbe",
+  "size": 118653216,
+  "publishedAt": "2026-11-01T10:24:13Z",
   "changelog": [
-    "Odkaz na Ximilar token sa otvára v predvolenom systémovom prehliadači, kde prihlásenie funguje.",
-    "Spúšť fotoaparátu už pri nedostupnej kamere alebo počas spracovania nereaguje ticho; zobrazí sa hláška.",
-    "Zachytenie fotky má timeout a ochranu proti dvojkliku, aby sa kamera nezasekla bez odozvy."
+    "Cena gradingu v zozname aj detaile sa berie podľa výslednej známky (napr. pri 8,5 z PSA 8), nie podľa maximálnej PSA 10 ceny.",
+    "Viacslovné foil/reverse badge sa zalamujú do dvoch riadkov a už sa neprekrývajú s badge Pokémon."
   ]
 }
