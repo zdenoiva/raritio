@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.2] - 2026-11-01
+
+- Cena gradingu v zozname aj detaile sa berie podľa výslednej známky (napr. pri 8,5 z PSA 8), nie podľa maximálnej PSA 10 ceny.
+- Viacslovné foil/reverse badge sa zalamujú do dvoch riadkov a už sa neprekrývajú s badge Pokémon.
+
 ## [0.5.1] - 2026-11-01
 
 - Odkaz na Ximilar token sa otvára v predvolenom systémovom prehliadači, kde prihlásenie funguje.

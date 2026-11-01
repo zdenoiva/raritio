@@ -1,6 +1,14 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.5.2",
+    "date": "2026-11-01",
+    "changes": [
+      "Cena gradingu v zozname aj detaile sa berie podľa výslednej známky (napr. pri 8,5 z PSA 8), nie podľa maximálnej PSA 10 ceny.",
+      "Viacslovné foil/reverse badge sa zalamujú do dvoch riadkov a už sa neprekrývajú s badge Pokémon."
+    ]
+  },
+  {
     "version": "0.5.1",
     "date": "2026-11-01",
     "changes": [

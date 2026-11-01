@@ -966,7 +966,7 @@ function cardTileHtml(card, options = {}) {
         : null;
     const gradingValue = gradingGrade(card);
     const gradingBusy = card.grading && card.grading.status === 'processing';
-    const gradingMax = gradingValue > 0 ? maxGradingValue(card) : null;
+    const gradingPrice = gradingValue > 0 ? gradingPriceForCard(card) : null;
 
     return `
         <div class="card-item rarity-${rarity} ${glow ? 'glow' : ''} game-${gameClassValue} ${reorder ? 'reorder-mode' : ''}"
@@ -998,7 +998,7 @@ function cardTileHtml(card, options = {}) {
                     <div class="card-price" data-price-for="${cardId}">${formatCardPrice(card, price)}</div>
                     <span class="card-flag" title="${escapeHtml(languageLabel(card.language))}">${languageFlag(card.language)}</span>
                 </div>
-                ${gradingMax ? `<div class="card-grading-max">Max. grading ${formatEur(gradingMax.value)}</div>` : ''}
+                ${gradingPrice ? `<div class="card-grading-max">G ${formatGrade(gradingValue)} · ${formatEur(gradingPrice.value)}</div>` : ''}
             </div>
             ${reorder ? `
                 <div class="card-reorder">
@@ -1071,17 +1071,52 @@ function formatGrade(value) {
     return grade.toFixed(1).replace('.', ',');
 }
 
-function maxGradingValue(card) {
+function parseGradingLabel(label) {
+    const text = String(label || '').trim();
+    if (!text || /ungraded/i.test(text)) return null;
+    const match = text.match(/(?:PSA|BGS|CGC|SGC|TAG|ACE)?\s*(10(?:\.0)?|[1-9](?:\.[0-9])?)/i);
+    if (!match) return null;
+    const score = Number(match[1]);
+    if (!Number.isFinite(score) || score <= 0) return null;
+    const company = (text.match(/\b(PSA|BGS|CGC|SGC|TAG|ACE)\b/i) || [])[1];
+    return {
+        score,
+        company: company ? company.toUpperCase() : 'OTHER'
+    };
+}
+
+/** Price from the PriceCharting grade closest to the AI result. */
+function gradingPriceForCard(card) {
+    const target = gradingGrade(card);
+    if (target <= 0) return null;
     const grades = Array.isArray(card && card.gradePrices) ? card.gradePrices : [];
-    let best = null;
+    let candidates = [];
     for (const grade of grades) {
+        const parsed = parseGradingLabel(grade && grade.label);
         const value = toEur(grade && grade.price, 'USD');
-        if (!Number.isFinite(value) || value <= 0) continue;
-        if (!best || value > best.value) {
-            best = { value, label: String(grade.label || 'grade') };
-        }
+        if (!parsed || !Number.isFinite(value) || value <= 0) continue;
+        candidates.push({
+            ...parsed,
+            value,
+            label: String(grade.label || '')
+        });
     }
-    return best;
+    if (candidates.length === 0) return null;
+
+    // Ximilar is PSA-style, so prefer PSA prices when PriceCharting has them.
+    const psa = candidates.filter(item => item.company === 'PSA');
+    if (psa.length > 0) candidates = psa;
+
+    const below = candidates
+        .filter(item => item.score <= target + 0.001)
+        .sort((a, b) => b.score - a.score);
+    if (below.length > 0) return below[0];
+
+    const above = candidates
+        .filter(item => item.score > target)
+        .sort((a, b) => a.score - b.score);
+    if (above.length > 0 && above[0].score - target <= 1.5) return above[0];
+    return null;
 }
 
 function sortedBinderCards(cards, mode) {
@@ -2465,9 +2500,9 @@ function renderGradePrices(card) {
     `;
 }
 
-function gradingMaxHtml(card) {
-    const best = maxGradingValue(card);
-    if (!best) return '—';
+function gradingPriceHtml(card) {
+    const best = gradingPriceForCard(card);
+    if (!best) return '-';
     return `${formatEur(best.value)} <span class="grading-max-label">${escapeHtml(best.label)}</span>`;
 }
 
@@ -2535,7 +2570,7 @@ function renderGradingPanel(card) {
         ['Centrovanie', grading.centering]
     ].filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
 
-    const max = maxGradingValue(card);
+    const predictedPrice = gradingPriceForCard(card);
     return `
         <div class="grading-panel done">
             <div class="grading-panel-head">
@@ -2555,7 +2590,7 @@ function renderGradingPanel(card) {
                     `).join('')}
                 </div>
             ` : ''}
-            ${max ? `<div class="grading-max-line">Max. odhad gradingu <strong>${formatEur(max.value)}</strong> <span>${escapeHtml(max.label)}</span></div>` : ''}
+            ${predictedPrice ? `<div class="grading-max-line">Cena pri grade ${formatGrade(grade)} <strong>${formatEur(predictedPrice.value)}</strong> <span>${escapeHtml(predictedPrice.label)}</span></div>` : ''}
             <div class="grading-actions">
                 ${detailButton('Ohodnotiť znova')}
                 ${grading.frontImageUrl ? `<button class="grading-link" onclick="openExternalUrl('${escapeHtml(grading.frontImageUrl)}')">Náhľad AI</button>` : ''}
@@ -2980,7 +3015,7 @@ function showCardDetails(cardId, preserveScroll = false) {
             <div class="detail-card"><span class="detail-card-label">Číslo</span><span class="detail-card-value">${escapeHtml(card.number || '-')}</span></div>
             <div class="detail-card"><span class="detail-card-label">Autor</span><span class="detail-card-value">${escapeHtml(card.artist || '-')}</span></div>
             <div class="detail-card"><span class="detail-card-label">Cena</span><span class="detail-card-value price" id="detail-price">${formatCardPrice(card)}</span></div>
-            <div class="detail-card"><span class="detail-card-label">Max. grading</span><span class="detail-card-value grading-max-value">${gradingMaxHtml(card)}</span></div>
+            <div class="detail-card"><span class="detail-card-label">Cena gradingu</span><span class="detail-card-value grading-max-value">${gradingPriceHtml(card)}</span></div>
             <div class="detail-card"><span class="detail-card-label">Zdroj ceny</span><span class="detail-card-value">${escapeHtml(priceSourceLabel(card))}</span></div>
         </div>
         <div id="grading-container">${renderGradingPanel(card)}</div>
