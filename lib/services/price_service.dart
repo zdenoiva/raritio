@@ -31,10 +31,14 @@ class PriceService {
         final data = jsonDecode(response.body);
         final selected = _findVariant(data, variantId, finish);
         if (selected != null) {
-          final price = _variantPrice(selected);
+          final price = _variantPrice(selected, card: data);
           if (price > 0) return price;
         }
-        final topLevel = _priceFromPricingForFinish(data['pricing'], finish);
+        final topLevel = _priceFromPricingForFinish(
+          data['pricing'],
+          finish,
+          card: data,
+        );
         if (topLevel > 0) return topLevel;
       }
     } catch (e) {
@@ -90,14 +94,14 @@ class PriceService {
     return type;
   }
 
-  double _variantPrice(Map variant) {
+  double _variantPrice(Map variant, {dynamic card}) {
     final type = variant['type']?.toString().trim().toLowerCase() ?? '';
     final pricing = variant['pricing'];
     if (pricing is! Map) return 0;
 
     final cardmarket = pricing['cardmarket'];
     if (cardmarket is Map) {
-      final useHolo = type != 'normal';
+      final useHolo = _useHoloPrice(type, card);
       final average = _number(cardmarket[useHolo ? 'avg-holo' : 'avg']);
       final trend = _number(cardmarket[useHolo ? 'trend-holo' : 'trend']);
       final low = _number(cardmarket[useHolo ? 'low-holo' : 'low']);
@@ -116,15 +120,20 @@ class PriceService {
     return _priceFromTcgplayer(pricing);
   }
 
-  double _priceFromPricingForFinish(dynamic pricing, String? finish) {
+  double _priceFromPricingForFinish(
+    dynamic pricing,
+    String? finish, {
+    dynamic card,
+  }) {
     if (pricing is! Map) return 0;
     final cardmarket = pricing['cardmarket'];
     if (cardmarket is Map) {
+      final type = (finish ?? '').trim().toLowerCase();
       final useHolo =
-          finish != null &&
-          finish.isNotEmpty &&
-          finish != 'normal' &&
-          finish != 'firstEdition';
+          type.isNotEmpty &&
+          type != 'normal' &&
+          type != 'firstEdition' &&
+          _useHoloPrice(type, card);
       final average = _number(cardmarket[useHolo ? 'avg-holo' : 'avg']);
       final trend = _number(cardmarket[useHolo ? 'trend-holo' : 'trend']);
       final low = _number(cardmarket[useHolo ? 'low-holo' : 'low']);
@@ -133,6 +142,25 @@ class PriceService {
       if (low > 0) return low;
     }
     return _priceFromTcgplayer(pricing);
+  }
+
+  /// TCGdex sometimes maps both holo and reverse-holo printings to the same
+  /// Cardmarket product. On a reverse-only extra printing, `avg-holo` is the
+  /// reverse-holo price and plain `avg` is the regular holo price. Gengar
+  /// Legendary Collection 11/110 is a real example: holo ~212 EUR, reverse
+  /// holo ~3810 EUR. Do not bill the reverse price to a regular holo card.
+  bool _useHoloPrice(String type, dynamic card) {
+    if (type == 'normal') return false;
+    if (type != 'holo') return true;
+    if (card is Map) {
+      final variants = card['variants'];
+      if (variants is Map &&
+          variants['normal'] != true &&
+          variants['reverse'] == true) {
+        return false;
+      }
+    }
+    return true;
   }
 
   double _number(dynamic value) {

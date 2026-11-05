@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.7] - 2026-11-05
+
+- Opravená cena holo kariet z TCGdex/Cardmarket, ktoré majú zároveň reverse-holo variant. Gengar 11/110 z Legendary Collection už neukazuje reverse-holo cenu 3 809,80 €, ale holo cenu približne 212,50 €.
+- Cena gradingu sa naďalej vyberá podľa výslednej známky, nie podľa PSA 10.
+
 ## [0.5.6] - 2026-11-05
 
 - Opravená cena gradingu: PriceCharting používa `Grade 7/8/9/9.5`, nie všetko `PSA 10`. Pri známke 7,6 sa teraz použije cena Grade 7.
