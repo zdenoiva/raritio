@@ -24,6 +24,14 @@ void main() {
     );
   });
 
+  test('encrypts and decrypts a passwordless app backup', () async {
+    const plain = '{"app":"raritio","state":{"binders":[]}}';
+    final encrypted = await service.encryptWithAppKey(plain);
+    expect(encrypted, isNot(contains('binders')));
+    expect(service.encryptionKind(encrypted), 'app');
+    expect(await service.decryptWithAppKey(encrypted), plain);
+  });
+
   test('rejects a wrong password', () async {
     final encrypted = await service.encryptWithPassword('secret', 'right-pass');
     expect(

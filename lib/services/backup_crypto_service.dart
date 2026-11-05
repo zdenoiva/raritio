@@ -1,20 +1,25 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart' show sha256;
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Backups are encrypted with AES-256-GCM.
 ///
-/// Manual backups use a user password so they can be restored on another
-/// device. Automatic daily backups use a random key stored in Android's
-/// encrypted secure storage and are intended for the same installation.
+/// Backups use an app-owned key so they can be restored on another device
+/// without a password. The key is embedded in the app and is deliberately not
+/// a substitute for a user password; it only keeps the file from being opened
+/// by ordinary tools outside Raritio. Legacy password/device backups remain
+/// supported for restore.
 class BackupCryptoService {
   BackupCryptoService({FlutterSecureStorage? storage})
     : _storage = storage ?? const FlutterSecureStorage();
 
   static const int _iterations = 120000;
   static const String _deviceKeyName = 'raritio_backup_device_key';
+  static const String _appKeySeed =
+      'raritio-backup-app-v1-7c4f2a91e83b5d60a1c9f4e2b7d86350';
 
   final FlutterSecureStorage _storage;
   final Random _random = Random.secure();
@@ -49,6 +54,31 @@ class BackupCryptoService {
     final salt = base64Decode(map['salt'] as String);
     final key = await _deriveKey(password, salt);
     return _decryptBox(map, key);
+  }
+
+  Future<String> encryptWithAppKey(String plaintext) async {
+    final box = await AesGcm.with256bits().encrypt(
+      utf8.encode(plaintext),
+      secretKey: _appKey(),
+    );
+    return jsonEncode({
+      'format': 'raritio-backup',
+      'version': 2,
+      'encryption': 'aes-256-gcm',
+      'kdf': 'app',
+      'keyId': 'raritio-app-v1',
+      'nonce': base64Encode(box.nonce),
+      'mac': base64Encode(box.mac.bytes),
+      'ciphertext': base64Encode(box.cipherText),
+    });
+  }
+
+  Future<String> decryptWithAppKey(String payload) async {
+    final map = _parse(payload);
+    if (map['kdf'] != 'app') {
+      throw const FormatException('Záloha nie je šifrovaná app kľúčom.');
+    }
+    return _decryptBox(map, _appKey());
   }
 
   Future<String> encryptWithDeviceKey(String plaintext) async {
@@ -123,6 +153,10 @@ class BackupCryptoService {
     );
     final clear = await AesGcm.with256bits().decrypt(box, secretKey: key);
     return utf8.decode(clear);
+  }
+
+  SecretKey _appKey() {
+    return SecretKey(sha256.convert(utf8.encode(_appKeySeed)).bytes);
   }
 
   Future<SecretKey> _deviceKey() async {

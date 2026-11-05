@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.6] - 2026-11-05
+
+- Opravená cena gradingu: PriceCharting používa `Grade 7/8/9/9.5`, nie všetko `PSA 10`. Pri známke 7,6 sa teraz použije cena Grade 7.
+- Automatické aj manuálne zálohy sú bez hesla a šifrované app kľúčom.
+- Takú zálohu vie Raritio obnoviť aj na inom zariadení bez zadávania hesla.
+- Staršie zálohy chránené heslom alebo viazané na pôvodné zariadenie sa dajú obnoviť naďalej.
+
 ## [0.5.5] - 2026-11-01
 
 - Glass glow karta je vrátená presne do predchádzajúceho vzhľadu.

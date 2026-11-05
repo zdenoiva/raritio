@@ -1116,25 +1116,48 @@ function gradingPriceForCard(card) {
         return legacy;
     }
 
-    // Ximilar is PSA-style, so prefer PSA prices when PriceCharting has them.
-    const psa = candidates.filter(item => item.company === 'PSA');
-    if (psa.length > 0) candidates = psa;
+    const companyRank = item => {
+        switch (item.company) {
+            case 'PSA': return 0;
+            case 'BGS': return 1;
+            case 'CGC': return 2;
+            case 'SGC': return 3;
+            case 'TAG': return 4;
+            case 'ACE': return 5;
+            default: return 9;
+        }
+    };
 
+    // PriceCharting uses "Grade 7/8/9/9.5" for the common grades and brands
+    // only the high end (PSA 10, BGS 10...). Do not discard those generic
+    // grades when PSA rows exist, or every card ends up using the PSA 10 price.
     const below = candidates
         .filter(item => item.score <= target + 0.001)
-        .sort((a, b) => b.score - a.score);
+        .sort((a, b) =>
+            b.score - a.score ||
+            companyRank(a) - companyRank(b) ||
+            a.value - b.value
+        );
     if (below.length > 0) return below[0];
 
     const above = candidates
         .filter(item => item.score > target)
-        .sort((a, b) => a.score - b.score);
+        .sort((a, b) =>
+            a.score - b.score ||
+            companyRank(a) - companyRank(b) ||
+            a.value - b.value
+        );
     if (above.length > 0 && above[0].score - target <= 1.5) return above[0];
 
     // Last resort: nearest available grade price. Keeps a graded card from
     // losing its price when PriceCharting has an unusual grade table.
     const nearest = candidates
         .slice()
-        .sort((a, b) => Math.abs(a.score - target) - Math.abs(b.score - target));
+        .sort((a, b) =>
+            Math.abs(a.score - target) - Math.abs(b.score - target) ||
+            companyRank(a) - companyRank(b) ||
+            a.value - b.value
+        );
     return nearest[0] || null;
 }
 

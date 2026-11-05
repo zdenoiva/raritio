@@ -1653,20 +1653,9 @@ class _RaritioTCGState extends State<RaritioTCG> {
       final stateJson = message.substring('backupState:'.length);
       jsonDecode(stateJson); // validate before wrapping
 
-      final password = await _askBackupPassword();
-      if (password == null) {
-        _controller.runJavaScript(
-          'onBackupResult(false, ${jsonEncode("Záloha bola zrušená.")})',
-        );
-        return;
-      }
-
       final account = await _backupAccountData();
       final backup = _stateService.createBackup(stateJson, account: account);
-      final encrypted = await _backupCrypto.encryptWithPassword(
-        backup,
-        password,
-      );
+      final encrypted = await _backupCrypto.encryptWithAppKey(backup);
       final path = await _stateService.saveBackup(encrypted);
       _controller.runJavaScript(
         'onBackupResult(true, ${jsonEncode("Záloha uložená: $path")})',
@@ -1685,7 +1674,7 @@ class _RaritioTCGState extends State<RaritioTCG> {
       jsonDecode(stateJson); // validate before wrapping
       final account = await _backupAccountData();
       final backup = _stateService.createBackup(stateJson, account: account);
-      final encrypted = await _backupCrypto.encryptWithDeviceKey(backup);
+      final encrypted = await _backupCrypto.encryptWithAppKey(backup);
       final path = await _stateService.ensureDailyBackup(encrypted);
       if (path != null) {
         print('Automatic backup: $path');
@@ -1716,12 +1705,21 @@ class _RaritioTCGState extends State<RaritioTCG> {
 
       if (_backupCrypto.isEncrypted(raw)) {
         final kind = _backupCrypto.encryptionKind(raw);
-        if (kind == 'device') {
+        if (kind == 'app') {
+          try {
+            content = await _backupCrypto.decryptWithAppKey(raw);
+          } catch (_) {
+            _controller.runJavaScript(
+              'onRestoreResult(false, ${jsonEncode("Zálohu sa nepodarilo dešifrovať. Môže byť poškodená alebo z inej verzie appky.")})',
+            );
+            return;
+          }
+        } else if (kind == 'device') {
           try {
             content = await _backupCrypto.decryptWithDeviceKey(raw);
           } catch (_) {
             _controller.runJavaScript(
-              'onRestoreResult(false, ${jsonEncode("Táto záloha je viazaná na pôvodné zariadenie. Použi manuálnu zálohu chránenú heslom.")})',
+              'onRestoreResult(false, ${jsonEncode("Táto staršia záloha je viazaná na pôvodné zariadenie. Použi novšiu zálohu alebo manuálnu zálohu chránenú heslom.")})',
             );
             return;
           }
@@ -1794,79 +1792,6 @@ class _RaritioTCGState extends State<RaritioTCG> {
         'onRestoreResult(false, ${jsonEncode("Obnovu sa nepodarilo dokončiť: $e")})',
       );
     }
-  }
-
-  Future<String?> _askBackupPassword() async {
-    final password = TextEditingController();
-    final confirm = TextEditingController();
-    String? error;
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Heslo k zálohe'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Záloha bude šifrovaná heslom. Bez hesla ju nebude možné obnoviť.',
-                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: password,
-                obscureText: true,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Heslo'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: confirm,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Heslo znova'),
-              ),
-              if (error != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  error!,
-                  style: const TextStyle(
-                    color: Color(0xFFFCA5A5),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Zrušiť'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final value = password.text;
-                if (value.length < 8) {
-                  setDialogState(
-                    () => error = 'Heslo musí mať aspoň 8 znakov.',
-                  );
-                  return;
-                }
-                if (value != confirm.text) {
-                  setDialogState(() => error = 'Heslá sa nezhodujú.');
-                  return;
-                }
-                Navigator.pop(context, value);
-              },
-              child: const Text('Zálohovať'),
-            ),
-          ],
-        ),
-      ),
-    ).whenComplete(() {
-      password.dispose();
-      confirm.dispose();
-    });
   }
 
   Future<String?> _askRestorePassword() async {

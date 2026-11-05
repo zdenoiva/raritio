@@ -1,6 +1,16 @@
 // Generated from CHANGELOG.md by tool/generate_changelog_js.py.
 window.RARITIO_CHANGELOG = [
   {
+    "version": "0.5.6",
+    "date": "2026-11-05",
+    "changes": [
+      "Opravená cena gradingu: PriceCharting používa Grade 7/8/9/9.5, nie všetko PSA 10. Pri známke 7,6 sa teraz použije cena Grade 7.",
+      "Automatické aj manuálne zálohy sú bez hesla a šifrované app kľúčom.",
+      "Takú zálohu vie Raritio obnoviť aj na inom zariadení bez zadávania hesla.",
+      "Staršie zálohy chránené heslom alebo viazané na pôvodné zariadenie sa dajú obnoviť naďalej."
+    ]
+  },
+  {
     "version": "0.5.5",
     "date": "2026-11-01",
     "changes": [
