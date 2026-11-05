@@ -1,14 +1,12 @@
 {
-  "version": "0.5.6",
-  "versionCode": 506,
-  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.6/raritio-0.5.6.apk",
-  "sha256": "d995c3fac4c68def723c03c32c598e70ec388378ddf884358592227303accfec",
-  "size": 118655576,
-  "publishedAt": "2026-11-05T17:40:07Z",
+  "version": "0.5.7",
+  "versionCode": 507,
+  "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.7/raritio-0.5.7.apk",
+  "sha256": "aee81f84c4320386f8a5831e6cd93abe67926f3c83d3412dfcbc288ab3813f02",
+  "size": 118655712,
+  "publishedAt": "2026-11-05T17:54:29Z",
   "changelog": [
-    "Opravená cena gradingu: PriceCharting používa `Grade 7/8/9/9.5`, nie všetko `PSA 10`. Pri známke 7,6 sa teraz použije cena Grade 7.",
-    "Automatické aj manuálne zálohy sú bez hesla a šifrované app kľúčom.",
-    "Takú zálohu vie Raritio obnoviť aj na inom zariadení bez zadávania hesla.",
-    "Staršie zálohy chránené heslom alebo viazané na pôvodné zariadenie sa dajú obnoviť naďalej."
+    "Opravená cena holo kariet z TCGdex/Cardmarket, ktoré majú zároveň reverse-holo variant. Gengar 11/110 z Legendary Collection už neukazuje reverse-holo cenu 3 809,80 €, ale holo cenu približne 212,50 €.",
+    "Cena gradingu sa naďalej vyberá podľa výslednej známky, nie podľa PSA 10."
   ]
 }
