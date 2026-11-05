@@ -2,9 +2,9 @@
   "version": "0.5.6",
   "versionCode": 506,
   "apkUrl": "https://github.com/zdenoiva/raritio/releases/download/v0.5.6/raritio-0.5.6.apk",
-  "sha256": "0563644a183e53ffb307d950eb0fe94322b8533050139b9573076c0d88b8ae88",
+  "sha256": "d995c3fac4c68def723c03c32c598e70ec388378ddf884358592227303accfec",
   "size": 118655576,
-  "publishedAt": "2026-11-05T17:39:21Z",
+  "publishedAt": "2026-11-05T17:40:07Z",
   "changelog": [
     "Opravená cena gradingu: PriceCharting používa `Grade 7/8/9/9.5`, nie všetko `PSA 10`. Pri známke 7,6 sa teraz použije cena Grade 7.",
     "Automatické aj manuálne zálohy sú bez hesla a šifrované app kľúčom.",
